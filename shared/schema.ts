@@ -312,3 +312,31 @@ export type InvoiceWithLines = Invoice & {
   school: School;
   lines: InvoiceLine[];
 };
+
+// App Settings table for global application configuration
+export const appSettings = pgTable("app_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appName: varchar("app_name").default("Elite Scholar"),
+  appLogo: varchar("app_logo"),
+  domain: varchar("domain"),
+  smtpHost: varchar("smtp_host"),
+  smtpPort: varchar("smtp_port").default("587"),
+  smtpUser: varchar("smtp_user"),
+  smtpPassword: varchar("smtp_password"),
+  smtpSecure: boolean("smtp_secure").default(false),
+  emailFromAddress: varchar("email_from_address"),
+  emailFromName: varchar("email_from_name").default("Elite Scholar"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema validation for app settings
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// App Settings types
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;

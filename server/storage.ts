@@ -8,6 +8,7 @@ import {
   invoices,
   invoiceLines,
   subscriptions,
+  appSettings,
   type User,
   type InsertUser,
   type School,
@@ -24,6 +25,8 @@ import {
   type InsertInvoice,
   type InvoiceLine,
   type InsertInvoiceLine,
+  type AppSettings,
+  type InsertAppSettings,
   type SchoolWithDetails,
   type InvoiceWithLines,
 } from "@shared/schema";
@@ -450,6 +453,28 @@ export class DatabaseStorage implements IStorage {
       pendingInvoices,
       monthlyRevenue: monthlyRevenue || "0",
     };
+  }
+
+  // App Settings operations
+  async getAppSettings(): Promise<AppSettings | null> {
+    const [settings] = await db.select().from(appSettings).limit(1);
+    return settings || null;
+  }
+
+  async upsertAppSettings(settingsData: InsertAppSettings): Promise<AppSettings> {
+    const existingSettings = await this.getAppSettings();
+    
+    if (existingSettings) {
+      const [updated] = await db
+        .update(appSettings)
+        .set({ ...settingsData, updatedAt: new Date() })
+        .where(eq(appSettings.id, existingSettings.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(appSettings).values(settingsData).returning();
+      return created;
+    }
   }
 }
 

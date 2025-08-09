@@ -80,6 +80,11 @@ export const api = {
     changePassword: async (data: { currentPassword?: string; newPassword: string }): Promise<void> => {
       await apiRequest("POST", "/api/auth/change-password", data);
     },
+
+    updateProfile: async (data: { name: string; email: string; currentPassword?: string; newPassword?: string; confirmPassword?: string }): Promise<any> => {
+      const response = await apiRequest("PATCH", "/api/auth/profile", data);
+      return response.json();
+    },
   },
 
   superadmin: {
@@ -171,6 +176,21 @@ export const api = {
         status,
         dueDate,
       });
+      return response.json();
+    },
+
+    getAppSettings: async (): Promise<any> => {
+      const response = await apiRequest("GET", "/api/superadmin/settings");
+      return response.json();
+    },
+
+    updateAppSettings: async (data: any): Promise<any> => {
+      const response = await apiRequest("PUT", "/api/superadmin/settings", data);
+      return response.json();
+    },
+
+    testEmailConnection: async (): Promise<any> => {
+      const response = await apiRequest("POST", "/api/superadmin/test-email");
       return response.json();
     },
   },

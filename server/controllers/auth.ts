@@ -1,60 +1,92 @@
-import { Router, Request, Response } from "express";
+import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { z } from "zod";
 import { storage } from "../storage";
-import { authMiddleware, AuthRequest } from "../middleware/auth";
+import { AuthRequest } from "../middleware/auth";
 
-const router = Router();
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-  shortName: z.string().optional(),
-});
-
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string(),
-  role: z.enum(["superadmin", "school_admin", "branch_admin", "teacher", "student", "parent"]),
-  schoolId: z.string().optional(),
-  branchId: z.string().optional(),
-});
-
-// Login endpoint
-router.post("/login", async (req: Request, res: Response) => {
+// Update user profile
+export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, shortName } = loginSchema.parse(req.body);
+    const { name, email, currentPassword, newPassword } = req.body;
+    const userId = req.user?.userId;
 
-    // Find user by email
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // If updating password, verify current password
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required" });
+      }
+
+      const validPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!validPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = { name, email };
+    
+    if (newPassword) {
+      updateData.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    const updatedUser = await storage.updateUser(userId, updateData);
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+};
+
+// Get current user
+export const getCurrentUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+};
+
+// Login
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
     const user = await storage.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // For non-superadmin users, verify school association
-    if (user.role !== "superadmin") {
-      if (!user.schoolId) {
-        return res.status(401).json({ message: "User not associated with any school" });
-      }
-
-      // If shortName provided, verify it matches user's school
-      if (shortName) {
-        const school = await storage.getSchoolByShortName(shortName);
-        if (!school || school.id !== user.schoolId) {
-          return res.status(401).json({ message: "Invalid school access" });
-        }
-      }
-    }
-
-    // Generate JWT token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -66,125 +98,48 @@ router.post("/login", async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
-    // Return user data and token
+    const { password: _, ...userWithoutPassword } = user;
     res.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        schoolId: user.schoolId,
-        branchId: user.branchId,
-        forcePasswordChange: user.forcePasswordChange,
-      },
+      user: userWithoutPassword,
       token,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
-    }
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error during login:", error);
+    res.status(500).json({ message: "Login failed" });
   }
-});
-
-// Register endpoint (for superadmin or seeding)
-router.post("/register", async (req: Request, res: Response) => {
-  try {
-    const userData = registerSchema.parse(req.body);
-
-    // Check if user already exists
-    const existingUser = await storage.getUserByEmail(userData.email);
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-    // Create user
-    const user = await storage.createUser({
-      ...userData,
-      password: hashedPassword,
-    });
-
-    res.status(201).json({
-      message: "User created successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
-    }
-    console.error("Register error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Get current user
-router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const user = await storage.getUser(req.user!.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      schoolId: user.schoolId,
-      branchId: user.branchId,
-      forcePasswordChange: user.forcePasswordChange,
-    });
-  } catch (error) {
-    console.error("Get user error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+};
 
 // Change password
-router.post("/change-password", authMiddleware, async (req: AuthRequest, res: Response) => {
+export const changePassword = async (req: AuthRequest, res: Response) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.userId;
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: "Current password and new password are required" });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await storage.getUser(req.user!.userId);
+    const user = await storage.getUser(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Verify current password (skip for force password change)
-    if (!user.forcePasswordChange) {
-      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-      if (!isValidPassword) {
+    if (currentPassword) {
+      const validPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!validPassword) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update user
-    await storage.updateUser(user.id, {
+    await storage.updateUser(userId, { 
       password: hashedPassword,
-      forcePasswordChange: false,
+      forcePasswordChange: false 
     });
 
-    res.json({ message: "Password changed successfully" });
+    res.json({ message: "Password updated successfully" });
   } catch (error) {
-    console.error("Change password error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Failed to change password" });
   }
-});
-
-export default router;
+};

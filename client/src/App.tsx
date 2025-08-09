@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import SuperAdminDashboard from "@/pages/superadmin/dashboard";
+import SettingsPage from "@/pages/superadmin/settings";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -35,7 +36,12 @@ function Router() {
             <>
               <Route path="/" component={SuperAdminDashboard} />
               <Route path="/superadmin" component={SuperAdminDashboard} />
-              <Route path="/superadmin/:page" component={SuperAdminDashboard} />
+              <Route path="/superadmin/schools" component={SuperAdminDashboard} />
+              <Route path="/superadmin/invoices" component={SuperAdminDashboard} />
+              <Route path="/superadmin/features" component={SuperAdminDashboard} />
+              <Route path="/superadmin/analytics" component={SuperAdminDashboard} />
+              <Route path="/superadmin/users" component={SuperAdminDashboard} />
+              <Route path="/superadmin/settings" component={SettingsPage} />
             </>
           )}
           {/* Add other role-specific routes here */}
