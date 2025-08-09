@@ -45,6 +45,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
+import type { SchoolWithDetails } from "@/lib/types";
 
 // School form schema
 const schoolSchema = z.object({
@@ -92,10 +93,11 @@ export default function SchoolsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
-  // Fetch schools
-  const { data: schools = [], isLoading } = useQuery({
+  // Fetch schools  
+  const { data: schoolsResponse, isLoading } = useQuery<{ schools: SchoolWithDetails[] }>({
     queryKey: ["/api/superadmin/schools"],
   });
+  const schools = schoolsResponse?.schools || [];
 
   // Create school mutation
   const createSchoolMutation = useMutation({
@@ -265,7 +267,7 @@ export default function SchoolsPage() {
   };
 
   return (
-    <SuperAdminLayout>
+    <SuperAdminLayout title="School Management" subtitle="Manage schools, administrators, and access controls">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -545,18 +547,18 @@ export default function SchoolsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {schools.map((school: School) => (
+                  {schools.map((school: SchoolWithDetails) => (
                     <TableRow key={school.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{school.schoolName}</div>
+                          <div className="font-medium">{school.name}</div>
                           <div className="text-sm text-muted-foreground">{school.shortName}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{school.type}</Badge>
                       </TableCell>
-                      <TableCell>{school.adminEmail}</TableCell>
+                      <TableCell>{school.email || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant={school.status === "active" ? "default" : "destructive"}>
                           {school.status}

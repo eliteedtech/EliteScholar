@@ -48,6 +48,9 @@ export interface Feature {
   key: string;
   name: string;
   description?: string;
+  price: number;
+  category: string;
+  isActive: boolean;
   createdAt: string;
 }
 

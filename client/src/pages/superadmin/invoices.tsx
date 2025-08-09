@@ -46,6 +46,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
+import type { School as SchoolType, Feature as FeatureType, Invoice as InvoiceType } from "@/lib/types";
 
 // Invoice form schema
 const invoiceSchema = z.object({
@@ -100,17 +101,18 @@ export default function InvoicesPage() {
   const [showCustomAmount, setShowCustomAmount] = useState(false);
 
   // Fetch invoices
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
   });
 
   // Fetch schools
-  const { data: schools = [] } = useQuery({
+  const { data: schoolsResponse } = useQuery<{ schools: SchoolType[] }>({
     queryKey: ["/api/superadmin/schools"],
   });
+  const schools = schoolsResponse?.schools || [];
 
   // Fetch features
-  const { data: features = [] } = useQuery({
+  const { data: features = [] } = useQuery<FeatureType[]>({
     queryKey: ["/api/features"],
   });
 
@@ -255,7 +257,7 @@ export default function InvoicesPage() {
     
     // Calculate total
     const total = newSelected.reduce((sum, id) => {
-      const feature = features.find((f: Feature) => f.id === id);
+      const feature = features.find((f: FeatureType) => f.id === id);
       return sum + (feature?.price || 0);
     }, 0);
     
@@ -263,8 +265,8 @@ export default function InvoicesPage() {
   };
 
   // Check if selected school has negotiated pricing
-  const selectedSchool = schools.find((s: School) => s.id === form.watch("schoolId"));
-  const hasNegotiatedPrice = selectedSchool?.hasNegotiatedPrice;
+  const selectedSchool = schools.find((s: SchoolType) => s.id === form.watch("schoolId"));
+  const hasNegotiatedPrice = false; // Remove this field for now since it's not in the schema
 
   const handleEdit = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
@@ -302,7 +304,7 @@ export default function InvoicesPage() {
   };
 
   return (
-    <SuperAdminLayout>
+    <SuperAdminLayout title="Invoice Management" subtitle="Create and manage invoices for schools">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
@@ -342,9 +344,9 @@ export default function InvoicesPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {schools.map((school: School) => (
+                                {schools.map((school: SchoolType) => (
                                   <SelectItem key={school.id} value={school.id}>
-                                    {school.schoolName}
+                                    {school.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
