@@ -75,6 +75,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invoice routes  
   app.use("/api/invoices", invoiceRoutes);
 
+  // Features routes
+  app.use("/api/features", (await import("./controllers/features")).default);
+
+  // Analytics routes
+  app.use("/api/analytics", (await import("./controllers/analytics")).default);
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

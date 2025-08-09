@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,6 +26,9 @@ function Router() {
     );
   }
 
+  const FeaturesPage = lazy(() => import("./pages/superadmin/features"));
+  const AnalyticsPage = lazy(() => import("./pages/superadmin/analytics"));
+
   return (
     <Switch>
       {!user ? (
@@ -40,8 +44,16 @@ function Router() {
               <Route path="/superadmin" component={SuperAdminDashboard} />
               <Route path="/superadmin/schools" component={SchoolsPage} />
               <Route path="/superadmin/invoices" component={InvoicesPage} />
-              <Route path="/superadmin/features" component={SuperAdminDashboard} />
-              <Route path="/superadmin/analytics" component={SuperAdminDashboard} />
+              <Route path="/superadmin/features">
+                <Suspense fallback={<div>Loading...</div>}>
+                  <FeaturesPage />
+                </Suspense>
+              </Route>
+              <Route path="/superadmin/analytics">
+                <Suspense fallback={<div>Loading...</div>}>
+                  <AnalyticsPage />
+                </Suspense>
+              </Route>
               <Route path="/superadmin/users" component={SuperAdminDashboard} />
               <Route path="/superadmin/settings" component={SettingsPage} />
             </>

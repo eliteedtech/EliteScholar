@@ -269,6 +269,102 @@ export class DatabaseStorage implements IStorage {
     return feature;
   }
 
+  async updateFeature(id: string, featureData: Partial<InsertFeature>): Promise<Feature> {
+    const [feature] = await db
+      .update(features)
+      .set(featureData)
+      .where(eq(features.id, id))
+      .returning();
+    return feature;
+  }
+
+  async deleteFeature(id: string): Promise<void> {
+    await db.delete(features).where(eq(features.id, id));
+  }
+
+  async getAnalytics(): Promise<any> {
+    // Get basic stats
+    const [schoolStats] = await db
+      .select({ 
+        totalSchools: count(),
+        activeSchools: sql<number>`COUNT(CASE WHEN payment_status = 'PAID' THEN 1 END)`
+      })
+      .from(schools);
+
+    const [invoiceStats] = await db
+      .select({
+        pendingInvoices: sql<number>`COUNT(CASE WHEN status = 'SENT' THEN 1 END)`,
+        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END), 0)`
+      })
+      .from(invoices);
+
+    // Monthly revenue for the last 6 months
+    const monthlyRevenue = await db
+      .select({
+        month: sql<string>`TO_CHAR(created_at, 'Mon YYYY')`,
+        revenue: sql<number>`SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END)`
+      })
+      .from(invoices)
+      .where(sql`created_at >= CURRENT_DATE - INTERVAL '6 months'`)
+      .groupBy(sql`TO_CHAR(created_at, 'Mon YYYY'), DATE_TRUNC('month', created_at)`)
+      .orderBy(sql`DATE_TRUNC('month', created_at)`);
+
+    // Schools by status
+    const schoolsByStatus = await db
+      .select({
+        status: schools.paymentStatus,
+        count: count()
+      })
+      .from(schools)
+      .groupBy(schools.paymentStatus);
+
+    // Feature usage (approximated by school_features table)
+    const featureUsage = await db
+      .select({
+        name: features.name,
+        count: count(),
+        revenue: sql<number>`COALESCE(SUM(${features.price}), 0)`
+      })
+      .from(schoolFeatures)
+      .innerJoin(features, eq(schoolFeatures.featureId, features.id))
+      .where(eq(schoolFeatures.enabled, true))
+      .groupBy(features.id, features.name)
+      .orderBy(desc(count()));
+
+    // Invoice status distribution
+    const invoiceStatus = await db
+      .select({
+        status: invoices.status,
+        count: count()
+      })
+      .from(invoices)
+      .groupBy(invoices.status);
+
+    return {
+      totalSchools: schoolStats.totalSchools,
+      activeSchools: schoolStats.activeSchools,
+      totalRevenue: invoiceStats.totalRevenue || 0,
+      pendingInvoices: invoiceStats.pendingInvoices || 0,
+      monthlyRevenue: monthlyRevenue.map(m => ({
+        month: m.month,
+        revenue: m.revenue || 0
+      })),
+      schoolsByStatus: schoolsByStatus.map(s => ({
+        status: s.status,
+        count: s.count
+      })),
+      featureUsage: featureUsage.map(f => ({
+        name: f.name,
+        count: f.count,
+        revenue: f.revenue || 0
+      })),
+      invoiceStatus: invoiceStatus.map(i => ({
+        status: i.status,
+        count: i.count
+      }))
+    };
+  }
+
   async getSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]> {
     return await db.query.schoolFeatures.findMany({
       where: eq(schoolFeatures.schoolId, schoolId),
