@@ -22,7 +22,7 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
   const navigation = [
     {
       name: "Schools",
-      href: "/superadmin",
+      href: "/superadmin/schools",
       icon: "fas fa-school",
       count: 127,
       active: location === "/" || location === "/superadmin" || location === "/superadmin/schools",

@@ -8,315 +8,259 @@ const router = Router();
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
+router.use(superAdminOnly);
 
+// Invoice creation schema
 const createInvoiceSchema = z.object({
-  schoolId: z.string(),
-  term: z.string().optional(),
-  dueDate: z.string(),
+  schoolId: z.string().min(1, "School ID is required"),
+  features: z.array(z.string()).min(1, "At least one feature must be selected"),
+  customAmount: z.string().optional(),
+  dueDate: z.string().min(1, "Due date is required"),
   notes: z.string().optional(),
-  lines: z.array(z.object({
-    description: z.string(),
-    quantity: z.number().min(1),
-    unitPrice: z.number().min(0),
-  })),
-  sendEmail: z.boolean().default(false),
 });
 
-// Get invoices (super admin sees all, schools see only theirs)
+// Get all invoices
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const {
-      schoolId,
-      status,
-      page = 1,
-      limit = 10
-    } = req.query;
-
-    const offset = (Number(page) - 1) * Number(limit);
-
-    const filters: any = {
-      limit: Number(limit),
-      offset,
-    };
-
-    // Non-superadmin users can only see their school's invoices
-    if (req.user!.role !== "superadmin") {
-      filters.schoolId = req.user!.schoolId;
-    } else if (schoolId) {
-      filters.schoolId = schoolId as string;
-    }
-
-    if (status) {
-      filters.status = status as string;
-    }
-
-    const result = await storage.getInvoices(filters);
-    
-    res.json({
-      invoices: result.invoices,
-      pagination: {
-        total: result.total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(result.total / Number(limit)),
-      },
-    });
+    const invoices = await storage.getInvoices();
+    res.json(invoices);
   } catch (error) {
     console.error("Get invoices error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Failed to fetch invoices" });
   }
 });
 
-// Get single invoice
-router.get("/:invoiceId", async (req: AuthRequest, res: Response) => {
+// Get invoice by ID
+router.get("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const { invoiceId } = req.params;
-    const invoice = await storage.getInvoice(invoiceId);
+    const { id } = req.params;
+    const invoice = await storage.getInvoice(id);
     
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
-
-    // Non-superadmin users can only access their school's invoices
-    if (req.user!.role !== "superadmin" && invoice.schoolId !== req.user!.schoolId) {
-      return res.status(403).json({ message: "Access denied" });
-    }
-
+    
     res.json(invoice);
   } catch (error) {
     console.error("Get invoice error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Failed to fetch invoice" });
   }
 });
 
-// Create invoice (super admin only)
-router.post("/", superAdminOnly, async (req: AuthRequest, res: Response) => {
+// Create invoice
+router.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const invoiceData = createInvoiceSchema.parse(req.body);
-
-    // Verify school exists
-    const school = await storage.getSchool(invoiceData.schoolId);
+    const validatedData = createInvoiceSchema.parse(req.body);
+    
+    // Get school
+    const school = await storage.getSchool(validatedData.schoolId);
     if (!school) {
       return res.status(404).json({ message: "School not found" });
     }
-
-    // Calculate totals
-    const subtotal = invoiceData.lines.reduce(
-      (sum, line) => sum + (line.quantity * line.unitPrice), 
-      0
-    );
-    const taxRate = 0.075; // 7.5% tax
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-
-    // Generate invoice number
-    const invoiceNumber = await storage.generateInvoiceNumber();
-
-    // Create invoice
-    const invoice = await storage.createInvoice({
-      invoiceNumber,
-      schoolId: invoiceData.schoolId,
-      term: invoiceData.term,
-      status: "SENT",
-      subtotal: subtotal.toString(),
-      tax: tax.toString(),
-      total: total.toString(),
-      dueDate: new Date(invoiceData.dueDate),
-      notes: invoiceData.notes,
-      emailSent: false,
-    });
-
-    // Create invoice lines
-    const lines = await storage.createInvoiceLines(
-      invoiceData.lines.map(line => ({
-        invoiceId: invoice.id,
-        description: line.description,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice.toString(),
-        total: (line.quantity * line.unitPrice).toString(),
-      }))
-    );
-
-    // Update school payment status to PENDING
-    await storage.updateSchoolPaymentStatus(
-      invoiceData.schoolId,
-      "PENDING",
-      new Date(invoiceData.dueDate)
-    );
-
-    // Send email if requested
-    if (invoiceData.sendEmail && school.email) {
-      try {
-        const emailSent = await emailService.sendInvoiceEmail(
-          school.email,
-          school.name,
-          invoiceNumber,
-          total.toLocaleString(),
-          new Date(invoiceData.dueDate).toLocaleDateString()
-        );
-
-        if (emailSent) {
-          await storage.updateInvoice(invoice.id, {
-            emailSent: true,
-            emailSentAt: new Date(),
-          });
-        }
-      } catch (emailError) {
-        console.error("Invoice email error:", emailError);
-        // Continue even if email fails
-      }
-    }
-
-    // Get complete invoice data
-    const completeInvoice = await storage.getInvoice(invoice.id);
     
-    res.status(201).json(completeInvoice);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: "Invalid input", errors: error.errors });
+    // Get features with pricing
+    const features = await storage.getFeatures();
+    const selectedFeatures = features.filter(f => 
+      validatedData.features.includes(f.id) && f.isActive
+    );
+    
+    if (selectedFeatures.length === 0) {
+      return res.status(400).json({ message: "No valid features selected" });
     }
+    
+    // Calculate total amount
+    const calculatedTotal = selectedFeatures.reduce((sum, feature) => sum + feature.price, 0);
+    const finalAmount = validatedData.customAmount ? 
+      parseFloat(validatedData.customAmount) * 100 : // Convert to kobo
+      calculatedTotal;
+    
+    // Create invoice data
+    const invoiceData = {
+      schoolId: validatedData.schoolId,
+      features: selectedFeatures.map(f => ({
+        id: f.id,
+        name: f.name,
+        price: f.price
+      })),
+      totalAmount: finalAmount,
+      customAmount: validatedData.customAmount ? parseFloat(validatedData.customAmount) * 100 : undefined,
+      dueDate: new Date(validatedData.dueDate),
+      notes: validatedData.notes,
+    };
+    
+    const invoice = await storage.createInvoice(invoiceData);
+    
+    // Send invoice email
+    try {
+      await emailService.sendInvoiceEmail(invoice, school);
+    } catch (emailError) {
+      console.error("Failed to send invoice email:", emailError);
+      // Don't fail the invoice creation if email fails
+    }
+    
+    res.status(201).json(invoice);
+  } catch (error) {
     console.error("Create invoice error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Validation error", errors: error.errors });
+    }
+    res.status(500).json({ message: "Failed to create invoice" });
   }
 });
 
-// Mark invoice as paid (super admin only)
-router.post("/:invoiceId/mark-paid", superAdminOnly, async (req: AuthRequest, res: Response) => {
+// Update invoice
+router.patch("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const { invoiceId } = req.params;
+    const { id } = req.params;
+    const updates = req.body;
     
-    const invoice = await storage.getInvoice(invoiceId);
+    const invoice = await storage.updateInvoice(id, updates);
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
-
-    // Update invoice status
-    await storage.updateInvoice(invoiceId, {
-      status: "PAID",
-      paidAt: new Date(),
-    });
-
-    // Update school payment status
-    await storage.updateSchoolPaymentStatus(invoice.schoolId, "PAID");
-
-    const updatedInvoice = await storage.getInvoice(invoiceId);
-    res.json(updatedInvoice);
+    
+    res.json(invoice);
   } catch (error) {
-    console.error("Mark invoice paid error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Update invoice error:", error);
+    res.status(500).json({ message: "Failed to update invoice" });
   }
 });
 
-// Generate new term invoice (super admin only)
-router.post("/generate-term-invoice", superAdminOnly, async (req: AuthRequest, res: Response) => {
+// Delete invoice
+router.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const { schoolId, term, templateInvoiceId } = req.body;
+    const { id } = req.params;
+    
+    await storage.deleteInvoice(id);
+    res.json({ message: "Invoice deleted successfully" });
+  } catch (error) {
+    console.error("Delete invoice error:", error);
+    res.status(500).json({ message: "Failed to delete invoice" });
+  }
+});
 
-    if (!schoolId || !term) {
-      return res.status(400).json({ message: "School ID and term are required" });
+// Send invoice email
+router.post("/:id/send-email", async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const invoice = await storage.getInvoice(id);
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
     }
+    
+    const school = await storage.getSchool(invoice.schoolId);
+    if (!school) {
+      return res.status(404).json({ message: "School not found" });
+    }
+    
+    await emailService.sendInvoiceEmail(invoice, school);
+    
+    // Update email sent status
+    await storage.updateInvoice(id, { 
+      emailSent: true, 
+      emailSentAt: new Date() 
+    });
+    
+    res.json({ message: "Invoice email sent successfully" });
+  } catch (error) {
+    console.error("Send invoice email error:", error);
+    res.status(500).json({ message: "Failed to send invoice email" });
+  }
+});
 
+// Generate default invoice for school
+router.post("/generate-default", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.body;
+    
+    if (!schoolId) {
+      return res.status(400).json({ message: "School ID is required" });
+    }
+    
     // Get school
     const school = await storage.getSchool(schoolId);
     if (!school) {
       return res.status(404).json({ message: "School not found" });
     }
-
-    // Get template invoice if provided
-    let lines: Array<{ description: string; quantity: number; unitPrice: number; }> = [];
-    if (templateInvoiceId) {
-      const templateInvoice = await storage.getInvoice(templateInvoiceId);
-      if (templateInvoice) {
-        lines = templateInvoice.lines.map(line => ({
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: parseFloat(line.unitPrice),
-        }));
-      }
+    
+    // Get default invoice template
+    const defaultTemplate = await storage.getDefaultInvoiceTemplate();
+    if (!defaultTemplate) {
+      return res.status(404).json({ message: "Default invoice template not found" });
     }
-
-    // Default invoice lines if no template
-    if (lines.length === 0) {
-      lines = [
-        {
-          description: "Platform Subscription Fee",
-          quantity: 1,
-          unitPrice: 150000,
-        },
-      ];
-    }
-
-    // Calculate totals
-    const subtotal = lines.reduce(
-      (sum, line) => sum + (line.quantity * line.unitPrice), 
-      0
-    );
-    const taxRate = 0.075;
-    const tax = subtotal * taxRate;
-    const total = subtotal + tax;
-
-    // Set due date (30 days from now)
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 30);
-
-    // Generate invoice number
-    const invoiceNumber = await storage.generateInvoiceNumber();
-
-    // Create invoice
-    const invoice = await storage.createInvoice({
-      invoiceNumber,
+    
+    // Create invoice from template
+    const invoiceData = {
       schoolId,
-      term,
-      status: "SENT",
-      subtotal: subtotal.toString(),
-      tax: tax.toString(),
-      total: total.toString(),
-      dueDate,
-      notes: `${term} subscription invoice`,
-      emailSent: false,
-    });
-
-    // Create invoice lines
-    await storage.createInvoiceLines(
-      lines.map(line => ({
-        invoiceId: invoice.id,
-        description: line.description,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice.toString(),
-        total: (line.quantity * line.unitPrice).toString(),
-      }))
-    );
-
-    // Update school payment status
-    await storage.updateSchoolPaymentStatus(schoolId, "PENDING", dueDate);
-
-    // Send email
-    if (school.email) {
-      try {
-        const emailSent = await emailService.sendInvoiceEmail(
-          school.email,
-          school.name,
-          invoiceNumber,
-          total.toLocaleString(),
-          dueDate.toLocaleDateString()
-        );
-
-        if (emailSent) {
-          await storage.updateInvoice(invoice.id, {
-            emailSent: true,
-            emailSentAt: new Date(),
-          });
-        }
-      } catch (emailError) {
-        console.error("Term invoice email error:", emailError);
-      }
+      templateId: defaultTemplate.id,
+      features: defaultTemplate.features,
+      totalAmount: defaultTemplate.totalAmount,
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      notes: "Generated from default template",
+    };
+    
+    const invoice = await storage.createInvoice(invoiceData);
+    
+    // Send invoice email
+    try {
+      await emailService.sendInvoiceEmail(invoice, school);
+    } catch (emailError) {
+      console.error("Failed to send invoice email:", emailError);
     }
-
-    const completeInvoice = await storage.getInvoice(invoice.id);
-    res.status(201).json(completeInvoice);
+    
+    res.status(201).json(invoice);
   } catch (error) {
-    console.error("Generate term invoice error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Generate default invoice error:", error);
+    res.status(500).json({ message: "Failed to generate default invoice" });
+  }
+});
+
+// Download invoice PDF
+router.get("/:id/download", async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const invoice = await storage.getInvoice(id);
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+    
+    const school = await storage.getSchool(invoice.schoolId);
+    if (!school) {
+      return res.status(404).json({ message: "School not found" });
+    }
+    
+    // Generate PDF (for now, return JSON - PDF generation can be added later)
+    res.json({
+      message: "PDF download functionality coming soon",
+      invoice,
+      school
+    });
+  } catch (error) {
+    console.error("Download invoice error:", error);
+    res.status(500).json({ message: "Failed to download invoice" });
+  }
+});
+
+// Mark invoice as paid
+router.patch("/:id/mark-paid", async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const invoice = await storage.updateInvoice(id, {
+      status: "PAID",
+      paidAt: new Date()
+    });
+    
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+    
+    res.json(invoice);
+  } catch (error) {
+    console.error("Mark invoice paid error:", error);
+    res.status(500).json({ message: "Failed to mark invoice as paid" });
   }
 });
 

@@ -57,7 +57,7 @@ export const schools = pgTable("schools", {
   state: varchar("state"),
   lga: varchar("lga"),
   address: text("address"),
-  phones: jsonb("phones").$type<string[]>().default([]),
+  phones: jsonb("phones").$type<string[]>().notNull().default("[]"),
   email: varchar("email"),
   logoUrl: varchar("logo_url"),
   type: schoolTypeEnum("type").notNull().default("K12"),
@@ -86,7 +86,10 @@ export const features = pgTable("features", {
   key: varchar("key").notNull().unique(),
   name: varchar("name").notNull(),
   description: text("description"),
+  price: integer("price").default(0), // Price in smallest currency unit (kobo)
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // School Features pivot table
@@ -110,16 +113,28 @@ export const gradeSections = pgTable("grade_sections", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Invoices table
+// Invoice templates table - for default and school-specific invoice templates
+export const invoiceTemplates = pgTable("invoice_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id"), // null for default template
+  name: varchar("name").notNull(),
+  features: jsonb("features").notNull(), // Array of feature IDs
+  totalAmount: integer("total_amount").notNull(), // In kobo
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Invoices table - updated for feature-based invoicing
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceNumber: varchar("invoice_number").notNull().unique(),
   schoolId: varchar("school_id").notNull(),
-  term: varchar("term"),
-  status: invoiceStatusEnum("status").notNull().default("DRAFT"),
-  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
-  tax: decimal("tax", { precision: 12, scale: 2 }).default("0"),
-  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  templateId: varchar("template_id"), // Reference to invoice template used
+  features: jsonb("features").notNull(), // Array of {id, name, price}
+  totalAmount: integer("total_amount").notNull(), // In kobo
+  customAmount: integer("custom_amount"), // Override amount for negotiated pricing
+  status: invoiceStatusEnum("status").notNull().default("PENDING"),
   dueDate: timestamp("due_date").notNull(),
   paidAt: timestamp("paid_at"),
   emailSent: boolean("email_sent").default(false),

@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import SuperAdminDashboard from "@/pages/superadmin/dashboard";
 import SettingsPage from "@/pages/superadmin/settings";
+import SchoolsPage from "@/pages/superadmin/schools";
+import InvoicesPage from "@/pages/superadmin/invoices";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -36,8 +38,8 @@ function Router() {
             <>
               <Route path="/" component={SuperAdminDashboard} />
               <Route path="/superadmin" component={SuperAdminDashboard} />
-              <Route path="/superadmin/schools" component={SuperAdminDashboard} />
-              <Route path="/superadmin/invoices" component={SuperAdminDashboard} />
+              <Route path="/superadmin/schools" component={SchoolsPage} />
+              <Route path="/superadmin/invoices" component={InvoicesPage} />
               <Route path="/superadmin/features" component={SuperAdminDashboard} />
               <Route path="/superadmin/analytics" component={SuperAdminDashboard} />
               <Route path="/superadmin/users" component={SuperAdminDashboard} />

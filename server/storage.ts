@@ -205,7 +205,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSchool(schoolData: InsertSchool): Promise<School> {
-    const [school] = await db.insert(schools).values([schoolData]).returning();
+    const [school] = await db.insert(schools).values(schoolData).returning();
     return school;
   }
 
@@ -475,6 +475,89 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(appSettings).values(settingsData).returning();
       return created;
     }
+  }
+
+  // Additional invoice methods needed by the controller
+  async createInvoice(invoiceData: any): Promise<any> {
+    // Generate invoice number
+    const invoiceNumber = `INV-${Date.now()}`;
+    
+    const [invoice] = await db
+      .insert(invoices)
+      .values({
+        ...invoiceData,
+        invoiceNumber,
+        status: "PENDING",
+      })
+      .returning();
+    
+    return {
+      ...invoice,
+      schoolName: await this.getSchoolName(invoice.schoolId),
+    };
+  }
+
+  async getInvoice(id: string): Promise<any> {
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+    
+    if (!invoice) return null;
+    
+    return {
+      ...invoice,
+      schoolName: await this.getSchoolName(invoice.schoolId),
+    };
+  }
+
+  async updateInvoice(id: string, updates: any): Promise<any> {
+    const [invoice] = await db
+      .update(invoices)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(invoices.id, id))
+      .returning();
+    
+    if (!invoice) return null;
+    
+    return {
+      ...invoice,
+      schoolName: await this.getSchoolName(invoice.schoolId),
+    };
+  }
+
+  async deleteInvoice(id: string): Promise<void> {
+    await db.delete(invoices).where(eq(invoices.id, id));
+  }
+
+  async getDefaultInvoiceTemplate(): Promise<any> {
+    const [template] = await db
+      .select()
+      .from(invoiceTemplates)
+      .where(eq(invoiceTemplates.isDefault, true));
+    
+    return template || null;
+  }
+
+  async getSchoolAdmin(schoolId: string): Promise<any> {
+    const [admin] = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.schoolId, schoolId),
+        eq(users.role, "school_admin")
+      ));
+    
+    return admin || null;
+  }
+
+  private async getSchoolName(schoolId: string): Promise<string> {
+    const [school] = await db
+      .select({ name: schools.name })
+      .from(schools)
+      .where(eq(schools.id, schoolId));
+    
+    return school?.name || "Unknown School";
   }
 }
 
