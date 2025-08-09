@@ -267,7 +267,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFeatures(): Promise<Feature[]> {
-    return await db.select().from(features).orderBy(asc(features.name));
+    const featuresData = await db.select().from(features).orderBy(asc(features.name));
+    return featuresData || [];
   }
 
   async createFeature(featureData: InsertFeature): Promise<Feature> {

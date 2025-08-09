@@ -101,9 +101,10 @@ export default function InvoicesPage() {
   const [showCustomAmount, setShowCustomAmount] = useState(false);
 
   // Fetch invoices
-  const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
+  const { data: invoicesResponse, isLoading } = useQuery<{ invoices: Invoice[]; total: number }>({
     queryKey: ["/api/invoices"],
   });
+  const invoices = invoicesResponse?.invoices || [];
 
   // Fetch schools
   const { data: schoolsResponse } = useQuery<{ schools: SchoolType[] }>({

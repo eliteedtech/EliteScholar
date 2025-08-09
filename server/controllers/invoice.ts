@@ -22,11 +22,18 @@ const createInvoiceSchema = z.object({
 // Get all invoices
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const invoices = await storage.getInvoices();
-    res.json(invoices);
+    const result = await storage.getInvoices();
+    res.json({
+      invoices: result.invoices || [],
+      total: result.total || 0
+    });
   } catch (error) {
     console.error("Get invoices error:", error);
-    res.status(500).json({ message: "Failed to fetch invoices" });
+    res.status(500).json({ 
+      invoices: [],
+      total: 0,
+      message: "Failed to fetch invoices" 
+    });
   }
 });
 
