@@ -44,6 +44,40 @@ class EmailService {
     }
   }
 
+  async testConnection(settings: any): Promise<void> {
+    // Create transporter with provided settings
+    const testTransporter = nodemailer.createTransport({
+      host: settings.smtpHost,
+      port: parseInt(settings.smtpPort || "587"),
+      secure: settings.smtpSecure,
+      auth: {
+        user: settings.smtpUser,
+        pass: settings.smtpPassword,
+      },
+    });
+
+    // Verify connection
+    await testTransporter.verify();
+
+    // Send test email
+    await testTransporter.sendMail({
+      from: `${settings.emailFromName} <${settings.emailFromAddress || settings.smtpUser}>`,
+      to: settings.smtpUser, // Send to configured email
+      subject: "Elite Scholar - Email Test",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Email Configuration Test</h2>
+          <p>Congratulations! Your email configuration is working correctly.</p>
+          <p>This is a test email sent from <strong>${settings.appName}</strong>.</p>
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px;">
+            Sent from ${settings.appName} | ${settings.domain || "Your School Management System"}
+          </p>
+        </div>
+      `,
+    });
+  }
+
   async sendSchoolCreationEmail(
     adminEmail: string,
     schoolName: string,
