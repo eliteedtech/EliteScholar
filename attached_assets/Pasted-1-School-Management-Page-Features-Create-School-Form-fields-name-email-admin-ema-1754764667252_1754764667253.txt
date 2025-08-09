@@ -1,0 +1,141 @@
+1. School Management Page
+
+Features:
+
+    Create School
+
+        Form fields: name, email, admin_email, password, address, phone, etc.
+
+        On save:
+
+            Create school in DB.
+
+            Generate school link (from domain in Settings page).
+
+            Send beautiful HTML email to both school email and admin_email with:
+
+                School link.
+
+                Login email and password.
+
+                Welcome message.
+
+            Use Nodemailer for sending emails.
+
+    Edit School
+
+        Update school details (name, email, phone, etc.).
+
+    Delete School
+
+        Soft delete or permanent delete.
+
+    Suspend/Activate School
+
+        Toggle status to restrict school login.
+
+    UI
+
+        Table listing schools with action buttons: Edit, Delete, Suspend/Activate.
+
+        If no invoice exists for a school → Show "Create Invoice" button instead of "Generate Invoice".
+
+2. Invoice Page
+
+Logic & Features:
+
+    Default Invoice Template
+
+        Stored in DB (used if no school-specific invoice exists).
+
+    Create Invoice
+
+        Select school.
+
+        Select features (fetched from Features page).
+
+        System calculates price based on features.
+
+        If school has a negotiated price → allow manual entry to override system price.
+
+        Save invoice as school-specific.
+
+    Generate Invoice
+
+        When clicked for a school:
+
+            Check if school has its own invoice → use that.
+
+            Else use default invoice.
+
+    Email on Invoice Creation
+
+        Send the invoice to the school email.
+
+    Invoice CRUD
+
+        Add, edit, delete invoices.
+
+    UI
+
+        Table listing invoices.
+
+        Button to create/generate invoice.
+
+        Pricing breakdown visible.
+
+3. Features Page
+
+Functionality:
+
+    Add/Edit/Delete features.
+
+    Fields:
+
+        name
+
+        type → Module / Standalone / Both (checkboxes)
+
+        price (optional)
+
+    If price exists → automatically used in invoice calculation.
+
+    If price is empty → allow manual entry during invoice creation.
+
+    Standalone → separate app.
+
+    Module → part of main system.
+
+    Both → available in both ways.
+
+    UI → Table of features + action buttons.
+
+4. Analytics Page
+
+    Show school data in different chart formats (bar, pie, line, etc.).
+
+    Data Examples:
+
+        Number of active schools.
+
+        Schools with/without invoices.
+
+        Revenue generated.
+
+        Top purchased features.
+
+    Use Chart.js or Recharts for visualisation.
+
+5. Settings Page
+
+    Fields:
+
+        App Name
+
+        App Logo
+
+        Domain (used in school link generation)
+
+    Upload logo functionality.
+
+    Ensure changes reflect across app immediately.
