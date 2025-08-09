@@ -57,7 +57,7 @@ export const schools = pgTable("schools", {
   state: varchar("state"),
   lga: varchar("lga"),
   address: text("address"),
-  phones: jsonb("phones").$type<string[]>().notNull().default("[]"),
+  phones: jsonb("phones").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   email: varchar("email"),
   logoUrl: varchar("logo_url"),
   type: schoolTypeEnum("type").notNull().default("K12"),
@@ -136,7 +136,7 @@ export const invoices = pgTable("invoices", {
   features: jsonb("features").notNull(), // Array of {id, name, price}
   totalAmount: integer("total_amount").notNull(), // In kobo
   customAmount: integer("custom_amount"), // Override amount for negotiated pricing
-  status: invoiceStatusEnum("status").notNull().default("PENDING"),
+  status: invoiceStatusEnum("status").notNull().default("DRAFT"),
   dueDate: timestamp("due_date").notNull(),
   paidAt: timestamp("paid_at"),
   emailSent: boolean("email_sent").default(false),

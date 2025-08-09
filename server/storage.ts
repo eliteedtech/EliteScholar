@@ -7,6 +7,7 @@ import {
   gradeSections,
   invoices,
   invoiceLines,
+  invoiceTemplates,
   subscriptions,
   appSettings,
   type User,
@@ -53,6 +54,7 @@ export interface IStorage {
   createSchool(school: InsertSchool): Promise<School>;
   updateSchool(id: string, school: Partial<InsertSchool>): Promise<School>;
   updateSchoolPaymentStatus(id: string, status: string, dueDate?: Date): Promise<School>;
+  deleteSchool(id: string): Promise<void>;
 
   // Branch operations
   getBranches(schoolId: string): Promise<Branch[]>;
@@ -240,6 +242,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schools.id, id))
       .returning();
     return school;
+  }
+
+  async deleteSchool(id: string): Promise<void> {
+    await db.delete(schools).where(eq(schools.id, id));
   }
 
   async getBranches(schoolId: string): Promise<Branch[]> {
@@ -533,7 +539,7 @@ export class DatabaseStorage implements IStorage {
 
     const [{ monthlyRevenue }] = await db
       .select({
-        monthlyRevenue: sql<string>`COALESCE(SUM(${invoices.total}), 0)`,
+        monthlyRevenue: sql<string>`COALESCE(SUM(${invoices.totalAmount}), 0)`,
       })
       .from(invoices)
       .where(
@@ -573,54 +579,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Additional invoice methods needed by the controller
-  async createInvoice(invoiceData: any): Promise<any> {
-    // Generate invoice number
-    const invoiceNumber = `INV-${Date.now()}`;
-    
-    const [invoice] = await db
-      .insert(invoices)
-      .values({
-        ...invoiceData,
-        invoiceNumber,
-        status: "PENDING",
-      })
-      .returning();
-    
-    return {
-      ...invoice,
-      schoolName: await this.getSchoolName(invoice.schoolId),
-    };
-  }
 
-  async getInvoice(id: string): Promise<any> {
-    const [invoice] = await db
-      .select()
-      .from(invoices)
-      .where(eq(invoices.id, id));
-    
-    if (!invoice) return null;
-    
-    return {
-      ...invoice,
-      schoolName: await this.getSchoolName(invoice.schoolId),
-    };
-  }
-
-  async updateInvoice(id: string, updates: any): Promise<any> {
-    const [invoice] = await db
-      .update(invoices)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(invoices.id, id))
-      .returning();
-    
-    if (!invoice) return null;
-    
-    return {
-      ...invoice,
-      schoolName: await this.getSchoolName(invoice.schoolId),
-    };
-  }
 
   async deleteInvoice(id: string): Promise<void> {
     await db.delete(invoices).where(eq(invoices.id, id));
