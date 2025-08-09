@@ -1,0 +1,58 @@
+The above error occurred in the <SelectItem> component:
+
+SelectItem<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=bc6b3980:857:9
+_c11@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/components/ui/select.tsx:208:10
+div
+Primitive</Node<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=bc6b3980:42:44
+createSlotClone/SlotClone<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:79:40
+createSlot/Slot2<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:56:40
+createCollection/CollectionSlot<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6WOMRXYX.js?v=bc6b3980:39:35
+SelectViewport<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=bc6b3980:763:56
+div
+createSlotClone/SlotClone<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:79:40
+createSlot/Slot2<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:56:40
+createCollection/CollectionSlot<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6WOMRXYX.js?v=bc6b3980:39:35
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+SelectContent<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=bc6b3980:306:52
+createSlotClone/SlotClone<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:79:40
+createSlot/Slot2<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-5S42QOQO.js?v=bc6b3980:56:40
+Primitive</Node<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=bc6b3980:42:44
+Portal<@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VY5IIJY2.js?v=bc6b3980:260:56
+SelectPortal
+_c7@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/components/ui/select.tsx:123:9
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+CollectionProvider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-6WOMRXYX.js?v=bc6b3980:29:33
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+Popper@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ZINQ7GXI.js?v=bc6b3980:1919:39
+Select@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=bc6b3980:108:7
+div
+div
+div
+div
+div
+SchoolsTable@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/components/superadmin/schools-table.tsx:53:21
+div
+div
+main
+div
+SuperAdminLayout@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/components/superadmin/layout.tsx:26:41
+SuperAdminDashboard@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/pages/superadmin/dashboard.tsx:24:22
+Route@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bc6b3980:323:13
+Switch@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=bc6b3980:379:14
+Router@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/App.tsx?v=9UxM-Rtm-PvAvwtRsg8Da:29:31
+Provider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VJRUVGTI.js?v=bc6b3980:38:47
+TooltipProvider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=bc6b3980:66:7
+QueryClientProvider@https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=bc6b3980:2804:27
+App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. 2 react-dom.development.js:18704:14
+Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    SelectItem select.tsx:1241
+    React 4
+select.tsx:1241:12
+
+​
+
