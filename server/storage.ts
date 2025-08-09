@@ -125,11 +125,11 @@ export class DatabaseStorage implements IStorage {
 
     let whereConditions: any[] = [];
 
-    if (filters?.type) {
+    if (filters?.type && filters.type !== "all") {
       whereConditions.push(eq(schools.type, filters.type as any));
     }
 
-    if (filters?.status) {
+    if (filters?.status && filters.status !== "all") {
       whereConditions.push(eq(schools.status, filters.status as any));
     }
 

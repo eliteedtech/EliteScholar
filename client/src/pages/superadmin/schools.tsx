@@ -39,8 +39,8 @@ export default function SchoolsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
-    type: "",
-    status: "",
+    type: "all",
+    status: "all",
     search: "",
   });
   const [showSchoolForm, setShowSchoolForm] = useState(false);
@@ -178,7 +178,7 @@ export default function SchoolsPage() {
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="K12">K12</SelectItem>
                     <SelectItem value="NIGERIAN">NIGERIAN</SelectItem>
                   </SelectContent>
@@ -191,7 +191,7 @@ export default function SchoolsPage() {
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Status</SelectItem>
+                    <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="ACTIVE">Active</SelectItem>
                     <SelectItem value="DISABLED">Disabled</SelectItem>
                   </SelectContent>

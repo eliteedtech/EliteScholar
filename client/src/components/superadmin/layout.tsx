@@ -78,23 +78,22 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
           <ul className="space-y-2">
             {navigation.map((item) => (
               <li key={item.name}>
-                <Link href={item.href}>
-                  <a
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      item.active
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                    data-testid={`nav-link-${item.name.toLowerCase()}`}
-                  >
-                    <i className={`${item.icon} w-5`}></i>
-                    <span>{item.name}</span>
-                    {item.count && (
-                      <Badge variant="secondary" className="ml-auto">
-                        {item.count}
-                      </Badge>
-                    )}
-                  </a>
+                <Link 
+                  href={item.href}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    item.active
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                  data-testid={`nav-link-${item.name.toLowerCase()}`}
+                >
+                  <i className={`${item.icon} w-5`}></i>
+                  <span>{item.name}</span>
+                  {item.count && (
+                    <Badge variant="secondary" className="ml-auto">
+                      {item.count}
+                    </Badge>
+                  )}
                 </Link>
               </li>
             ))}
