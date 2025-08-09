@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import superadminRoutes from "./controllers/superadmin";
 import invoiceRoutes from "./controllers/invoice";
@@ -16,13 +18,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const bcrypt = require("bcrypt");
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const jwt = require("jsonwebtoken");
       const token = jwt.sign(
         {
           userId: user.id,
@@ -54,8 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const token = authHeader.split(" ")[1];
-      const jwt = require("jsonwebtoken");
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret") as any;
       
       const user = await storage.getUser(decoded.userId);
       if (!user) {
