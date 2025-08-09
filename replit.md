@@ -8,6 +8,15 @@ Elite Scholar is a comprehensive School Management System MVP built as a full-st
 
 Preferred communication style: Simple, everyday language.
 
+## Login Credentials
+
+**Super Admin Account:**
+- Email: admin@elitescholar.com
+- Password: SuperAdmin123!
+- Role: Super Administrator with full system access
+
+Use these credentials to access the Super Admin dashboard and manage schools, invoices, and feature toggles.
+
 ## System Architecture
 
 ### Frontend Architecture
