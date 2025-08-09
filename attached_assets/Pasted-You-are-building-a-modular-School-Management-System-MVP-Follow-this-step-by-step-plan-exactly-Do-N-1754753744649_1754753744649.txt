@@ -1,0 +1,218 @@
+You are building a modular School Management System MVP. Follow this step-by-step plan exactly. Do NOT jump ahead to the next step until the current step is completed, tested, and a short test-report is returned. Use TypeScript unless I explicitly say "use JS".
+
+PROJECT WIDE REQUIREMENTS
+- Frontend: Vite.js + React + TailwindCSS (React + TypeScript template).
+- Backend: Node.js + Express + TypeScript.
+- Database: PostgreSQL using Prisma ORM.
+- Auth: JWT-based role access (roles: superadmin, school_admin, branch_admin, teacher, student, parent).
+- Repo structure: monorepo with `/frontend` and `/backend`.
+- Env vars (minimum): DATABASE_URL, JWT_SECRET, PORT, FRONTEND_URL, CLOUDINARY_URL, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET.
+- Feature toggles: persisted in DB table `school_features` and enforced by middleware.
+- School type vocabulary:
+  - "K12" = standard Grade 1 → Grade 12 progression.
+  - "NIGERIAN" = Nigerian curriculum sections: Nursery (KG1–KG3), Primary (P1–P6), Junior Secondary (JSS1–JSS3), Senior Secondary (SSS1–SSS3).
+- Modules must be independent: each feature has its own Express router, Prisma models (table(s)), and frontend module folder under `/frontend/src/modules/{feature}`. Each module must be lazy-loaded on the frontend.
+- Avoid Redux. Use this pattern instead:
+  - Server state & caching: **React Query (TanStack Query)** or **SWR**.
+  - Local UI & small shared state: **Zustand** (or Jotai/Valtio if preferred).
+  - Use `React.lazy` + `Suspense` for route-level code splitting and fast initial loads.
+  - Pre-fetch critical data where helpful and use optimistic updates on toggles.
+
+LOADING / PERFORMANCE GUIDANCE (address common loading issues)
+- Use route-based code splitting (React Router + React.lazy).
+- Show lightweight skeleton loaders (not full-page spinners) using Suspense fallback and component-level placeholders.
+- Use React Query caching, pagination, and small page sizes for lists.
+- Optimize images via Cloudinary transformations (auto format, width, quality).
+- Use server-side pagination for long lists (e.g., schools, users).
+
+MAIN FOCUS: SUPER ADMIN MODULE FIRST — Everything below prioritizes building Super Admin fully before any feature modules.
+
+============================
+STEP 1 — SCAFFOLD & AUTH (Deliverable: working dev env + auth)
+Do this first. STOP when finished, run tests below, then WAIT for my OK.
+
+1. Create repo skeleton:
+   - `/frontend` (Vite React TS)
+   - `/backend` (Express TS)
+   - Add basic README, .gitignore, and scripts to run both concurrently (eg. using `concurrently` or `pnpm` workspaces).
+
+2. Install essentials:
+   - Backend: express, prisma, @prisma/client, bcrypt, jsonwebtoken, cors, dotenv, pg, zod.
+   - Frontend: react-router-dom, axios, tailwindcss, react-query (or swr), zustand, headlessui (optional).
+
+3. Prisma & DB:
+   - Initialize Prisma, set `DATABASE_URL` in `.env`.
+   - Create initial Prisma schema (minimal fields):
+     - User: id, email, password, role, name, schoolId?, branchId?, forcePasswordChange:boolean, createdAt
+     - School: id, name, shortName (unique slug), abbreviation, motto, state, lga, address, phones (json), email, logoUrl, type: "K12"|"NIGERIAN", status: "ACTIVE"|"DISABLED", mainBranchId?, createdAt
+     - Branch: id, schoolId, name, isMain:boolean, credentials(json or separate users), createdAt
+     - Feature: id, key (e.g., CBT), name, description
+     - SchoolFeature: id, schoolId, featureId, enabled:boolean
+     - GradeSection: id, schoolId, name, code (e.g., "P1"), order
+     - Subscription (optional): plan, startsAt, endsAt
+   - Run `prisma migrate dev` to create DB tables.
+
+4. Auth endpoints (backend):
+   - POST `/auth/login`:
+      - For **superadmin**: verify by email+password.
+      - For **school users (admin/teacher/student/parent)**: accept `{ email, password, shortName? }` OR use subdomain detection; verify the user belongs to the `schoolId` (and branchId if branch-level account). Return JWT with payload `{ userId, role, schoolId?, branchId? }`.
+   - POST `/auth/register`: only used for seeds or superadmin registration (not public signup).
+   - Add middleware `authMiddleware` (verify JWT) and `roleMiddleware(role)`.
+
+5. Seed script:
+   - Create one superadmin user (placeholder credentials — show them in report).
+   - Insert default features: CBT, E_CLASSROOM, ATTENDANCE, SCHOOL_MASTER, EXPRESS_FINANCE, RESULT_STATION, ISLAMIYYA, TAHFIZ, etc.
+   - Note: Do not keep a plaintext password in code — in seed print sample credentials to console and then force change later.
+
+6. Cloudinary:
+   - Implement a simple endpoint `/uploads/logo` which accepts image, validates 4MB max and allowed types (jpg/png/svg), uploads to Cloudinary, returns secure url.
+   - Frontend will call this endpoint during school creation.
+
+7. Acceptance tests (run and include outputs in report):
+   - `curl` to login superadmin and receive JWT.
+   - `curl` to GET `/superadmin/health` with JWT → expect 200 and JSON `{ status: "ok" }`.
+   - Print repo tree and commands used.
+
+Return: list of commands you ran, repo tree printout, seed output (superadmin credentials), sample JWT, and short test results. STOP and wait for my OK before Step 2.
+
+============================
+STEP 2 — DATABASE MIGRATIONS & GRADE SECTIONS (Deliverable: migrated DB + grade seeding)
+Do this only after Step 1 OK.
+
+1. Finalize Prisma schema with relations (User -> School, Branch; SchoolFeature pivot).
+2. Implement `GradeSection` auto-creation logic:
+   - When creating a school:
+     - If type === "K12": create grade sections "Grade 1" ... "Grade 12" with codes "G1".."G12".
+     - If type === "NIGERIAN": create Nursery: KG1..KG3, Primary: P1..P6, JSS1..JSS3, SSS1..SSS3 with appropriate codes and ordering.
+3. Create migration & run it.
+4. Acceptance tests:
+   - Create a `K12` school via API and show `GradeSection` rows created.
+   - Create a `NIGERIAN` school via API and show Nursery/Primary/JSS/SSS created.
+   - Show sample Prisma queries used and result sets.
+
+Return short test report and await OK.
+
+============================
+STEP 3 — SUPER ADMIN BACKEND (Deliverable: full Super Admin REST API)
+Do this only after Step 2 OK.
+
+Required endpoints (all protected by superadmin role where noted):
+- GET `/superadmin/schools` → list schools with features, mainBranch, status, shortName.
+- POST `/superadmin/schools` → create school
+  - Request body fields (exact):
+    - schoolName, shortName (unique slug), abbreviation, motto, state, lga, address, phones:[string], email, logoFile (handle via cloudinary upload first), schoolAdmin: { name, email }, defaultPassword? (default to "123456" if not provided), type: "K12"|"NIGERIAN", initialFeatures: [featureKeys], branches: [{ name, credentials? }], subscriptionPlan?
+  - Implementation details:
+    - Create `school` record, upload & store `logoUrl`.
+    - Create `branch` records; first branch = `isMain=true` and set `school.mainBranchId`.
+    - Create school admin User using the provided admin email and default password (hash password). Set `forcePasswordChange=true`.
+    - Insert entries to `school_features` for initialFeatures = enabled true.
+    - Generate `GradeSection` rows based on type.
+    - Create a unique login link for the school:
+       - If school requests subdomain: reserve `https://{shortName}.{MAINDOMAIN}/login` (generate instructions & handle via wildcard host middleware).
+       - Also create fallback path-based link: `https://{MAINDOMAIN}/s/{shortName}/login`.
+    - Return created school object and login links in response.
+- PUT `/superadmin/schools/:schoolId` → update school info including toggling shortName (if needed) — ensure shortName uniqueness.
+- POST `/superadmin/schools/:schoolId/enable` → set status ACTIVE.
+- POST `/superadmin/schools/:schoolId/disable` → set status DISABLED.
+- POST `/superadmin/schools/:schoolId/features/:featureKey/enable`
+- POST `/superadmin/schools/:schoolId/features/:featureKey/disable`
+- GET `/superadmin/features` → list all features.
+- POST `/superadmin/branches` → create branch for a school (if no branches exist, set as main branch).
+
+Business rules:
+- School creation must create the school admin user with provided email and default password (`123456`) and set `forcePasswordChange=true`.
+- School admin / teacher / student logins must be validated against the `schoolId` (and branchId for branch-limited roles).
+- Branch accounts include `branchId` and must only access their branch data.
+- When a feature is disabled for a school, module route middleware must return HTTP 403.
+
+Acceptance tests (curl examples):
+- Create school with initial features and two branches. Show DB rows and returned login links.
+- Call toggle endpoint to disable CBT and show subsequent GET `/superadmin/schools/:id` shows CBT disabled.
+Return tests and await OK.
+
+============================
+STEP 4 — SUPER ADMIN FRONTEND DASHBOARD (Deliverable: working pages)
+Do this only after Step 3 OK.
+
+Pages & components (Vite + React + TypeScript):
+- Route: `/superadmin` (protected)
+- Components:
+  - SchoolList (table: columns name, shortName, type, status, features summary, mainBranch)
+  - Filters (K12 / NIGERIAN, Active / Disabled)
+  - FeatureToggle per school (checkbox or switch). Toggle calls the backend and uses optimistic update via React Query.
+  - SchoolForm modal (create/edit) — includes logo upload (call backend upload endpoint first), school admin fields, branches, initial feature checklist. Validate shortName uniqueness client-side (debounced API check).
+  - BranchList modal (create / view).
+Behavior:
+- Lazy-load module pages. Use `React.lazy` and Suspense with skeleton placeholders.
+- Use React Query for data loading and caching, Zustand for small UI state.
+- For toggles, show immediate UI feedback (optimistic update) and rollback on error.
+
+Acceptance tests:
+- Use the UI to create a K12 school, verify DB rows and UI updates.
+- Toggle Attendance off for a school and verify the UI hides module menu entry for that school.
+
+Return build preview URL (or dev run instructions), screenshots or short screencast steps, and await OK.
+
+============================
+STEP 5 — MODULE SKELETONS & FEATURE GUARDS (Deliverable: skeleton modules)
+Do this only after Step 4 OK.
+
+For each feature (CBT, E_CLASSROOM, ATTENDANCE, RESULT_STATION, EXPRESS_FINANCE, SCHOOL_MASTER, ISLAMIYYA, TAHFIZ):
+- Backend:
+  - Create `/modules/{feature}` with router, controller, service, Prisma models (if needed).
+  - Add middleware `featureEnabledMiddleware(featureKey)` that checks `school_features` for `req.user.schoolId` and returns 403 if disabled.
+  - Expose routes under `/api/{featureKey.toLowerCase()}/*` (e.g., `/api/cbt/*`).
+- Frontend:
+  - Create `/src/modules/{feature}` folder with lazy-loaded route and placeholder pages (basic CRUD placeholders).
+  - Each module should read feature-enabled flag from `/superadmin/schools` response or a dedicated endpoint, and not render menu or route if disabled.
+
+Acceptance tests:
+- With feature enabled: visiting module route returns 200 and shows placeholder UI.
+- With feature disabled: visiting route returns 403 and UI shows “Feature disabled” message.
+
+Return status and await OK.
+
+============================
+STEP 6 — BRANCH LOGINS, MULTI-TENANCY & SUBDOMAIN SUPPORT (Deliverable: branch auth + tenant routing)
+Do this only after Step 5 OK.
+
+1. Branch login behavior:
+   - Branch admin & staff accounts are created with `branchId` and `schoolId`.
+   - Login for these accounts verifies `schoolId` and `branchId` association.
+   - JWT contains `{ userId, role, schoolId, branchId }`.
+
+2. Multi-tenant routing:
+   - Support two tenant access patterns:
+     a) Subdomain (preferred): `https://{shortName}.{MAINDOMAIN}/...`
+        - Backend should parse host header or use vhost/middleware to extract `shortName` and look up `schoolId`.
+        - Provide dev fallback instructions: `https://{MAINDOMAIN}/s/{shortName}/...`.
+        - For production, document DNS wildcard (`*.maindomain.com`) and SSL wildcard cert steps.
+     b) Path-based fallback: `https://{MAINDOMAIN}/s/{shortName}/login`
+
+3. On creation, return ready-to-use login link(s) for the school:
+   - `https://{shortName}.{MAINDOMAIN}/login` (if subdomain requested)
+   - `https://{MAINDOMAIN}/s/{shortName}/login` (fallback)
+
+4. Force password change:
+   - School admin created with default `123456` and `forcePasswordChange=true`.
+   - Frontend must detect this on login and force the user to set a new password.
+
+Acceptance tests:
+- Create a school with two branches: login as branch2 and demonstrate JWT, and that branch-limited data access works.
+
+Return tests and await OK.
+
+============================
+STEP 7 — DOCUMENTATION, RUNBOOK & DELIVERY
+Do this only after Step 6 OK.
+
+- Provide README with: env vars, start commands, migration commands, seed commands, how to run frontend and backend concurrently.
+- Provide Postman collection or curl scripts for all major endpoints.
+- Provide a short deploy guide: Dockerfile(s) and simple Docker Compose to run backend + postgres + frontend, plus notes on Cloudinary and wildcard subdomain DNS.
+- Provide next steps: converting modules into full feature apps, adding billing, analytics, and unit tests.
+
+FINAL NOTES FOR YOU (Replit AI)
+- Ask the user only **one** clarification question if needed (e.g., "Do you want TypeScript or JS?"). Prefer TypeScript by default.
+- Produce well-documented code with comments and clear commit messages per step.
+- After finishing each step, provide a short test-report (commands you ran + expected vs actual results) and WAIT for the human OK before continuing.
+- Start now with STEP 1. Report back with the scaffold commands you ran, the repo tree, the seed output (superadmin credentials), and a successful `curl` login response.
