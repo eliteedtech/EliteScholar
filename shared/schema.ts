@@ -87,6 +87,8 @@ export const features = pgTable("features", {
   name: varchar("name").notNull(),
   description: text("description"),
   price: integer("price").default(0), // Price in smallest currency unit (kobo)
+  category: varchar("category").default("CORE"),
+  type: jsonb("type").$type<{module: boolean; standalone: boolean; both: boolean}>().default({module: false, standalone: false, both: false}),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
