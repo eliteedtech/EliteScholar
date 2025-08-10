@@ -91,7 +91,7 @@ export default function SchoolsPage() {
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
 
   // Fetch schools  
   const { data: schoolsResponse, isLoading } = useQuery<{ schools: SchoolWithDetails[] }>({
@@ -149,7 +149,7 @@ export default function SchoolsPage() {
 
   // Toggle school status mutation
   const toggleStatusMutation = useMutation({
-    mutationFn: async (data: { id: string; status: "active" | "suspended" }) => {
+    mutationFn: async (data: { id: string; status: "ACTIVE" | "DISABLED" }) => {
       const response = await apiRequest("PATCH", `/api/superadmin/schools/${data.id}/status`, data);
       return response.json();
     },
@@ -233,12 +233,27 @@ export default function SchoolsPage() {
 
   const editForm = useForm<SchoolFormData>({
     resolver: zodResolver(schoolSchema),
+    defaultValues: {
+      schoolName: "",
+      shortName: "",
+      abbreviation: "",
+      motto: "",
+      state: "",
+      lga: "",
+      address: "",
+      phones: "",
+      email: "",
+      type: "K12" as const,
+      adminName: "",
+      adminEmail: "",
+      defaultPassword: "",
+    },
   });
 
-  const handleEdit = (school: School) => {
+  const handleEdit = (school: SchoolWithDetails) => {
     setSelectedSchool(school);
     editForm.reset({
-      schoolName: school.schoolName,
+      schoolName: school.name,
       shortName: school.shortName,
       abbreviation: school.abbreviation || "",
       motto: school.motto || "",
@@ -249,19 +264,19 @@ export default function SchoolsPage() {
       email: school.email || "",
       type: school.type,
       adminName: "", // We'll need to fetch this
-      adminEmail: school.adminEmail,
+      adminEmail: school.email || "",
       defaultPassword: "",
     });
     setEditDialogOpen(true);
   };
 
-  const handleToggleStatus = (school: School) => {
-    const newStatus = school.status === "active" ? "suspended" : "active";
+  const handleToggleStatus = (school: SchoolWithDetails) => {
+    const newStatus = school.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
     toggleStatusMutation.mutate({ id: school.id, status: newStatus });
   };
 
-  const handleDelete = (school: School) => {
-    if (window.confirm(`Are you sure you want to delete ${school.schoolName}? This action cannot be undone.`)) {
+  const handleDelete = (school: SchoolWithDetails) => {
+    if (window.confirm(`Are you sure you want to delete ${school.name}? This action cannot be undone.`)) {
       deleteSchoolMutation.mutate(school.id);
     }
   };
@@ -560,12 +575,12 @@ export default function SchoolsPage() {
                       </TableCell>
                       <TableCell>{school.email || 'N/A'}</TableCell>
                       <TableCell>
-                        <Badge variant={school.status === "active" ? "default" : "destructive"}>
+                        <Badge variant={school.status === "ACTIVE" ? "default" : "destructive"}>
                           {school.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {school.hasInvoice ? (
+                        {false ? (
                           <Button
                             variant="outline"
                             size="sm"
@@ -602,7 +617,7 @@ export default function SchoolsPage() {
                             onClick={() => handleToggleStatus(school)}
                             data-testid={`button-toggle-status-${school.id}`}
                           >
-                            {school.status === "active" ? (
+                            {school.status === "ACTIVE" ? (
                               <Ban className="h-4 w-4" />
                             ) : (
                               <CheckCircle className="h-4 w-4" />
@@ -618,11 +633,11 @@ export default function SchoolsPage() {
                             <Mail className="h-4 w-4" />
                           </Button>
 
-                          {school.schoolLink && (
+                          {false && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(school.schoolLink, '_blank')}
+                              onClick={() => window.open('#', '_blank')}
                               data-testid={`button-open-link-${school.id}`}
                             >
                               <Link className="h-4 w-4" />

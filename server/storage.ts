@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSchool(schoolData: InsertSchool): Promise<School> {
-    const [school] = await db.insert(schools).values(schoolData).returning();
+    const [school] = await db.insert(schools).values(schoolData as any).returning();
     return school;
   }
 
@@ -301,7 +301,7 @@ export class DatabaseStorage implements IStorage {
     const [invoiceStats] = await db
       .select({
         pendingInvoices: sql<number>`COUNT(CASE WHEN status = 'SENT' THEN 1 END)`,
-        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END), 0)`
+        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN status = 'PAID' THEN total_amount ELSE 0 END), 0)`
       })
       .from(invoices);
 
@@ -309,7 +309,7 @@ export class DatabaseStorage implements IStorage {
     const monthlyRevenue = await db
       .select({
         month: sql<string>`TO_CHAR(created_at, 'Mon YYYY')`,
-        revenue: sql<number>`SUM(CASE WHEN status = 'PAID' THEN total ELSE 0 END)`
+        revenue: sql<number>`SUM(CASE WHEN status = 'PAID' THEN total_amount ELSE 0 END)`
       })
       .from(invoices)
       .where(sql`created_at >= CURRENT_DATE - INTERVAL '6 months'`)
