@@ -15,7 +15,27 @@ Preferred communication style: Simple, everyday language.
 - Password: SuperAdmin123!
 - Role: Super Administrator with full system access
 
-Use these credentials to access the Super Admin dashboard and manage schools, invoices, and feature toggles.
+**Demo School Admin Account:**
+- Email: schooladmin@demo.com
+- Password: SchoolAdmin123!
+- Role: School Administrator with school-level management access
+
+**Demo Teacher Account:**
+- Email: teacher@demo.com
+- Password: Teacher123!
+- Role: Teacher with classroom management access
+
+**Demo Student Account:**
+- Email: student@demo.com
+- Password: Student123!
+- Role: Student with limited portal access
+
+**Demo Parent Account:**
+- Email: parent@demo.com
+- Password: Parent123!
+- Role: Parent with child monitoring access
+
+Use the Super Admin credentials to access the main dashboard and manage schools, invoices, and feature toggles. Other accounts can be used to test role-based access controls.
 
 ## System Architecture
 
