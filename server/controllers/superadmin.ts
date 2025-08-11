@@ -87,8 +87,22 @@ router.get("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
 // Create new school
 router.post("/schools", async (req: AuthRequest, res: Response) => {
   try {
+    // Debug logging
+    console.log("Create school request body:", req.body);
+    console.log("Create school files:", req.file);
+    
     // Parse form data from multipart request
-    const requestData = JSON.parse(req.body.schoolData || '{}');
+    let requestData = {};
+    
+    if (req.body.schoolData) {
+      requestData = JSON.parse(req.body.schoolData);
+    } else {
+      // Fallback for direct JSON body
+      requestData = req.body;
+    }
+    
+    console.log("Parsed request data:", requestData);
+    
     const {
       schoolName,
       shortName,
