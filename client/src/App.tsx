@@ -42,20 +42,7 @@ function Router() {
             <>
               <Route path="/" component={SuperAdminDashboard} />
               <Route path="/superadmin" component={SuperAdminDashboard} />
-              <Route path="/superadmin/schools" component={SchoolsPage} />
-              <Route path="/superadmin/invoices" component={InvoicesPage} />
-              <Route path="/superadmin/features">
-                <Suspense fallback={<div>Loading...</div>}>
-                  <FeaturesPage />
-                </Suspense>
-              </Route>
-              <Route path="/superadmin/analytics">
-                <Suspense fallback={<div>Loading...</div>}>
-                  <AnalyticsPage />
-                </Suspense>
-              </Route>
-              <Route path="/superadmin/users" component={SuperAdminDashboard} />
-              <Route path="/superadmin/settings" component={SettingsPage} />
+              <Route path="/superadmin/*" component={SuperAdminDashboard} />
             </>
           ) : (
             <>

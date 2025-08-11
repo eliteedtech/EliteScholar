@@ -1,0 +1,192 @@
+Super Admin Dashboard — Updated Requirements
+1. School Management
+Create School Form
+
+Inputs:
+
+School Name
+
+Short Name / Abbreviation → used to generate subdomain.
+
+Preview Link → shown live under the abbreviation field (e.g., shortname.domain.com from domain in Settings).
+
+School Email
+
+Admin Email
+
+Password
+
+Phone
+
+Address
+
+School Type → K12 or Nigerian Curriculum
+
+Sections → checkboxes based on selected School Type.
+
+Example:
+
+K12: Nursery, Primary, Secondary.
+
+Nigerian Curriculum: Custom curriculum sections.
+
+Features → list from Features page; toggle enable/disable for this school.
+
+On Create:
+
+Save to DB with school_id.
+
+Generate branch if applicable.
+
+For each enabled section:
+
+Auto-create default classes under it (e.g., Nursery → Kindergarten, Nursery 1, Nursery 2).
+
+Each class supports branches (A, B, C, etc.).
+
+Send beautiful HTML welcome email to both School Email and Admin Email:
+
+Include school link (subdomain).
+
+Login details (email & password).
+
+Use Nodemailer for sending emails.
+
+Edit School
+
+Update details (including enabled features, sections, and classes).
+
+Delete School
+
+Soft delete or permanent delete option.
+
+Suspend / Activate School
+
+Toggle to restrict access.
+
+UI
+
+School list table with:
+
+Edit
+
+Delete
+
+Suspend/Activate
+
+Create Invoice (if no invoice exists)
+
+Generate Invoice (if invoice exists)
+
+2. Invoice Management
+Default Invoice Template
+
+Used if no school-specific invoice exists.
+
+Create Invoice
+
+Select school.
+
+Select features (from Features page):
+
+If a feature has a price → auto-add to invoice total.
+
+If no features available for the school → allow manual price entry.
+
+Negotiated Price:
+
+If applicable, override calculated total.
+
+Save invoice with school_id reference.
+
+Generate Invoice
+
+If school has custom invoice → use that.
+
+If not → use default invoice.
+
+CRUD
+
+Create
+
+Edit
+
+Delete
+
+Email
+
+Send invoice PDF to school email on creation.
+
+UI
+
+Invoice list table with actions.
+
+Show “Create Invoice” for schools with no invoice.
+
+3. Features Management
+CRUD for Features
+
+Fields:
+
+Name
+
+Type → Module / Standalone / Both
+
+Price (required for invoice auto-calculation)
+
+If no price → invoice can allow manual entry.
+
+Rules
+
+Only features with a price appear in invoice feature selection.
+
+Features can be toggled for a specific school in School Edit.
+
+UI
+
+Table of features with actions.
+
+4. Analytics
+Display school data in charts:
+
+Total schools
+
+Schools with/without invoices
+
+Revenue by month
+
+Top features purchased
+
+Use Chart.js or Recharts.
+
+Accessible inside dashboard like Schools and Invoices pages.
+
+5. Settings
+Fields:
+
+App Name
+
+App Logo (upload)
+
+Domain → used to generate subdomains.
+
+On Save:
+
+Changes update across the system instantly.
+
+6. Database Requirements
+All main tables must have:
+
+school_id
+
+branch_id (for branches of schools)
+
+Sections & Classes:
+
+Store IDs, not names, so they can be renamed without breaking references.
+
+Class Branches:
+
+Support multiple branches (A, B, C, etc.).
+
+Auto-generation of sections & classes based on school type on creation.
