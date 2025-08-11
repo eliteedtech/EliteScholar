@@ -671,8 +671,9 @@ export class DatabaseStorage implements IStorage {
     // Generate invoice number
     const invoiceNumber = await this.generateInvoiceNumber();
     
-    // Ensure features is an array
+    // Ensure features is an array and not empty
     const features = invoiceData.features || [];
+    const processedFeatures = features.length > 0 ? features : [];
     
     // Calculate total amount from features
     const totalAmount = features.reduce((sum: number, feature: any) => {
@@ -685,10 +686,10 @@ export class DatabaseStorage implements IStorage {
       schoolId: invoiceData.schoolId,
       invoiceNumber,
       totalAmount: totalAmount * 100, // Convert to kobo
-      finalAmount: invoiceData.finalAmount ? invoiceData.finalAmount * 100 : undefined,
       status: "SENT",
       dueDate: new Date(invoiceData.dueDate),
       notes: invoiceData.notes,
+      features: [], // Ensure features is set to empty array
     };
 
     const [invoice] = await db.insert(invoices).values(invoiceRecord).returning();

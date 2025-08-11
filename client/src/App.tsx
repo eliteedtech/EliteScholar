@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, startTransition } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,7 +46,14 @@ function Router() {
               <Route path="/superadmin/schools" component={SchoolsPage} />
               <Route path="/superadmin/invoices" component={InvoicesPage} />
               <Route path="/superadmin/invoices-enhanced" component={EnhancedInvoicesPage} />
-              <Route path="/superadmin/settings-enhanced" component={lazy(() => import("./pages/superadmin/settings-enhanced"))} />
+              <Route path="/superadmin/settings-enhanced">
+                <Suspense fallback={<div>Loading settings...</div>}>
+                  {(() => {
+                    const SettingsEnhancedPage = lazy(() => import("./pages/superadmin/settings-enhanced"));
+                    return <SettingsEnhancedPage />;
+                  })()}
+                </Suspense>
+              </Route>
               <Route path="/superadmin/features">
                 <Suspense fallback={<div>Loading...</div>}>
                   <FeaturesPage />

@@ -69,25 +69,29 @@ export default function EnhancedSettingsPage() {
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["/api/superadmin/settings"],
-    queryFn: () => api.get("/api/superadmin/settings"),
   });
 
   const form = useForm<AppSettingsFormData>({
     resolver: zodResolver(appSettingsSchema),
     defaultValues: {
-      appName: settings?.appName || "Elite Scholar",
-      smtpPort: settings?.smtpPort || "587",
-      emailFromName: settings?.emailFromName || "Elite Scholar",
-      smtpSecure: settings?.smtpSecure || false,
-      emailTemplate: settings?.emailTemplate || defaultEmailTemplate,
-      invoiceTemplate: settings?.invoiceTemplate || defaultInvoiceTemplate,
-      ...settings,
+      appName: "Elite Scholar",
+      smtpPort: "587",
+      emailFromName: "Elite Scholar",
+      smtpSecure: false,
+      emailTemplate: defaultEmailTemplate,
+      invoiceTemplate: defaultInvoiceTemplate,
     },
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (data: AppSettingsFormData) =>
-      api.post("/api/superadmin/settings", data),
+    mutationFn: async (data: AppSettingsFormData) => {
+      const response = await fetch("/api/superadmin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
     onSuccess: () => {
       toast({
         title: "Settings Updated",
@@ -105,7 +109,13 @@ export default function EnhancedSettingsPage() {
   });
 
   const testEmailMutation = useMutation({
-    mutationFn: () => api.post("/api/superadmin/test-email"),
+    mutationFn: async () => {
+      const response = await fetch("/api/superadmin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      return response.json();
+    },
     onSuccess: () => {
       toast({
         title: "Test Email Sent",
@@ -290,7 +300,7 @@ export default function EnhancedSettingsPage() {
                         data-testid="textarea-email-template"
                       />
                       <p className="text-sm text-slate-600 mt-1">
-                        Available placeholders: {{schoolName}}, {{invoiceNumber}}, {{totalAmount}}, {{dueDate}}
+                        Available placeholders: {"{"}{"{"}{"}schoolName{"}{"}"}, {"{"}{"{"}{"}invoiceNumber{"}{"}"}, {"{"}{"{"}{"}totalAmount{"}{"}"}, {"{"}{"{"}{"}dueDate{"}{"}"}{"}
                       </p>
                     </div>
                     <Button
@@ -482,7 +492,7 @@ export default function EnhancedSettingsPage() {
                         data-testid="textarea-invoice-template"
                       />
                       <p className="text-sm text-slate-600 mt-1">
-                        Available placeholders: {{schoolName}}, {{invoiceNumber}}, {{totalAmount}}, {{items}}, {{dueDate}}
+                        Available placeholders: {"{"}{"{"}{"}schoolName{"}{"}"}, {"{"}{"{"}{"}invoiceNumber{"}{"}"}, {"{"}{"{"}{"}totalAmount{"}{"}"}, {"{"}{"{"}{"}items{"}{"}"}, {"{"}{"{"}{"}dueDate{"}{"}"}{"}
                       </p>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -491,16 +501,19 @@ export default function EnhancedSettingsPage() {
                         <div 
                           className="border rounded-lg p-4 bg-white shadow-sm min-h-[300px]"
                           dangerouslySetInnerHTML={{ 
-                            __html: form.watch("invoiceTemplate")?.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-                              const sampleData: any = {
-                                schoolName: "Sample School",
-                                invoiceNumber: "INV-2025-001",
-                                totalAmount: "₦236,320.80",
-                                dueDate: "January 31, 2025",
-                                items: "<tr><td>Feature Management</td><td>1</td><td>₦50,000</td></tr>"
-                              };
-                              return sampleData[key] || match;
-                            }) || ""
+                            __html: (() => {
+                              const template = form.watch("invoiceTemplate") || "";
+                              return template.replace(/\{\{(\w+)\}\}/g, (match: string, key: string) => {
+                                const sampleData: Record<string, string> = {
+                                  "schoolName": "Sample School",
+                                  "invoiceNumber": "INV-2025-001",
+                                  "totalAmount": "₦236,320.80",
+                                  "dueDate": "January 31, 2025",
+                                  "items": "<tr><td>Feature Management</td><td>1</td><td>₦50,000</td></tr>"
+                                };
+                                return sampleData[key] || match;
+                              });
+                            })()
                           }}
                         />
                       </div>
