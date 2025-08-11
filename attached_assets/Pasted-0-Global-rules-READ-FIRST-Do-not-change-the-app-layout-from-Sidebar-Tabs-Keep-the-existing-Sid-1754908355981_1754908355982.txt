@@ -1,0 +1,72 @@
+0) Global rules — READ FIRST
+Do not change the app layout from Sidebar → Tabs. Keep the existing Sidebar navigation persistent across the dashboard.
+
+All deleted records must be soft deleted (status = deleted), and never shown on the frontend.
+
+Use transactions for multi-step DB changes (create school → create sections/classes → create branches, etc.)
+
+Use environment vars for secrets (DATABASE_URL, SMTP settings, APP_DOMAIN, etc.)
+
+1) Lock UI layout (Sidebar)
+What: Ensure the app continues using the current sidebar layout everywhere.
+How:
+
+Keep Layout / DashboardLayout component with Sidebar always rendered.
+
+Ensure pages still mount inside the main content area; do not convert nav to tabs.
+Acceptance:
+
+Sidebar visible and identical on /dashboard, /schools, /invoices, /features, /analytics, /settings.
+
+2) Create single reusable SchoolForm component (source of truth)
+What: Create components/SchoolForm.jsx (or .tsx) used by both Dashboard and Schools page for create & edit. Remove duplicate forms.
+How:
+
+Export props: mode (create | edit), initialData (object), onSuccess callback.
+
+Implement fields: school_name, short_name (abbreviation), preview_link, school_email, admin_email, password (create only), phone, address, school_type (K12|Nigerian), grade_groups (checkbox list), features (toggle list), sections/auto-classes options.
+
+Preview link: live show https://{short_name}.{APP_DOMAIN} (APP_DOMAIN from Settings env or API).
+
+Use client-side validation for required fields + short_name regex (alphanumeric, hyphen).
+Acceptance:
+
+Import and use SchoolForm in Dashboard and SchoolsPage (schools page uses same component, not a copy).
+
+Only one form component exists and is the single source-of-truth.
+
+3) API: Create/Update School endpoints
+What: Add/confirm backend endpoints:
+
+POST /api/schools → create school
+
+PUT /api/schools/:id → update school
+
+GET /api/schools → list (exclude status=deleted)
+
+GET /api/schools/:id → single school (include features, branches, sections)
+How (on POST):
+
+Validate payload.
+
+Insert into schools table (columns below).
+
+Generate subdomain = short_name and store full url = https://short_name.{domain}.
+
+Auto-create enabled sections & classes based on school_type and chosen grade_groups (use section & class IDs for references).
+
+Create default branches if supplied or none.
+
+Save selected features to school_features.
+
+Send welcome email to school_email and admin_email (use Nodemailer or configured SMTP). Email includes subdomain + login details.
+
+Return created school object.
+How (on PUT):
+
+Pre-fill SchoolForm with school data. On save, update fields, update features toggles, and create/delete classes where groups toggled/untoggled (use IDs and transactions).
+Acceptance:
+
+Creating a school results in DB rows for school, sections, classes, and school_features (as toggles).
+
+Welcome email is sent, preview link is valid.

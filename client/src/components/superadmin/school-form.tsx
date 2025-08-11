@@ -43,7 +43,7 @@ const schoolFormSchema = z.object({
   }),
   defaultPassword: z.string().default("123456"),
   initialFeatures: z.array(z.string()).default([]),
-  selectedSections: z.array(z.string()).default([]),
+  selectedGradeGroups: z.array(z.string()).default([]),
   branches: z.array(z.object({
     name: z.string().min(1, "Branch name is required"),
   })).default([{ name: "Main Branch" }]),
@@ -57,27 +57,36 @@ interface SchoolFormProps {
   onSuccess: () => void;
 }
 
-export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormProps) {
+export function SchoolForm({ school, onClose, onSuccess }: SchoolFormProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(school?.logoUrl || null);
 
-  // K12 Grade Sections
-  const k12Sections = [
-    "Pre-K", "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", 
-    "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"
+  // Grade Groups for different school types
+  const gradeGroupsK12 = [
+    { id: "pre-kindergarten", name: "Pre-Kindergarten", classes: ["Pre-K", "Kindergarten"] },
+    { id: "elementary", name: "Elementary", classes: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"] },
+    { id: "middle-school", name: "Middle School", classes: ["Grade 6", "Grade 7", "Grade 8"] },
+    { id: "high-school", name: "High School", classes: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"] }
   ];
 
-  // Nigerian Curriculum Sections  
-  const nigerianSections = [
-    "Nursery 1", "Nursery 2", "Primary 1", "Primary 2", "Primary 3", "Primary 4", 
-    "Primary 5", "Primary 6", "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
+  const gradeGroupsNigerian = [
+    { id: "nursery", name: "Nursery", classes: ["Nursery 1", "Nursery 2"] },
+    { id: "primary", name: "Primary", classes: ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"] },
+    { id: "secondary", name: "Secondary", classes: ["JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"] },
+    { id: "islamiyya", name: "Islamiyya", classes: ["Islamiyya 1", "Islamiyya 2", "Islamiyya 3", "Islamiyya 4", "Islamiyya 5", "Islamiyya 6"] },
+    { id: "adult-learning", name: "Adult Learning", classes: ["Adult Basic 1", "Adult Basic 2", "Adult Basic 3", "Adult Advanced 1", "Adult Advanced 2", "Adult Advanced 3"] }
   ];
 
   const { data: features } = useQuery({
     queryKey: ["/api/superadmin/features"],
     queryFn: () => api.superadmin.getFeatures(),
+  });
+
+  // Fetch app settings for domain
+  const { data: appSettings } = useQuery({
+    queryKey: ["/api/superadmin/settings"],
   });
 
   const form = useForm<SchoolFormData>({
@@ -99,7 +108,7 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
       },
       defaultPassword: "123456",
       initialFeatures: school?.features?.filter(f => f.enabled).map(f => f.feature.key) || [],
-      selectedSections: [],
+      selectedGradeGroups: [],
       branches: school?.branches?.map(b => ({ name: b.name })) || [{ name: "Main Branch" }],
     },
   });
@@ -431,31 +440,42 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
             </div>
           )}
 
-          {/* Initial Features - Only for new schools */}
-          {/* Grade Sections Selection */}
+          {/* Grade Groups Selection - Only for new schools */}
           {!school && (
             <div className="border-t border-slate-200 pt-6">
-              <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Sections</h4>
-              <p className="text-sm text-slate-600 mb-4">Select which grade sections this school will offer:</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {(form.watch("type") === "K12" ? k12Sections : nigerianSections).map((section) => (
-                  <div key={section} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`section-${section}`}
-                      checked={form.watch("selectedSections").includes(section)}
-                      onCheckedChange={(checked) => {
-                        const currentSections = form.getValues("selectedSections");
-                        if (checked) {
-                          form.setValue("selectedSections", [...currentSections, section]);
-                        } else {
-                          form.setValue("selectedSections", currentSections.filter(s => s !== section));
-                        }
-                      }}
-                      data-testid={`checkbox-section-${section}`}
-                    />
-                    <Label htmlFor={`section-${section}`} className="text-sm text-slate-700">
-                      {section}
-                    </Label>
+              <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Groups</h4>
+              <p className="text-sm text-slate-600 mb-4">Select which grade groups this school will offer. Classes will be auto-created:</p>
+              <div className="space-y-4">
+                {(form.watch("type") === "K12" ? gradeGroupsK12 : gradeGroupsNigerian).map((group) => (
+                  <div key={group.id} className="border border-slate-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Checkbox
+                        id={`group-${group.id}`}
+                        checked={form.watch("selectedGradeGroups").includes(group.id)}
+                        onCheckedChange={(checked) => {
+                          const currentGroups = form.getValues("selectedGradeGroups");
+                          if (checked) {
+                            form.setValue("selectedGradeGroups", [...currentGroups, group.id]);
+                          } else {
+                            form.setValue("selectedGradeGroups", currentGroups.filter(g => g !== group.id));
+                          }
+                        }}
+                        data-testid={`checkbox-group-${group.id}`}
+                      />
+                      <Label htmlFor={`group-${group.id}`} className="text-sm font-medium text-slate-900">
+                        {group.name}
+                      </Label>
+                    </div>
+                    <div className="ml-6">
+                      <p className="text-xs text-slate-500 mb-2">Auto-creates classes:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {group.classes.map((className) => (
+                          <span key={className} className="inline-block px-2 py-1 bg-slate-100 text-xs text-slate-600 rounded">
+                            {className}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

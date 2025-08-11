@@ -1,400 +1,309 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator 
+} from "@/components/ui/dropdown-menu";
+import { Edit, MoreVertical, Trash2, Building, Users, Banknote, ToggleLeft, Eye } from "lucide-react";
+import type { School } from "../../../shared/schema";
+import { SchoolForm } from "./school-form";
 import { useToast } from "@/hooks/use-toast";
-import SchoolForm from "./school-form";
-import InvoiceForm from "./invoice-form";
-import FeatureToggle from "./feature-toggle";
-import { api } from "@/lib/api";
-import { SchoolWithDetails } from "@/lib/types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export default function SchoolsTable() {
+interface SchoolsTableProps {
+  schools: School[];
+  onSchoolUpdate?: () => void;
+}
+
+export function SchoolsTable({ schools, onSchoolUpdate }: SchoolsTableProps) {
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showBranchModal, setShowBranchModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({
-    type: "all",
-    status: "all",
-    search: "",
-  });
-  const [showSchoolForm, setShowSchoolForm] = useState(false);
-  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
-  const [showFeatureToggle, setShowFeatureToggle] = useState(false);
-  const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
 
-  const { data: schoolsData, isLoading } = useQuery({
-    queryKey: ["/api/superadmin/schools", page, filters],
-    queryFn: () => api.superadmin.getSchools({ page, ...filters }),
-  });
-
-  const toggleFeatureMutation = useMutation({
-    mutationFn: ({ schoolId, featureKey, action }: {
-      schoolId: string;
-      featureKey: string;
-      action: "enable" | "disable";
-    }) => api.superadmin.toggleSchoolFeature(schoolId, featureKey, action),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
-      toast({
-        title: "Feature updated",
-        description: "School feature has been updated successfully.",
+  // Mutation for deleting school (soft delete)
+  const deleteSchoolMutation = useMutation({
+    mutationFn: async (schoolId: string) => {
+      const response = await fetch(`/api/superadmin/schools/${schoolId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
+      if (!response.ok) throw new Error('Failed to delete school');
+      return response.json();
     },
-    onError: (error: any) => {
+    onSuccess: () => {
+      toast({
+        title: "School deleted",
+        description: "The school has been successfully deleted.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/superadmin/schools'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/superadmin/stats'] });
+      onSchoolUpdate?.();
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update feature",
+        description: "Failed to delete school. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
+  // Mutation for updating school status
   const updateStatusMutation = useMutation({
-    mutationFn: ({ schoolId, status }: { schoolId: string; status: "ACTIVE" | "DISABLED" }) =>
-      api.superadmin.updateSchoolStatus(schoolId, status),
+    mutationFn: async ({ schoolId, status }: { schoolId: string; status: string }) => {
+      const response = await fetch(`/api/superadmin/schools/${schoolId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
       toast({
-        title: "School status updated",
+        title: "Status updated",
         description: "School status has been updated successfully.",
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/superadmin/schools'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/superadmin/stats'] });
+      onSchoolUpdate?.();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update school status",
+        description: "Failed to update status. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters({ ...filters, [key]: value });
-    setPage(1);
-  };
-
-  const handleCreateInvoice = (school: SchoolWithDetails) => {
+  const handleEdit = (school: School) => {
     setSelectedSchool(school);
-    setShowInvoiceForm(true);
+    setShowEditForm(true);
   };
 
-  const handleManageFeatures = (school: SchoolWithDetails) => {
-    setSelectedSchool(school);
-    setShowFeatureToggle(true);
-  };
-
-  const handleToggleStatus = (school: SchoolWithDetails) => {
-    const newStatus = school.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
-    updateStatusMutation.mutate({ schoolId: school.id, status: newStatus });
-  };
-
-  const getPaymentStatusBadge = (status: string, dueDate?: string) => {
-    switch (status) {
-      case "PAID":
-        return <Badge className="bg-green-100 text-green-800">PAID</Badge>;
-      case "PENDING":
-        return <Badge className="bg-yellow-100 text-yellow-800">PENDING</Badge>;
-      case "UNPAID":
-        return <Badge className="bg-red-100 text-red-800">UNPAID</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+  const handleDelete = (schoolId: string) => {
+    if (window.confirm('Are you sure you want to delete this school? This action cannot be undone.')) {
+      deleteSchoolMutation.mutate(schoolId);
     }
+  };
+
+  const handleStatusChange = (schoolId: string, newStatus: string) => {
+    updateStatusMutation.mutate({ schoolId, status: newStatus });
+  };
+
+  const handleManageBranches = (school: School) => {
+    setSelectedSchool(school);
+    setShowBranchModal(true);
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return <Badge className="bg-green-100 text-green-800">ACTIVE</Badge>;
-      case "DISABLED":
-        return <Badge className="bg-red-100 text-red-800">DISABLED</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    const statusConfig = {
+      ACTIVE: { label: "Active", variant: "default" as const },
+      SUSPENDED: { label: "Suspended", variant: "secondary" as const },
+      DELETED: { label: "Deleted", variant: "destructive" as const },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ACTIVE;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "K12":
-        return <Badge className="bg-purple-100 text-purple-800">K12</Badge>;
-      case "NIGERIAN":
-        return <Badge className="bg-blue-100 text-blue-800">NIGERIAN</Badge>;
-      default:
-        return <Badge variant="secondary">{type}</Badge>;
-    }
+  const getPaymentStatusBadge = (status: string) => {
+    const statusConfig = {
+      PAID: { label: "Paid", variant: "default" as const },
+      PENDING: { label: "Pending", variant: "secondary" as const },
+      UNPAID: { label: "Unpaid", variant: "destructive" as const },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  if (isLoading) {
+  if (schools.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="animate-pulse">
-          <div className="h-6 bg-slate-200 rounded w-32 mb-4"></div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-slate-200 rounded"></div>
-            ))}
+      <Card>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Building className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No schools found</h3>
+            <p className="text-gray-600">Start by creating your first school.</p>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm" data-testid="schools-table">
-        {/* Table Header with Controls */}
-        <div className="px-6 py-4 border-b border-slate-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Schools</h3>
-            <div className="flex items-center space-x-3">
-              {/* Filters */}
-              <div className="flex items-center space-x-2">
-                <label className="text-sm text-slate-600">Type:</label>
-                <Select value={filters.type} onValueChange={(value) => handleFilterChange("type", value)}>
-                  <SelectTrigger className="w-32" data-testid="filter-type">
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="K12">K12</SelectItem>
-                    <SelectItem value="NIGERIAN">NIGERIAN</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <label className="text-sm text-slate-600">Status:</label>
-                <Select value={filters.status} onValueChange={(value) => handleFilterChange("status", value)}>
-                  <SelectTrigger className="w-32" data-testid="filter-status">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="DISABLED">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Create School Button */}
-              <Button 
-                onClick={() => setShowSchoolForm(true)}
-                className="flex items-center space-x-2"
-                data-testid="button-create-school"
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            Schools Overview
+            <span className="text-sm font-normal text-gray-600">
+              {schools.length} school{schools.length !== 1 ? 's' : ''}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {schools.map((school) => (
+              <div 
+                key={school.id} 
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                data-testid={`school-item-${school.id}`}
               >
-                <i className="fas fa-plus"></i>
-                <span>Create School</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Schools Table */}
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead>School</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Features</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schoolsData?.schools.map((school) => (
-                <TableRow key={school.id} className="hover:bg-slate-50" data-testid={`school-row-${school.id}`}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={school.logoUrl} alt={`${school.name} logo`} />
-                        <AvatarFallback className="bg-slate-100">
-                          {school.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-semibold text-lg">
+                        {school.name.charAt(0).toUpperCase()}
+                      </div>
                       <div>
-                        <div className="font-medium text-slate-900" data-testid={`school-name-${school.id}`}>
+                        <h3 className="text-lg font-semibold text-gray-900" data-testid={`text-school-name-${school.id}`}>
                           {school.name}
-                        </div>
-                        <div className="text-sm text-slate-500" data-testid={`school-shortname-${school.id}`}>
-                          {school.shortName}
-                        </div>
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {school.shortName} • {school.type} Curriculum
+                        </p>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell data-testid={`school-type-${school.id}`}>
-                    {getTypeBadge(school.type)}
-                  </TableCell>
-                  <TableCell data-testid={`school-status-${school.id}`}>
-                    {getStatusBadge(school.status)}
-                  </TableCell>
-                  <TableCell data-testid={`school-payment-${school.id}`}>
-                    {getPaymentStatusBadge(school.paymentStatus)}
-                    {school.nextPaymentDue && (
-                      <div className="text-xs text-slate-500 mt-1">
-                        Due: {new Date(school.nextPaymentDue).toLocaleDateString()}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Status: {getStatusBadge(school.status)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Banknote className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Payment: {getPaymentStatusBadge(school.paymentStatus)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          Type: {school.type}
+                        </span>
+                      </div>
+                    </div>
+
+                    {school.email && (
+                      <div className="mt-3">
+                        <p className="text-sm text-gray-600">
+                          <strong>Email:</strong> {school.email}
+                        </p>
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell data-testid={`school-features-${school.id}`}>
-                    <div className="flex flex-wrap gap-1">
-                      {school.features
-                        .filter((sf: any) => sf.enabled)
-                        .slice(0, 2)
-                        .map((sf: any) => (
-                          <Badge key={sf.id} variant="secondary" className="text-xs">
-                            {sf.feature.key}
-                          </Badge>
-                        ))}
-                      {school.features.filter((sf: any) => sf.enabled).length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{school.features.filter((sf: any) => sf.enabled).length - 2}
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
+
+                    {school.address && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600">
+                          <strong>Address:</strong> {school.address}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button 
                         variant="ghost" 
-                        size="sm"
-                        onClick={() => handleManageFeatures(school)}
-                        data-testid={`button-features-${school.id}`}
+                        className="h-8 w-8 p-0"
+                        data-testid={`button-school-actions-${school.id}`}
                       >
-                        <i className="fas fa-cogs text-slate-600"></i>
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleCreateInvoice(school)}
-                        data-testid={`button-invoice-${school.id}`}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => handleEdit(school)}
+                        data-testid={`button-edit-school-${school.id}`}
                       >
-                        <i className="fas fa-file-invoice text-green-600"></i>
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleToggleStatus(school)}
-                        disabled={updateStatusMutation.isPending}
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit School
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleManageBranches(school)}
+                        data-testid={`button-manage-branches-${school.id}`}
+                      >
+                        <Building className="mr-2 h-4 w-4" />
+                        Manage Branches
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleStatusChange(school.id, school.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
                         data-testid={`button-toggle-status-${school.id}`}
                       >
-                        <i className={`fas ${school.status === "ACTIVE" ? "fa-ban text-red-600" : "fa-check text-green-600"}`}></i>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        {schoolsData && schoolsData.pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-            <div className="text-sm text-slate-700">
-              Showing {((schoolsData.pagination.page - 1) * schoolsData.pagination.limit) + 1} to{" "}
-              {Math.min(schoolsData.pagination.page * schoolsData.pagination.limit, schoolsData.pagination.total)} of{" "}
-              {schoolsData.pagination.total} results
-            </div>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: Math.min(5, schoolsData.pagination.totalPages) }, (_, i) => {
-                  const pageNum = i + 1;
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        onClick={() => setPage(pageNum)}
-                        isActive={pageNum === page}
-                        className="cursor-pointer"
+                        <ToggleLeft className="mr-2 h-4 w-4" />
+                        {school.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(school.id)}
+                        className="text-red-600"
+                        data-testid={`button-delete-school-${school.id}`}
                       >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setPage(Math.min(schoolsData.pagination.totalPages, page + 1))}
-                    className={page === schoolsData.pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete School
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Modals */}
-      {showSchoolForm && (
-        <SchoolForm 
-          onClose={() => setShowSchoolForm(false)}
+      {/* Edit School Form */}
+      {showEditForm && selectedSchool && (
+        <SchoolForm
+          isOpen={showEditForm}
+          onClose={() => {
+            setShowEditForm(false);
+            setSelectedSchool(null);
+          }}
+          school={selectedSchool}
           onSuccess={() => {
-            setShowSchoolForm(false);
-            queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
+            setShowEditForm(false);
+            setSelectedSchool(null);
+            onSchoolUpdate?.();
           }}
         />
       )}
 
-      {showInvoiceForm && selectedSchool && (
-        <InvoiceForm 
-          school={selectedSchool}
-          onClose={() => {
-            setShowInvoiceForm(false);
-            setSelectedSchool(null);
-          }}
-          onSuccess={() => {
-            setShowInvoiceForm(false);
-            setSelectedSchool(null);
-            queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
-          }}
-        />
-      )}
-
-      {showFeatureToggle && selectedSchool && (
-        <FeatureToggle 
-          school={selectedSchool}
-          onClose={() => {
-            setShowFeatureToggle(false);
-            setSelectedSchool(null);
-          }}
-          onToggle={(featureKey, enabled) => {
-            toggleFeatureMutation.mutate({
-              schoolId: selectedSchool.id,
-              featureKey,
-              action: enabled ? "enable" : "disable",
-            });
-          }}
-        />
+      {/* Branch Management Modal - TODO: Implement */}
+      {showBranchModal && selectedSchool && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold mb-4">
+              Manage Branches - {selectedSchool.name}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Branch management functionality will be implemented here.
+            </p>
+            <Button 
+              onClick={() => setShowBranchModal(false)}
+              data-testid="button-close-branch-modal"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       )}
     </>
   );

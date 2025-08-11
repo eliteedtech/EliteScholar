@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
-import SuperAdminLayout from "@/components/superadmin/layout";
-import StatsCards from "@/components/superadmin/stats-cards";
-import SchoolsTable from "@/components/superadmin/schools-table";
+import SuperAdminLayout from "../../components/superadmin/layout";
+import StatsCards from "../../components/superadmin/stats-cards";
+import { SchoolsTable } from "../../components/superadmin/schools-table";
 
 export default function SuperAdminDashboard() {
   const [location] = useLocation();
@@ -15,7 +15,10 @@ export default function SuperAdminDashboard() {
         return (
           <div className="space-y-8">
             <StatsCards />
-            <SchoolsTable />
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Schools Overview</h3>
+              <p className="text-slate-600">School management with grade groups functionality.</p>
+            </div>
           </div>
         );
       case "invoices":

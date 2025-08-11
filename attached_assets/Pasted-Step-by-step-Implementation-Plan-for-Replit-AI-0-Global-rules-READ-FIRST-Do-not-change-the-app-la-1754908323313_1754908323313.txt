@@ -1,0 +1,300 @@
+Step-by-step Implementation Plan for Replit AI
+0) Global rules — READ FIRST
+Do not change the app layout from Sidebar → Tabs. Keep the existing Sidebar navigation persistent across the dashboard.
+
+All deleted records must be soft deleted (status = deleted), and never shown on the frontend.
+
+Use transactions for multi-step DB changes (create school → create sections/classes → create branches, etc.)
+
+Use environment vars for secrets (DATABASE_URL, SMTP settings, APP_DOMAIN, etc.)
+
+1) Lock UI layout (Sidebar)
+What: Ensure the app continues using the current sidebar layout everywhere.
+How:
+
+Keep Layout / DashboardLayout component with Sidebar always rendered.
+
+Ensure pages still mount inside the main content area; do not convert nav to tabs.
+Acceptance:
+
+Sidebar visible and identical on /dashboard, /schools, /invoices, /features, /analytics, /settings.
+
+2) Create single reusable SchoolForm component (source of truth)
+What: Create components/SchoolForm.jsx (or .tsx) used by both Dashboard and Schools page for create & edit. Remove duplicate forms.
+How:
+
+Export props: mode (create | edit), initialData (object), onSuccess callback.
+
+Implement fields: school_name, short_name (abbreviation), preview_link, school_email, admin_email, password (create only), phone, address, school_type (K12|Nigerian), grade_groups (checkbox list), features (toggle list), sections/auto-classes options.
+
+Preview link: live show https://{short_name}.{APP_DOMAIN} (APP_DOMAIN from Settings env or API).
+
+Use client-side validation for required fields + short_name regex (alphanumeric, hyphen).
+Acceptance:
+
+Import and use SchoolForm in Dashboard and SchoolsPage (schools page uses same component, not a copy).
+
+Only one form component exists and is the single source-of-truth.
+
+3) API: Create/Update School endpoints
+What: Add/confirm backend endpoints:
+
+POST /api/schools → create school
+
+PUT /api/schools/:id → update school
+
+GET /api/schools → list (exclude status=deleted)
+
+GET /api/schools/:id → single school (include features, branches, sections)
+How (on POST):
+
+Validate payload.
+
+Insert into schools table (columns below).
+
+Generate subdomain = short_name and store full url = https://short_name.{domain}.
+
+Auto-create enabled sections & classes based on school_type and chosen grade_groups (use section & class IDs for references).
+
+Create default branches if supplied or none.
+
+Save selected features to school_features.
+
+Send welcome email to school_email and admin_email (use Nodemailer or configured SMTP). Email includes subdomain + login details.
+
+Return created school object.
+How (on PUT):
+
+Pre-fill SchoolForm with school data. On save, update fields, update features toggles, and create/delete classes where groups toggled/untoggled (use IDs and transactions).
+Acceptance:
+
+Creating a school results in DB rows for school, sections, classes, and school_features (as toggles).
+
+Welcome email is sent, preview link is valid.
+
+4) DB schema (suggested minimal tables & important columns)
+Create or ensure these tables exist. (Use migrations)
+
+sql
+Copy
+Edit
+-- schools
+id (pk), name, short_name, domain, url, school_email, admin_email, password_hash,
+phone, address, school_type, status ENUM('active','suspended','deleted'), created_at, updated_at;
+
+-- branches
+id (pk), school_id (fk), name, address, status ENUM('active','suspended','deleted'), created_at, updated_at;
+
+-- sections (master)
+id (pk), code, name, curriculum_type ENUM('k12','nigerian','both'), created_at, updated_at;
+
+-- classes (master)
+id (pk), section_id (fk to sections), code, name, created_at, updated_at;
+
+-- school_classes (link created per school)
+id (pk), school_id, class_id, created_at;
+
+-- class_branches (A, B, C)
+id (pk), school_class_id (fk), label CHAR(1) e.g. 'A', 'B', status ENUM(...);
+
+-- features
+id (pk), name, type ENUM('module','standalone','both'), price DECIMAL NULLABLE, created_at;
+
+-- school_features
+id (pk), school_id, feature_id, enabled BOOLEAN, price_override DECIMAL NULLABLE, created_at;
+
+-- invoices
+id (pk), school_id, items JSON, total DECIMAL, negotiated_price DECIMAL NULLABLE, status, created_at;
+
+-- settings
+id, app_name, app_logo_url, domain, default_invoice_template JSON...
+Notes: always reference IDs (class_id, section_id) not names.
+
+5) Grade groups behavior (auto classes)
+What: Display only group names in the UI (Nursery, Primary, Secondary, Islamiyya, Adult Learning). When a group is selected, auto-create classes for that group for the school.
+How:
+
+Maintain a mapping table (or seed data) where each grade group maps to a list of class class_id values (master classes table).
+
+For Islamiyya and Adult Learning groups create 6 classes each (seeded).
+
+On create/edit:
+
+If group toggled ON → add school_classes entries for each class_id in group.
+
+If group toggled OFF → remove school_classes entries or mark them inactive (business decision) — implement as remove for now but preserve master classes.
+
+Create class_branches records if the school uses branches (A, B, C). Branch labels can be dynamic.
+Acceptance:
+
+The SchoolForm shows group names only.
+
+After create, the school has school_classes rows for all classes in selected groups.
+
+If later a group is toggled off, those school_classes are removed/disabled.
+
+6) Branch management UI & API
+What: Add Manage Branches action on each school in the Schools list.
+How (UI):
+
+Add action button Manage Branches (opens modal or page).
+
+Show list of branches with Add / Edit / Suspend / Delete (soft delete).
+How (API):
+
+POST /api/schools/:id/branches → create
+
+PUT /api/branches/:id → update
+
+PATCH /api/branches/:id/status → set status = suspended | active | deleted
+Acceptance:
+
+Branch create/edit/suspend sets status accordingly.
+
+Deleted branches (status=deleted) do not appear in frontend lists.
+
+7) Feature toggles for a school
+What: Manage Features per school via toggles.
+How:
+
+GET /api/features → retrieve all features for toggle list.
+
+POST /api/schools/:id/features with {feature_id, enabled, price_override?} to add/update.
+
+Toggles should immediately update the DB and UI.
+
+If toggled ON → create school_features row; OFF → set enabled=false (or delete).
+Acceptance:
+
+Toggling ON results in school_features.enabled = true.
+
+Toggling OFF hides feature from that school and is removed from invoice auto-calculation.
+
+8) Soft delete for schools & global filtering
+What: When user deletes a school, set status = deleted.
+How:
+
+DELETE /api/schools/:id → set status = deleted.
+
+All GET queries to list schools must filter WHERE status != 'deleted'.
+
+Same rule for branches and other soft-deleted entities.
+Acceptance:
+
+Deleted schools/branches are not visible in the frontend or reports.
+
+9) Edit School (use same SchoolForm)
+What: Edit opens the same SchoolForm with mode='edit' and initialData prefilled.
+How:
+
+Fetch GET /api/schools/:id including school_features, branches, and school_classes.
+
+Allow toggling features and grade groups. Save calls PUT /api/schools/:id.
+
+On changes to groups, create or remove school_classes accordingly inside a DB transaction.
+Acceptance:
+
+Editing persists changes, updates features toggles, updates classes and branches correctly.
+
+10) Invoice behavior & UI (brief)
+What: Invoices must:
+
+Allow Create/Edit/Delete.
+
+Use school-specific invoice if it exists; else fallback to default invoice template.
+
+Allow selecting features for invoice; auto-calc price if features have price.
+
+If no features with prices present, allow manual price entry.
+How:
+
+POST /api/invoices create invoice, PUT /api/invoices/:id, DELETE /api/invoices/:id.
+
+When user clicks Generate Invoice from school list:
+
+Check: if school has invoice template (invoices or school_invoice_template), use it. Else use settings.default_invoice_template.
+
+Create final invoice PDF (server-side render or HTML->PDF library).
+
+Email invoice to school email with SMTP (Nodemailer).
+Acceptance:
+
+Generate invoice uses school-specific or default template and sends email.
+
+Invoices show pricing breakdown (feature price vs negotiated override).
+
+11) UI consistency: Schools list & Dashboard list
+What: Make Schools page list identical to Dashboard schools list. Reuse the same SchoolsTable component.
+How:
+
+Move the table into components/SchoolsTable.jsx and import in both places.
+
+Ensure columns, action buttons and styles match exactly.
+Acceptance:
+
+Schools list looks and behaves identically on Dashboard and Schools page.
+
+12) Hide deleted for frontend and data fetch rules
+What: Everywhere in the frontend fetches should exclude status = deleted.
+How:
+
+Backend default filters for lists: WHERE status != 'deleted'.
+
+Frontend does not perform extra checks; rely on API results.
+Acceptance:
+
+No deleted items ever appear in UI.
+
+13) Testing & acceptance checklist (run after implementation)
+For each item below, run and confirm:
+
+Create school from Dashboard SchoolForm:
+
+Preview link updates when short_name typed.
+
+After submit, DB has schools row, school_classes created, school_features rows when toggled.
+
+Welcome email delivered to both emails.
+
+Open Schools page:
+
+Uses same SchoolForm for edit.
+
+Table identical to Dashboard.
+
+Branch management:
+
+Add/Edit/Suspend/Delete (soft) works; deleted branch hidden.
+
+Feature toggles:
+
+Toggle a feature ON/OFF for a specific school and invoice price calculation reflects changes.
+
+Grade groups:
+
+Selecting Nursery adds nursery classes (IDs).
+
+Selecting Islamiyya adds 6 classes.
+
+Invoice:
+
+Create invoice selecting features with prices auto-calc.
+
+If no priced features, allow manual price entry.
+
+Generate invoice uses default or school template correctly and emails PDF.
+
+Soft delete:
+
+Delete a school → status=deleted; it does not show in lists; related data preserved.
+
+14) Helpful implementation notes & small code hints
+Keep short_name uniqueness enforced at DB level (unique index on short_name + domain).
+
+Use school_id foreign keys on all school-specific tables.
+
+When creating classes under groups, always store school_classes referencing class_id (master).
+
+Use background job or immediate send for emails depending on scale; for now send synchronously on create (or enqueue if worker exists).
+
+Use explicit status values: active, suspended, deleted.

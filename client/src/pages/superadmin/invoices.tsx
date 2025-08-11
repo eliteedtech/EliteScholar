@@ -1,645 +1,283 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Plus, Edit, Trash2, FileText, Send, Calculator, Download, Zap } from "lucide-react";
-
+import { useQuery } from "@tanstack/react-query";
+import SuperAdminLayout from "../../components/superadmin/layout";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import SuperAdminLayout from "@/components/superadmin/layout";
-import type { School as SchoolType, Feature as FeatureType, Invoice as InvoiceType } from "@/lib/types";
-
-// Invoice form schema
-const invoiceSchema = z.object({
-  schoolId: z.string().min(1, "School is required"),
-  features: z.array(z.string()).min(1, "At least one feature must be selected"),
-  customAmount: z.string().optional(),
-  dueDate: z.string().min(1, "Due date is required"),
-  notes: z.string().optional(),
-});
-
-type InvoiceFormData = z.infer<typeof invoiceSchema>;
-
-interface School {
-  id: string;
-  schoolName: string;
-  shortName: string;
-  adminEmail: string;
-  hasNegotiatedPrice: boolean;
-}
-
-interface Feature {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  isActive: boolean;
-}
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, Plus, Search, Filter, Download, Eye, DollarSign, Calendar } from "lucide-react";
 
 interface Invoice {
   id: string;
-  schoolId: string;
   schoolName: string;
-  invoiceNumber: string;
-  totalAmount: number;
-  customAmount?: number;
-  status: "pending" | "paid" | "overdue";
+  amount: number;
+  status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
   dueDate: string;
-  features: { id: string; name: string; price: number }[];
-  notes?: string;
   createdAt: string;
-  paidAt?: string;
+  features: string[];
 }
 
 export default function InvoicesPage() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-  const [calculatedTotal, setCalculatedTotal] = useState(0);
-  const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Fetch invoices
-  const { data: invoicesResponse, isLoading } = useQuery<{ invoices: Invoice[]; total: number }>({
-    queryKey: ["/api/invoices"],
-  });
-  const invoices = invoicesResponse?.invoices || [];
-
-  // Fetch schools
-  const { data: schoolsResponse } = useQuery<{ schools: SchoolType[] }>({
-    queryKey: ["/api/superadmin/schools"],
-  });
-  const schools = schoolsResponse?.schools || [];
-
-  // Fetch features
-  const { data: features = [] } = useQuery<FeatureType[]>({
-    queryKey: ["/api/features"],
-  });
-
-  // Create invoice mutation
-  const createInvoiceMutation = useMutation({
-    mutationFn: async (data: InvoiceFormData) => {
-      const response = await apiRequest("POST", "/api/invoices", data);
-      return response.json();
+  // Mock data for demonstration - replace with actual API call
+  const mockInvoices: Invoice[] = [
+    {
+      id: "INV-001",
+      schoolName: "Greenfield Academy",
+      amount: 45000,
+      status: "PAID",
+      dueDate: "2024-02-15",
+      createdAt: "2024-01-15",
+      features: ["attendance", "gradebook", "messaging"]
     },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice created successfully! Email sent to school.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      setCreateDialogOpen(false);
-      form.reset();
-      setSelectedFeatures([]);
-      setCalculatedTotal(0);
+    {
+      id: "INV-002", 
+      schoolName: "Sunrise International",
+      amount: 32000,
+      status: "SENT",
+      dueDate: "2024-02-20",
+      createdAt: "2024-01-20",
+      features: ["attendance", "gradebook"]
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update invoice mutation
-  const updateInvoiceMutation = useMutation({
-    mutationFn: async (data: { id: string; updates: Partial<InvoiceFormData> }) => {
-      const response = await apiRequest("PATCH", `/api/invoices/${data.id}`, data.updates);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice updated successfully!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      setEditDialogOpen(false);
-      setSelectedInvoice(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete invoice mutation
-  const deleteInvoiceMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await apiRequest("DELETE", `/api/invoices/${id}`);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice deleted successfully!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Send invoice email mutation
-  const sendInvoiceEmailMutation = useMutation({
-    mutationFn: async (invoiceId: string) => {
-      const response = await apiRequest("POST", `/api/invoices/${invoiceId}/send-email`);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Invoice email sent successfully!",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Generate default invoice mutation
-  const generateDefaultInvoiceMutation = useMutation({
-    mutationFn: async (schoolId: string) => {
-      const response = await apiRequest("POST", `/api/invoices/generate-default`, { schoolId });
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Default invoice generated and sent!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const form = useForm<InvoiceFormData>({
-    resolver: zodResolver(invoiceSchema),
-    defaultValues: {
-      schoolId: "",
-      features: [],
-      customAmount: "",
-      dueDate: "",
-      notes: "",
-    },
-  });
-
-  // Calculate total when features change
-  const handleFeatureChange = (featureId: string, checked: boolean) => {
-    let newSelected = [...selectedFeatures];
-    
-    if (checked) {
-      newSelected.push(featureId);
-    } else {
-      newSelected = newSelected.filter(id => id !== featureId);
+    {
+      id: "INV-003",
+      schoolName: "Elite Preparatory School",
+      amount: 58000,
+      status: "OVERDUE",
+      dueDate: "2024-01-30",
+      createdAt: "2024-01-01",
+      features: ["attendance", "gradebook", "messaging", "analytics", "parent-portal"]
     }
+  ];
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      DRAFT: { label: "Draft", variant: "secondary" as const },
+      SENT: { label: "Sent", variant: "default" as const },
+      PAID: { label: "Paid", variant: "default" as const },
+      OVERDUE: { label: "Overdue", variant: "destructive" as const },
+      CANCELLED: { label: "Cancelled", variant: "secondary" as const },
+    };
     
-    setSelectedFeatures(newSelected);
-    form.setValue("features", newSelected);
-    
-    // Calculate total
-    const total = newSelected.reduce((sum, id) => {
-      const feature = features.find((f: FeatureType) => f.id === id);
-      return sum + (feature?.price || 0);
-    }, 0);
-    
-    setCalculatedTotal(total);
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  // Check if selected school has negotiated pricing
-  const selectedSchool = schools.find((s: SchoolType) => s.id === form.watch("schoolId"));
-  const hasNegotiatedPrice = false; // Remove this field for now since it's not in the schema
+  const filteredInvoices = mockInvoices.filter(invoice => {
+    const matchesSearch = invoice.schoolName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const handleEdit = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setSelectedFeatures(invoice.features.map(f => f.id));
-    setCalculatedTotal(invoice.totalAmount);
-    
-    form.reset({
-      schoolId: invoice.schoolId,
-      features: invoice.features.map(f => f.id),
-      customAmount: invoice.customAmount?.toString() || "",
-      dueDate: invoice.dueDate.split('T')[0], // Format for date input
-      notes: invoice.notes || "",
-    });
-    
-    setEditDialogOpen(true);
-  };
+  const totalRevenue = mockInvoices
+    .filter(inv => inv.status === "PAID")
+    .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const handleDelete = (invoice: Invoice) => {
-    if (window.confirm(`Are you sure you want to delete invoice ${invoice.invoiceNumber}? This action cannot be undone.`)) {
-      deleteInvoiceMutation.mutate(invoice.id);
-    }
-  };
+  const pendingAmount = mockInvoices
+    .filter(inv => inv.status === "SENT")
+    .reduce((sum, inv) => sum + inv.amount, 0);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "default";
-      case "pending":
-        return "secondary";
-      case "overdue":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
+  const overdueAmount = mockInvoices
+    .filter(inv => inv.status === "OVERDUE")
+    .reduce((sum, inv) => sum + inv.amount, 0);
 
   return (
-    <SuperAdminLayout title="Invoice Management" subtitle="Create and manage invoices for schools">
+    <SuperAdminLayout
+      title="Invoice Management"
+      subtitle="Manage billing and payments for all schools"
+    >
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Invoice Management</h1>
-            <p className="text-muted-foreground">Create and manage school invoices and payments</p>
-          </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-green-600">₦{totalRevenue.toLocaleString()}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="flex space-x-2">
-            {/* Quick Generate Invoice for Schools */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" data-testid="button-generate-invoice">
-                  <Zap className="mr-2 h-4 w-4" />
-                  Generate Invoice
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuLabel>Select School</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {schools.map((school: SchoolType) => {
-                  const schoolInvoices = invoices.filter((inv: Invoice) => inv.schoolId === school.id);
-                  const hasInvoices = schoolInvoices.length > 0;
-                  
-                  return (
-                    <DropdownMenuItem
-                      key={school.id}
-                      onClick={() => generateDefaultInvoiceMutation.mutate(school.id)}
-                      className="flex items-center justify-between"
-                      data-testid={`generate-${school.id}`}
-                    >
-                      <span>{school.name}</span>
-                      {hasInvoices && (
-                        <Badge variant="secondary" className="text-xs">
-                          {schoolInvoices.length} existing
-                        </Badge>
-                      )}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Pending Payment</p>
+                  <p className="text-2xl font-bold text-blue-600">₦{pendingAmount.toLocaleString()}</p>
+                </div>
+                <Calendar className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-create-invoice">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Custom Invoice
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create Custom Invoice</DialogTitle>
-                  <DialogDescription>
-                    Select school and features to generate an invoice. Email will be sent automatically.
-                  </DialogDescription>
-                </DialogHeader>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Overdue Amount</p>
+                  <p className="text-2xl font-bold text-red-600">₦{overdueAmount.toLocaleString()}</p>
+                </div>
+                <FileText className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit((data) => createInvoiceMutation.mutate(data))} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="schoolId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>School</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-school">
-                                  <SelectValue placeholder="Select school" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {schools.map((school: SchoolType) => (
-                                  <SelectItem key={school.id} value={school.id}>
-                                    {school.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="dueDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Due Date</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="date" 
-                                data-testid="input-due-date" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Features Selection */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <FormLabel>Select Features</FormLabel>
-                        {hasNegotiatedPrice && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowCustomAmount(!showCustomAmount)}
-                            data-testid="button-toggle-custom-amount"
-                          >
-                            <Calculator className="mr-2 h-4 w-4" />
-                            {showCustomAmount ? "Hide" : "Show"} Custom Amount
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto border rounded-lg p-4">
-                        {features.map((feature: Feature) => (
-                          <div key={feature.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={feature.id}
-                              checked={selectedFeatures.includes(feature.id)}
-                              onCheckedChange={(checked) => handleFeatureChange(feature.id, checked as boolean)}
-                              data-testid={`checkbox-feature-${feature.id}`}
-                            />
-                            <label
-                              htmlFor={feature.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
-                            >
-                              <div>{feature.name}</div>
-                              <div className="text-xs text-muted-foreground">₦{feature.price.toLocaleString()}</div>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Pricing Summary */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <div className="flex justify-between items-center text-sm">
-                        <span>Calculated Total:</span>
-                        <span className="font-medium">₦{calculatedTotal.toLocaleString()}</span>
-                      </div>
-                      
-                      {showCustomAmount && hasNegotiatedPrice && (
-                        <div className="mt-2">
-                          <FormField
-                            control={form.control}
-                            name="customAmount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs">Custom Amount (Override)</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    type="number"
-                                    placeholder="Enter custom amount"
-                                    data-testid="input-custom-amount"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes (Optional)</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Additional notes for this invoice"
-                              data-testid="textarea-notes"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <DialogFooter>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setCreateDialogOpen(false)}
-                        data-testid="button-cancel-create"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={createInvoiceMutation.isPending || selectedFeatures.length === 0}
-                        data-testid="button-submit-create"
-                      >
-                        {createInvoiceMutation.isPending ? "Creating..." : "Create & Send Invoice"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Invoices</p>
+                  <p className="text-2xl font-bold text-gray-900">{mockInvoices.length}</p>
+                </div>
+                <FileText className="h-8 w-8 text-gray-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Invoices Table */}
+        {/* Filters and Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Invoices ({invoices.length})</CardTitle>
-            <CardDescription>
-              Manage all invoices and track payment status
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <CardTitle>Invoice Management</CardTitle>
+              <Button 
+                onClick={() => setShowCreateForm(true)}
+                data-testid="button-create-invoice"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Invoice
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading invoices...</div>
-            ) : invoices.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No invoices found. Create your first invoice to get started.
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search invoices..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-invoices"
+                />
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice #</TableHead>
-                    <TableHead>School</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice: Invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell>
-                        <div className="font-medium">{invoice.invoiceNumber}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(invoice.createdAt).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{invoice.schoolName}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {invoice.features.length} features
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">₦{invoice.totalAmount.toLocaleString()}</div>
-                        {invoice.customAmount && (
-                          <div className="text-sm text-muted-foreground">
-                            (Custom: ₦{invoice.customAmount.toLocaleString()})
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(invoice.status)}>
-                          {invoice.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div>{new Date(invoice.dueDate).toLocaleDateString()}</div>
-                        {invoice.paidAt && (
-                          <div className="text-sm text-muted-foreground">
-                            Paid: {new Date(invoice.paidAt).toLocaleDateString()}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(invoice)}
-                            data-testid={`button-edit-${invoice.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => sendInvoiceEmailMutation.mutate(invoice.id)}
-                            data-testid={`button-resend-${invoice.id}`}
-                          >
-                            <Send className="h-4 w-4" />
-                          </Button>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48" data-testid="select-status-filter">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="SENT">Sent</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="OVERDUE">Overdue</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline">
+                <Filter className="h-4 w-4 mr-2" />
+                More Filters
+              </Button>
+            </div>
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`/api/invoices/${invoice.id}/download`, '_blank')}
-                            data-testid={`button-download-${invoice.id}`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(invoice)}
-                            data-testid={`button-delete-${invoice.id}`}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+            {/* Invoice List */}
+            <div className="space-y-4">
+              {filteredInvoices.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No invoices found</h3>
+                  <p className="text-gray-600">Try adjusting your search criteria or create a new invoice.</p>
+                </div>
+              ) : (
+                filteredInvoices.map((invoice) => (
+                  <div 
+                    key={invoice.id} 
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    data-testid={`invoice-item-${invoice.id}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900" data-testid={`text-invoice-id-${invoice.id}`}>
+                            {invoice.id}
+                          </h3>
+                          {getStatusBadge(invoice.status)}
+                          <span className="text-sm text-gray-500">
+                            Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                          </span>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+                        
+                        <div className="flex items-center gap-6 text-sm text-gray-600">
+                          <span>
+                            <strong>School:</strong> {invoice.schoolName}
+                          </span>
+                          <span>
+                            <strong>Amount:</strong> ₦{invoice.amount.toLocaleString()}
+                          </span>
+                          <span>
+                            <strong>Features:</strong> {invoice.features.join(", ")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          data-testid={`button-view-invoice-${invoice.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          data-testid={`button-download-invoice-${invoice.id}`}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* Create Invoice Modal Placeholder */}
+        {showCreateForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+              <h3 className="text-lg font-semibold mb-4">Create New Invoice</h3>
+              <p className="text-gray-600 mb-4">
+                Invoice creation form will be implemented here with:
+              </p>
+              <ul className="list-disc list-inside text-gray-600 space-y-1 mb-4">
+                <li>School selection</li>
+                <li>Feature selection with auto-calculated prices</li>
+                <li>Manual price entry for features without set prices</li>
+                <li>Due date and payment terms</li>
+                <li>"Create Invoice" vs "Generate Invoice" based on school's existing invoices</li>
+              </ul>
+              <Button 
+                onClick={() => setShowCreateForm(false)}
+                data-testid="button-close-create-invoice-modal"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </SuperAdminLayout>
   );
