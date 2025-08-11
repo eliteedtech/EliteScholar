@@ -223,13 +223,26 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
   const onSubmit = (data: SchoolFormData) => {
     const formData = new FormData();
     
-    // Prepare school data
+    // Convert to snake_case for backend
     const schoolData = {
-      ...data,
+      school_name: data.schoolName,
+      short_name: data.shortName,
+      abbreviation: data.abbreviation,
+      motto: data.motto,
+      state: data.state,
+      lga: data.lga,
+      address: data.address,
       phones: data.phones ? data.phones.split(",").map(p => p.trim()).filter(p => p) : [],
+      email: data.email,
+      type: data.type,
+      school_admin: data.schoolAdmin,
+      default_password: data.defaultPassword || "123456",
+      selected_grade_groups: data.selectedGradeGroups || [],
+      initial_features: data.initialFeatures || [],
+      branches: data.branches || [{ name: "Main Branch" }]
     };
     
-    formData.append("schoolData", JSON.stringify(schoolData));
+    formData.append("school_data", JSON.stringify(schoolData));
     
     if (selectedFile) {
       formData.append("logo", selectedFile);

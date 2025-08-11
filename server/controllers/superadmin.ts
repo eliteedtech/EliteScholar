@@ -85,7 +85,7 @@ router.get("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
 });
 
 // Create new school
-router.post("/schools", async (req: AuthRequest, res: Response) => {
+router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Response) => {
   try {
     // Debug logging
     console.log("Create school request body:", req.body);
@@ -94,7 +94,9 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     // Parse form data from multipart request
     let requestData: any = {};
     
-    if (req.body.schoolData) {
+    if (req.body.school_data) {
+      requestData = JSON.parse(req.body.school_data);
+    } else if (req.body.schoolData) {
       requestData = JSON.parse(req.body.schoolData);
     } else {
       // Fallback for direct JSON body
@@ -104,8 +106,8 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     console.log("Parsed request data:", requestData);
     
     const {
-      schoolName,
-      shortName,
+      school_name: schoolName,
+      short_name: shortName,
       abbreviation,
       motto,
       state,
@@ -114,10 +116,11 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       phones,
       email,
       type,
-      schoolAdmin: { name: adminName, email: adminEmail } = {},
-      defaultPassword = "123456",
-      selectedGradeGroups = [],
-      initialFeatures = []
+      school_admin: { name: adminName, email: adminEmail } = {},
+      default_password: defaultPassword = "123456",
+      selected_grade_groups: selectedGradeGroups = [],
+      initial_features: initialFeatures = [],
+      branches = []
     } = requestData;
 
     // Validate required fields
