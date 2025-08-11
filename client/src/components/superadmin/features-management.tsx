@@ -55,9 +55,12 @@ interface Feature {
 }
 
 const pricingTypes = [
+  { value: "free", label: "Free" },
   { value: "per_student", label: "Per Student" },
   { value: "per_staff", label: "Per Staff" },
   { value: "per_term", label: "Per Term" },
+  { value: "per_semester", label: "Per Semester" },
+  { value: "per_school", label: "Per School" },
   { value: "per_month", label: "Per Month" },
   { value: "per_year", label: "Per Year" },
   { value: "one_time", label: "One Time" },
@@ -169,6 +172,25 @@ export default function FeaturesManagement() {
     },
   });
 
+  const toggleFeatureStatusMutation = useMutation({
+    mutationFn: ({ featureId, isActive }: { featureId: string; isActive: boolean }) => 
+      api.superadmin.updateFeature(featureId, { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      toast({
+        title: "Success",
+        description: "Feature status updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update feature status",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateFeature = () => {
     setEditingFeature(null);
     form.reset();
@@ -271,9 +293,22 @@ export default function FeaturesManagement() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-500">Category: {feature.category}</span>
-                  <Badge variant={feature.isActive ? "default" : "secondary"}>
-                    {feature.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={feature.isActive}
+                      onCheckedChange={(checked) =>
+                        toggleFeatureStatusMutation.mutate({ 
+                          featureId: feature.id, 
+                          isActive: checked 
+                        })
+                      }
+                      disabled={toggleFeatureStatusMutation.isPending}
+                      data-testid={`switch-feature-status-${feature.id}`}
+                    />
+                    <Badge variant={feature.isActive ? "default" : "secondary"}>
+                      {feature.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -412,9 +447,16 @@ export default function FeaturesManagement() {
               <Button
                 type="submit"
                 disabled={createFeatureMutation.isPending || updateFeatureMutation.isPending}
-                data-testid="button-submit-feature"
+                data-testid="button-submit"
               >
-                {editingFeature ? "Update Feature" : "Create Feature"}
+                {createFeatureMutation.isPending || updateFeatureMutation.isPending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    {editingFeature ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  editingFeature ? "Update Feature" : "Create Feature"
+                )}
               </Button>
             </div>
           </form>

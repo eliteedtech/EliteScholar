@@ -45,11 +45,14 @@ export const pricingTypeEnum = pgEnum("pricing_type", [
   "per_student",
   "per_staff", 
   "per_term",
+  "per_semester",
+  "per_school",
   "per_month",
   "per_year",
   "one_time",
   "pay_as_you_go",
-  "custom"
+  "custom",
+  "free"
 ]);
 
 // Users table
