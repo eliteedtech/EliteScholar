@@ -470,6 +470,34 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
             </div>
           )}
 
+          {/* Grade Selection Information - Show for all school types */}
+          {!school && (
+            <div className="border-t border-slate-200 pt-6">
+              {["K12", "NIGERIAN"].includes(form.watch("type")) ? (
+                <>
+                  <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Groups</h4>
+                  <p className="text-sm text-slate-600 mb-4">Select which grade groups this school will offer:</p>
+                </>
+              ) : (
+                <>
+                  <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Structure</h4>
+                  <p className="text-sm text-slate-600 mb-4">
+                    This school type will automatically create appropriate grade levels and classes:
+                  </p>
+                  <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                    <p className="text-sm text-blue-800">
+                      {form.watch("type") === "SKILL_ACQUISITION" && "Creates 6 skill levels: Foundation → Basic → Intermediate → Advanced → Specialization → Certification"}
+                      {form.watch("type") === "ADULT_LEARNING" && "Creates 6 literacy levels: Literacy 1 → Literacy 2 → Basic Ed → Secondary Ed → Higher Ed Prep → Professional Dev"}
+                      {form.watch("type") === "TRAINING_CENTER" && "Creates 6 training levels: Orientation → Basic → Intermediate → Advanced → Specialization → Professional Certification"}
+                      {form.watch("type") === "VOCATIONAL" && "Creates 6 academic years: Year 1 → Year 2 → Year 3 → Advanced Certificate → Diploma → Professional Certificate"}
+                      {form.watch("type") === "TERTIARY" && "Creates 6 academic levels: Year 1 → Year 2 → Year 3 → Year 4 → Postgraduate → Research Level"}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Grade Groups Selection - Only for K12 and NIGERIAN schools */}
           {!school && ["K12", "NIGERIAN"].includes(form.watch("type")) && (
             <div className="border-t border-slate-200 pt-6">

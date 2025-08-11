@@ -92,7 +92,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     console.log("Create school files:", req.file);
     
     // Parse form data from multipart request
-    let requestData = {};
+    let requestData: any = {};
     
     if (req.body.schoolData) {
       requestData = JSON.parse(req.body.schoolData);
@@ -228,38 +228,60 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
         }
       }
 
-      // Handle non-K12/NIGERIAN school types
+      // Handle non-K12/NIGERIAN school types with appropriate grade structures
       if (!["K12", "NIGERIAN"].includes(school.type)) {
-        // Create default classes for skill acquisition, adult learning, training centers
-        const defaultClassNames = [
-          "Beginner Level",
-          "Intermediate Level", 
-          "Advanced Level",
-          "Professional Level",
-          "Certification Prep",
-          "Practical Training"
-        ];
-        
-        for (let i = 0; i < defaultClassNames.length; i++) {
-          const className = {
-            name: defaultClassNames[i],
-            schoolId: school.id,
-            branchId: mainBranch.id,
-            capacity: 25,
-            isActive: true,
-          };
-          classes.push(className);
-          
-          // Create corresponding grade sections
-          const gradeSection = {
-            schoolId: school.id,
-            name: defaultClassNames[i],
-            level: defaultClassNames[i],
-            order: i + 1,
-            capacity: 25,
-            isActive: true,
-          };
-          gradeSections.push(gradeSection);
+        const gradeStructures = {
+          "SKILL_ACQUISITION": {
+            grades: ["Foundation Level", "Basic Skills", "Intermediate Skills", "Advanced Skills", "Specialization", "Certification"],
+            description: "Skills-based progression levels"
+          },
+          "ADULT_LEARNING": {
+            grades: ["Literacy Level 1", "Literacy Level 2", "Basic Education", "Secondary Education", "Higher Education Prep", "Professional Development"],
+            description: "Adult education progression"
+          },
+          "TRAINING_CENTER": {
+            grades: ["Orientation", "Basic Training", "Intermediate Training", "Advanced Training", "Specialization", "Professional Certification"],
+            description: "Professional training levels"
+          },
+          "VOCATIONAL": {
+            grades: ["Year 1", "Year 2", "Year 3", "Advanced Certificate", "Diploma Level", "Professional Certificate"],
+            description: "Vocational education progression"
+          },
+          "TERTIARY": {
+            grades: ["Year 1", "Year 2", "Year 3", "Year 4", "Postgraduate", "Research Level"],
+            description: "Higher education levels"
+          }
+        };
+
+        const structure = gradeStructures[school.type as keyof typeof gradeStructures];
+        if (structure) {
+          for (let i = 0; i < structure.grades.length; i++) {
+            const gradeName = structure.grades[i];
+            
+            // Create grade section
+            const gradeSection = {
+              schoolId: school.id,
+              name: gradeName,
+              level: gradeName,
+              order: i + 1,
+              capacity: 30,
+              isActive: true,
+            };
+            gradeSections.push(gradeSection);
+            
+            // Create 2-3 classes per grade level
+            const numClasses = school.type === "TERTIARY" ? 2 : 3;
+            for (let j = 1; j <= numClasses; j++) {
+              const className = {
+                name: `${gradeName} - Class ${String.fromCharCode(64 + j)}`,
+                schoolId: school.id,
+                branchId: mainBranch.id,
+                capacity: school.type === "TERTIARY" ? 40 : 25,
+                isActive: true,
+              };
+              classes.push(className);
+            }
+          }
         }
       }
 
