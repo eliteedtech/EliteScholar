@@ -75,43 +75,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invoice routes  
   app.use("/api/invoices", invoiceRoutes);
 
-  // Grade Groups API routes
-  app.get("/api/grade-groups/:schoolType", async (req, res) => {
-    try {
-      const { schoolType } = req.params;
-      if (!["K12", "NIGERIAN"].includes(schoolType)) {
-        return res.status(400).json({ error: "Invalid school type" });
-      }
-      
-      const { gradeGroupsApi } = await import("./api/gradeGroups");
-      const gradeGroups = await gradeGroupsApi.getGradeGroups(schoolType as "K12" | "NIGERIAN");
-      res.json(gradeGroups);
-    } catch (error) {
-      console.error("Error fetching grade groups:", error);
-      res.status(500).json({ error: "Failed to fetch grade groups" });
-    }
-  });
-
-  app.get("/api/grade-groups/:gradeGroupId/classes", async (req, res) => {
-    try {
-      const { gradeGroupId } = req.params;
-      const { gradeGroupsApi } = await import("./api/gradeGroups");
-      const masterClasses = await gradeGroupsApi.getMasterClassesForGroup(gradeGroupId);
-      res.json(masterClasses);
-    } catch (error) {
-      console.error("Error fetching master classes:", error);
-      res.status(500).json({ error: "Failed to fetch master classes" });
-    }
-  });
-
   // Features routes
   app.use("/api/features", (await import("./controllers/features")).default);
 
   // Analytics routes
   app.use("/api/analytics", (await import("./controllers/analytics")).default);
-
-  // Settings routes
-  app.use("/api/superadmin/settings", (await import("./controllers/settings")).default);
 
   // Health check
   app.get("/api/health", (req, res) => {

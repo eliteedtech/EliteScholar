@@ -84,11 +84,11 @@ router.get("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Create new school with comprehensive grade groups support
+// Create new school
 router.post("/schools", async (req: AuthRequest, res: Response) => {
   try {
     const {
-      name,
+      schoolName,
       shortName,
       abbreviation,
       motto,
@@ -98,24 +98,24 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       phones,
       email,
       type,
-      schoolAdmin,
+      adminName,
+      adminEmail,
       defaultPassword = "123456",
-      selectedGradeGroups = [],
-      initialFeatures = [],
-      branches = [{ name: "Main Branch" }]
+      selectedSections = [],
+      initialFeatures = []
     } = req.body;
 
     // Validate required fields
-    if (!name) {
+    if (!schoolName) {
       return res.status(400).json({ message: "School name is required" });
     }
     if (!shortName) {
       return res.status(400).json({ message: "Short name is required" });
     }
-    if (!schoolAdmin?.name) {
+    if (!adminName) {
       return res.status(400).json({ message: "Admin name is required" });
     }
-    if (!schoolAdmin?.email) {
+    if (!adminEmail) {
       return res.status(400).json({ message: "Admin email is required" });
     }
     if (!type || !["K12", "NIGERIAN"].includes(type)) {
@@ -130,7 +130,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
 
     // Create school data
     const schoolData = {
-      name,
+      name: schoolName,
       shortName,
       abbreviation: abbreviation || "",
       motto: motto || "",
@@ -158,22 +158,29 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     // Update school with main branch reference
     await storage.updateSchool(school.id, { mainBranchId: mainBranch.id });
 
-    // Create grade classes based on selected grade groups
-    if (selectedGradeGroups && selectedGradeGroups.length > 0) {
-      try {
-        const { gradeGroupsApi } = await import("../api/gradeGroups");
-        await gradeGroupsApi.createSchoolClasses(school.id, selectedGradeGroups, mainBranch.id);
-      } catch (gradeError) {
-        console.error("Failed to create grade classes:", gradeError);
-        // Continue without failing the school creation
-      }
+    // Create grade sections based on selected sections
+    let gradeSections: any[] = [];
+    if (selectedSections && selectedSections.length > 0) {
+      gradeSections = selectedSections.map((section: string, index: number) => ({
+        schoolId: school.id,
+        name: section,
+        level: section,
+        order: index + 1,
+        capacity: 30, // Default capacity
+        isActive: true,
+      }));
+      await storage.createGradeSections(gradeSections);
+    } else {
+      // Fallback to default sections if none selected
+      gradeSections = generateGradeSections(school.id, school.type);
+      await storage.createGradeSections(gradeSections);
     }
 
     // Create school admin user
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
     const adminUser = await storage.createUser({
-      name: schoolAdmin.name,
-      email: schoolAdmin.email,
+      name: adminName,
+      email: adminEmail,
       password: hashedPassword,
       role: "school_admin",
       schoolId: school.id,
@@ -193,18 +200,13 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // Get app domain for preview URL generation
-    const settings = await storage.getSettings();
-    const appDomain = settings?.appDomain || "elitescholar.com";
-
     // Send welcome email with enhanced styling
     try {
-      const previewUrl = `https://${shortName}.${appDomain}`;
       await emailService.sendSchoolCreationEmail(
-        schoolAdmin.email,
+        adminEmail,
         school.name,
         shortName,
-        schoolAdmin.name,
+        adminName,
         {
           pathBased: `http://localhost:5000/s/${shortName}/login`,
           subdomain: abbreviation?.toLowerCase() || shortName,
@@ -219,7 +221,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       school,
       admin: adminUser,
       branch: mainBranch,
-      previewUrl: `https://${shortName}.${appDomain}`,
+      gradeSections,
       message: "School created successfully. Welcome email sent to admin.",
     });
   } catch (error) {
@@ -268,140 +270,15 @@ router.patch("/schools/:schoolId/status", async (req: AuthRequest, res: Response
   }
 });
 
-// Soft delete school (set status to DELETED)
+// Delete school
 router.delete("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId } = req.params;
     
-    // Soft delete by setting status to DELETED
-    const school = await storage.updateSchool(schoolId, { status: "DELETED" });
-    if (!school) {
-      return res.status(404).json({ message: "School not found" });
-    }
-    
+    await storage.deleteSchool(schoolId);
     res.json({ message: "School deleted successfully" });
   } catch (error) {
     console.error("Delete school error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Branch Management Routes
-
-// GET /api/superadmin/schools/:schoolId/branches - Get school branches
-router.get("/schools/:schoolId/branches", async (req: AuthRequest, res: Response) => {
-  try {
-    const { schoolId } = req.params;
-    const branches = await storage.getSchoolBranches(schoolId);
-    
-    // Filter out deleted branches
-    const activeBranches = branches.filter(branch => branch.status !== "DELETED");
-    res.json(activeBranches);
-  } catch (error) {
-    console.error("Get branches error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// POST /api/superadmin/schools/:schoolId/branches - Create branch
-router.post("/schools/:schoolId/branches", async (req: AuthRequest, res: Response) => {
-  try {
-    const { schoolId } = req.params;
-    const { name } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: "Branch name is required" });
-    }
-
-    const branch = await storage.createBranch({
-      schoolId,
-      name,
-      isMain: false,
-      status: "ACTIVE",
-    });
-
-    res.status(201).json(branch);
-  } catch (error) {
-    console.error("Create branch error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// PUT /api/superadmin/branches/:branchId - Update branch
-router.put("/branches/:branchId", async (req: AuthRequest, res: Response) => {
-  try {
-    const { branchId } = req.params;
-    const { name } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: "Branch name is required" });
-    }
-
-    const branch = await storage.updateBranch(branchId, { name });
-    if (!branch) {
-      return res.status(404).json({ message: "Branch not found" });
-    }
-
-    res.json(branch);
-  } catch (error) {
-    console.error("Update branch error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// PATCH /api/superadmin/branches/:branchId/status - Update branch status
-router.patch("/branches/:branchId/status", async (req: AuthRequest, res: Response) => {
-  try {
-    const { branchId } = req.params;
-    const { status } = req.body;
-
-    if (!["ACTIVE", "SUSPENDED", "DELETED"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status. Must be ACTIVE, SUSPENDED, or DELETED" });
-    }
-
-    const branch = await storage.updateBranch(branchId, { status });
-    if (!branch) {
-      return res.status(404).json({ message: "Branch not found" });
-    }
-
-    res.json(branch);
-  } catch (error) {
-    console.error("Update branch status error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// Feature Toggle Routes
-
-// POST /api/superadmin/schools/:schoolId/features - Toggle school feature
-router.post("/schools/:schoolId/features", async (req: AuthRequest, res: Response) => {
-  try {
-    const { schoolId } = req.params;
-    const { featureId, enabled, priceOverride } = req.body;
-
-    if (!featureId) {
-      return res.status(400).json({ message: "Feature ID is required" });
-    }
-
-    await storage.toggleSchoolFeature(schoolId, featureId, enabled, priceOverride);
-    
-    res.json({ message: "Feature toggle updated successfully" });
-  } catch (error) {
-    console.error("Toggle feature error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// GET /api/superadmin/schools/:schoolId/grade-groups - Get school's grade groups
-router.get("/schools/:schoolId/grade-groups", async (req: AuthRequest, res: Response) => {
-  try {
-    const { schoolId } = req.params;
-    const { gradeGroupsApi } = await import("../api/gradeGroups");
-    
-    const gradeGroups = await gradeGroupsApi.getSchoolGradeGroups(schoolId);
-    res.json(gradeGroups);
-  } catch (error) {
-    console.error("Get school grade groups error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

@@ -1,261 +1,273 @@
-import { useState } from "react";
-import SuperAdminLayout from "../../components/superadmin/layout";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Building, Users, Target, Download, Calendar } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  School,
+  DollarSign,
+  FileText,
+  TrendingUp,
+  Users,
+  Activity,
+} from "lucide-react";
 
-// Mock data for charts and analytics
-const mockMonthlyRevenue = [
-  { month: "Jan", revenue: 125000, schools: 8 },
-  { month: "Feb", revenue: 158000, schools: 12 },
-  { month: "Mar", revenue: 142000, schools: 10 },
-  { month: "Apr", revenue: 189000, schools: 15 },
-  { month: "May", revenue: 178000, schools: 14 },
-  { month: "Jun", revenue: 205000, schools: 18 },
-];
+interface AnalyticsData {
+  totalSchools: number;
+  activeSchools: number;
+  totalRevenue: number;
+  pendingInvoices: number;
+  monthlyRevenue: Array<{ month: string; revenue: number }>;
+  schoolsByStatus: Array<{ status: string; count: number }>;
+  featureUsage: Array<{ name: string; count: number; revenue: number }>;
+  invoiceStatus: Array<{ status: string; count: number }>;
+}
 
-const mockTopFeatures = [
-  { name: "Attendance Tracking", schools: 23, revenue: 115000, growth: 12.5 },
-  { name: "Grade Management", schools: 20, revenue: 100000, growth: 8.3 },
-  { name: "Parent Portal", schools: 18, revenue: 90000, growth: 15.7 },
-  { name: "Messaging System", schools: 15, revenue: 75000, growth: -2.1 },
-  { name: "Analytics Dashboard", schools: 12, revenue: 60000, growth: 25.4 },
-];
-
-const mockSchoolData = [
-  { name: "Greenfield Academy", students: 850, revenue: 45000, status: "ACTIVE", growth: 8.5 },
-  { name: "Sunrise International", students: 720, revenue: 32000, status: "ACTIVE", growth: 12.3 },
-  { name: "Elite Preparatory School", students: 1200, revenue: 58000, status: "ACTIVE", growth: -1.2 },
-  { name: "Future Leaders Academy", students: 650, revenue: 28000, status: "ACTIVE", growth: 22.1 },
-  { name: "Bright Minds School", students: 580, revenue: 25000, status: "SUSPENDED", growth: -8.5 },
-];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState("6months");
-  const [selectedMetric, setSelectedMetric] = useState("revenue");
+  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
+    queryKey: ["/api/analytics"],
+  });
 
-  const totalRevenue = mockMonthlyRevenue.reduce((sum, month) => sum + month.revenue, 0);
-  const averageRevenuePerSchool = totalRevenue / mockMonthlyRevenue.reduce((sum, month) => sum + month.schools, 0);
-  const topPerformingFeature = mockTopFeatures[0];
-  const totalStudents = mockSchoolData.reduce((sum, school) => sum + school.students, 0);
+  const formatCurrency = (amount: number) => {
+    return `₦${(amount / 100).toLocaleString()}`;
+  };
+
+  const StatCard = ({ 
+    title, 
+    value, 
+    icon: Icon, 
+    color, 
+    description 
+  }: { 
+    title: string; 
+    value: string | number; 
+    icon: any; 
+    color: string; 
+    description?: string; 
+  }) => (
+    <Card data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className={`h-4 w-4 ${color}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold" data-testid={`stat-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+          {value}
+        </div>
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-muted-foreground">No analytics data available</p>
+      </div>
+    );
+  }
 
   return (
-    <SuperAdminLayout
-      title="Analytics Dashboard"
-      subtitle="Insights and performance metrics across all schools"
-    >
-      <div className="space-y-6">
-        {/* Controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-48" data-testid="select-time-range">
-                <SelectValue placeholder="Select time range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3months">Last 3 Months</SelectItem>
-                <SelectItem value="6months">Last 6 Months</SelectItem>
-                <SelectItem value="1year">Last Year</SelectItem>
-                <SelectItem value="2years">Last 2 Years</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="space-y-6" data-testid="analytics-page">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <p className="text-muted-foreground">
+          Comprehensive insights into school management system performance
+        </p>
+      </div>
 
-            <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-              <SelectTrigger className="w-48" data-testid="select-metric">
-                <SelectValue placeholder="Select metric" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="revenue">Revenue</SelectItem>
-                <SelectItem value="schools">School Count</SelectItem>
-                <SelectItem value="students">Student Count</SelectItem>
-                <SelectItem value="features">Feature Adoption</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Key Metrics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Schools"
+          value={analytics.totalSchools}
+          icon={School}
+          color="text-blue-600"
+          description="All registered schools"
+        />
+        <StatCard
+          title="Active Schools"
+          value={analytics.activeSchools}
+          icon={Activity}
+          color="text-green-600"
+          description="Schools with active subscriptions"
+        />
+        <StatCard
+          title="Total Revenue"
+          value={formatCurrency(analytics.totalRevenue)}
+          icon={DollarSign}
+          color="text-yellow-600"
+          description="Cumulative revenue generated"
+        />
+        <StatCard
+          title="Pending Invoices"
+          value={analytics.pendingInvoices}
+          icon={FileText}
+          color="text-red-600"
+          description="Invoices awaiting payment"
+        />
+      </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" data-testid="button-export-data">
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
-            </Button>
-            <Button variant="outline" data-testid="button-schedule-report">
-              <Calendar className="h-4 w-4 mr-2" />
-              Schedule Report
-            </Button>
-          </div>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-green-600">₦{totalRevenue.toLocaleString()}</p>
-                  <div className="flex items-center mt-1">
-                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                    <span className="text-sm text-green-600">+12.5%</span>
-                  </div>
-                </div>
-                <DollarSign className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Active Schools</p>
-                  <p className="text-2xl font-bold text-blue-600">{mockSchoolData.filter(s => s.status === "ACTIVE").length}</p>
-                  <div className="flex items-center mt-1">
-                    <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
-                    <span className="text-sm text-blue-600">+8.3%</span>
-                  </div>
-                </div>
-                <Building className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Students</p>
-                  <p className="text-2xl font-bold text-purple-600">{totalStudents.toLocaleString()}</p>
-                  <div className="flex items-center mt-1">
-                    <TrendingUp className="h-4 w-4 text-purple-500 mr-1" />
-                    <span className="text-sm text-purple-600">+15.7%</span>
-                  </div>
-                </div>
-                <Users className="h-8 w-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Revenue/School</p>
-                  <p className="text-2xl font-bold text-orange-600">₦{Math.round(averageRevenuePerSchool).toLocaleString()}</p>
-                  <div className="flex items-center mt-1">
-                    <TrendingUp className="h-4 w-4 text-orange-500 mr-1" />
-                    <span className="text-sm text-orange-600">+5.2%</span>
-                  </div>
-                </div>
-                <Target className="h-8 w-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Revenue Chart Simulation */}
-        <Card>
+      {/* Charts Grid */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Monthly Revenue Trend */}
+        <Card data-testid="chart-monthly-revenue">
           <CardHeader>
-            <CardTitle>Revenue by Month</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Monthly Revenue Trend
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600 mb-4">
-                📊 Interactive chart showing monthly revenue trends will be displayed here using Recharts
-              </div>
-              {mockMonthlyRevenue.map((month, index) => (
-                <div key={month.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium text-gray-900 w-12">{month.month}</span>
-                    <div className="w-64 bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-blue-600 h-3 rounded-full" 
-                        style={{ width: `${(month.revenue / Math.max(...mockMonthlyRevenue.map(m => m.revenue))) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">₦{month.revenue.toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">{month.schools} schools</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={analytics.monthlyRevenue}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis tickFormatter={(value) => `₦${(value / 100).toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => [formatCurrency(value), "Revenue"]} />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  dot={{ fill: "#8884d8", strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Features */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Features by Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockTopFeatures.map((feature, index) => (
-                  <div key={feature.name} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{feature.name}</h4>
-                      <p className="text-sm text-gray-600">{feature.schools} schools • ₦{feature.revenue.toLocaleString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={feature.growth > 0 ? "default" : "destructive"}>
-                        {feature.growth > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                        {Math.abs(feature.growth)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* School Performance */}
-          <Card>
-            <CardHeader>
-              <CardTitle>School Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockSchoolData.map((school, index) => (
-                  <div key={school.name} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{school.name}</h4>
-                      <p className="text-sm text-gray-600">
-                        {school.students} students • ₦{school.revenue.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right flex items-center gap-2">
-                      <Badge variant={school.status === "ACTIVE" ? "default" : "secondary"}>
-                        {school.status}
-                      </Badge>
-                      <Badge variant={school.growth > 0 ? "default" : "destructive"}>
-                        {school.growth > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                        {Math.abs(school.growth)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Feature Adoption Chart Placeholder */}
-        <Card>
+        {/* Schools by Status */}
+        <Card data-testid="chart-schools-status">
           <CardHeader>
-            <CardTitle>Feature Adoption Trends</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Schools by Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-gray-500">
-              <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p>📈 Interactive line chart showing feature adoption over time will be displayed here</p>
-              <p className="text-sm mt-2">Using Recharts for data visualization with filtering and drilling capabilities</p>
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={analytics.schoolsByStatus}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {analytics.schoolsByStatus.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Feature Usage */}
+        <Card data-testid="chart-feature-usage">
+          <CardHeader>
+            <CardTitle>Popular Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analytics.featureUsage} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(value) => value.toString()} />
+                <YAxis dataKey="name" type="category" width={120} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#8884d8" name="Usage Count" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Invoice Status Distribution */}
+        <Card data-testid="chart-invoice-status">
+          <CardHeader>
+            <CardTitle>Invoice Status Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analytics.invoiceStatus}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="status" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#82ca9d" name="Invoice Count" />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
-    </SuperAdminLayout>
+
+      {/* Feature Revenue Table */}
+      <Card data-testid="table-feature-revenue">
+        <CardHeader>
+          <CardTitle>Feature Revenue Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {analytics.featureUsage.map((feature, index) => (
+              <div 
+                key={feature.name} 
+                className="flex items-center justify-between p-4 border rounded-lg"
+                data-testid={`feature-revenue-${index}`}
+              >
+                <div className="flex items-center gap-4">
+                  <Badge variant="outline">{index + 1}</Badge>
+                  <div>
+                    <h4 className="font-medium" data-testid={`feature-name-${index}`}>
+                      {feature.name}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      {feature.count} schools using this feature
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-lg" data-testid={`feature-revenue-amount-${index}`}>
+                    {formatCurrency(feature.revenue)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

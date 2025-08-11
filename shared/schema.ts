@@ -27,9 +27,7 @@ export const userRoleEnum = pgEnum("user_role", [
 
 export const schoolTypeEnum = pgEnum("school_type", ["K12", "NIGERIAN"]);
 
-export const schoolStatusEnum = pgEnum("school_status", ["ACTIVE", "SUSPENDED", "DELETED"]);
-
-export const branchStatusEnum = pgEnum("branch_status", ["ACTIVE", "SUSPENDED", "DELETED"]);
+export const schoolStatusEnum = pgEnum("school_status", ["ACTIVE", "DISABLED"]);
 
 export const paymentStatusEnum = pgEnum("payment_status", ["PENDING", "PAID", "UNPAID"]);
 
@@ -78,10 +76,8 @@ export const branches = pgTable("branches", {
   schoolId: varchar("school_id").notNull(),
   name: varchar("name").notNull(),
   isMain: boolean("is_main").default(false),
-  status: branchStatusEnum("status").notNull().default("ACTIVE"),
   credentials: jsonb("credentials"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Features table
@@ -109,40 +105,7 @@ export const schoolFeatures = pgTable("school_features", {
   schoolFeatureUnique: unique().on(table.schoolId, table.featureId),
 }));
 
-// Grade Groups table (Nursery, Primary, Secondary, etc.)
-export const gradeGroups = pgTable("grade_groups", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull().unique(), // Nursery, Primary, Secondary, Islamiyya, Adult Learning
-  schoolType: schoolTypeEnum("school_type").notNull(), // K12 or NIGERIAN
-  order: integer("order").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Master Classes table (seeded data for each grade group)
-export const masterClasses = pgTable("master_classes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  gradeGroupId: varchar("grade_group_id").notNull(),
-  name: varchar("name").notNull(), // Pre-K, Kindergarten, Grade 1, etc.
-  code: varchar("code").notNull(), // PRE_K, KINDER, GRADE_1, etc.
-  order: integer("order").notNull(),
-  schoolType: schoolTypeEnum("school_type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// School Classes table (instances of master classes for each school)
-export const schoolClasses = pgTable("school_classes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  schoolId: varchar("school_id").notNull(),
-  masterClassId: varchar("master_class_id").notNull(),
-  branchId: varchar("branch_id"), // Optional: specific to a branch
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  schoolClassUnique: unique().on(table.schoolId, table.masterClassId, table.branchId),
-}));
-
-// Grade Sections table (legacy - keeping for compatibility)
+// Grade Sections table
 export const gradeSections = pgTable("grade_sections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   schoolId: varchar("school_id").notNull(),
@@ -297,7 +260,6 @@ export const insertSchoolSchema = createInsertSchema(schools).omit({
 export const insertBranchSchema = createInsertSchema(branches).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertFeatureSchema = createInsertSchema(features).omit({
@@ -344,29 +306,6 @@ export type SchoolFeature = typeof schoolFeatures.$inferSelect;
 export type InsertSchoolFeature = z.infer<typeof insertSchoolFeatureSchema>;
 export type GradeSection = typeof gradeSections.$inferSelect;
 export type InsertGradeSection = z.infer<typeof insertGradeSectionSchema>;
-
-export const insertGradeGroupSchema = createInsertSchema(gradeGroups).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertMasterClassSchema = createInsertSchema(masterClasses).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertSchoolClassSchema = createInsertSchema(schoolClasses).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type GradeGroup = typeof gradeGroups.$inferSelect;
-export type InsertGradeGroup = z.infer<typeof insertGradeGroupSchema>;
-export type MasterClass = typeof masterClasses.$inferSelect;
-export type InsertMasterClass = z.infer<typeof insertMasterClassSchema>;
-export type SchoolClass = typeof schoolClasses.$inferSelect;
-export type InsertSchoolClass = z.infer<typeof insertSchoolClassSchema>;
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type InvoiceLine = typeof invoiceLines.$inferSelect;
