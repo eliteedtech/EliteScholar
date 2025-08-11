@@ -194,11 +194,7 @@ export const userRelations = relations(users, ({ one }) => ({
   }),
 }));
 
-export const schoolRelations = relations(schools, ({ one, many }) => ({
-  mainBranch: one(branches, {
-    fields: [schools.mainBranchId],
-    references: [branches.id],
-  }),
+export const schoolRelations = relations(schools, ({ many }) => ({
   branches: many(branches),
   users: many(users),
   features: many(schoolFeatures),

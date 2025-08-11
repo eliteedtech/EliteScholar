@@ -159,7 +159,6 @@ export class DatabaseStorage implements IStorage {
     const schoolsData = await db.query.schools.findMany({
       where: whereClause,
       with: {
-        mainBranch: true,
         branches: true,
         features: {
           with: {
@@ -185,7 +184,6 @@ export class DatabaseStorage implements IStorage {
     const school = await db.query.schools.findFirst({
       where: eq(schools.id, id),
       with: {
-        mainBranch: true,
         branches: true,
         features: {
           with: {
