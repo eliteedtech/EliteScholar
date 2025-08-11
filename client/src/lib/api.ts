@@ -176,6 +176,11 @@ export const api = {
       return response.json();
     },
 
+    getSchoolFeatures: async (schoolId: string): Promise<any[]> => {
+      const response = await apiRequest("GET", `/api/superadmin/schools/${schoolId}/features`);
+      return response.json();
+    },
+
     toggleSchoolFeature: async (
       schoolId: string,
       featureKey: string,

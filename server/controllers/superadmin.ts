@@ -642,6 +642,60 @@ router.get("/features", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get school features
+router.get("/schools/:schoolId/features", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const schoolFeatures = await storage.getSchoolFeatures(schoolId);
+    res.json(schoolFeatures);
+  } catch (error) {
+    console.error("Get school features error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Enable school feature
+router.post("/schools/:schoolId/features/:featureKey/enable", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId, featureKey } = req.params;
+    
+    // First get the feature by key
+    const features = await storage.getAllFeatures();
+    const feature = features.find(f => f.key === featureKey);
+    
+    if (!feature) {
+      return res.status(404).json({ message: "Feature not found" });
+    }
+    
+    await storage.toggleSchoolFeature(schoolId, feature.id, true);
+    res.json({ message: "Feature enabled successfully" });
+  } catch (error) {
+    console.error("Enable feature error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Disable school feature
+router.post("/schools/:schoolId/features/:featureKey/disable", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId, featureKey } = req.params;
+    
+    // First get the feature by key
+    const features = await storage.getAllFeatures();
+    const feature = features.find(f => f.key === featureKey);
+    
+    if (!feature) {
+      return res.status(404).json({ message: "Feature not found" });
+    }
+    
+    await storage.toggleSchoolFeature(schoolId, feature.id, false);
+    res.json({ message: "Feature disabled successfully" });
+  } catch (error) {
+    console.error("Disable feature error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.delete("/features/:featureId", async (req: AuthRequest, res: Response) => {
   try {
     const { featureId } = req.params;

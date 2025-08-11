@@ -21,15 +21,22 @@ interface FeatureToggleProps {
 export default function FeatureToggle({ school, onClose, onToggle }: FeatureToggleProps) {
   const [pendingToggles, setPendingToggles] = useState<Record<string, boolean>>({});
 
-  const { data: allFeatures, isLoading } = useQuery({
+  const { data: allFeatures, isLoading: featuresLoading } = useQuery({
     queryKey: ["/api/superadmin/features"],
     queryFn: () => api.superadmin.getFeatures(),
   });
 
-  const schoolFeatureMap = school.features.reduce((acc, sf) => {
+  const { data: schoolFeatures, isLoading: schoolFeaturesLoading } = useQuery({
+    queryKey: ["/api/superadmin/schools", school.id, "features"],
+    queryFn: () => api.superadmin.getSchoolFeatures(school.id),
+  });
+
+  const schoolFeatureMap = (schoolFeatures || []).reduce((acc, sf) => {
     acc[sf.feature.key] = sf.enabled;
     return acc;
   }, {} as Record<string, boolean>);
+
+  const isLoading = featuresLoading || schoolFeaturesLoading;
 
   const handleToggle = (featureKey: string, enabled: boolean) => {
     setPendingToggles({ ...pendingToggles, [featureKey]: enabled });
