@@ -229,7 +229,7 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
       phones: data.phones ? data.phones.split(",").map(p => p.trim()).filter(p => p) : [],
     };
     
-    formData.append("data", JSON.stringify(schoolData));
+    formData.append("schoolData", JSON.stringify(schoolData));
     
     if (selectedFile) {
       formData.append("logo", selectedFile);

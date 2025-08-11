@@ -279,7 +279,61 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Update school
+// Update school with logo support
+router.put("/schools/:schoolId", upload.single("logo"), async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    let schoolData;
+    
+    try {
+      schoolData = JSON.parse(req.body.schoolData || "{}");
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid school data format" });
+    }
+
+    // Get existing school
+    const existingSchool = await storage.getSchool(schoolId);
+    if (!existingSchool) {
+      return res.status(404).json({ message: "School not found" });
+    }
+
+    // Handle logo upload if provided
+    let logoUrl = existingSchool.logoUrl;
+    if (req.file) {
+      try {
+        const uploadResult = await cloudinaryService.uploadImage(req.file.buffer);
+        logoUrl = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error("Logo upload error:", uploadError);
+        return res.status(400).json({ message: "Failed to upload logo" });
+      }
+    }
+
+    // Update school
+    const updatedSchool = await storage.updateSchool(schoolId, {
+      name: schoolData.schoolName,
+      shortName: schoolData.shortName,
+      abbreviation: schoolData.abbreviation,
+      motto: schoolData.motto,
+      state: schoolData.state,
+      lga: schoolData.lga,
+      address: schoolData.address,
+      phones: schoolData.phones,
+      email: schoolData.email,
+      logoUrl,
+    });
+
+    res.json({
+      school: updatedSchool,
+      message: "School updated successfully",
+    });
+  } catch (error) {
+    console.error("Update school error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update school (simple patch)
 router.patch("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId } = req.params;
@@ -328,6 +382,131 @@ router.delete("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
     res.json({ message: "School deleted successfully" });
   } catch (error) {
     console.error("Delete school error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Branch Management
+router.get("/schools/:schoolId/branches", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const branches = await storage.getSchoolBranches(schoolId);
+    res.json(branches);
+  } catch (error) {
+    console.error("Get branches error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/schools/:schoolId/branches", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Branch name is required" });
+    }
+
+    const branch = await storage.createBranch({
+      schoolId,
+      name,
+      status: "active",
+      isMain: false,
+    });
+
+    res.status(201).json(branch);
+  } catch (error) {
+    console.error("Create branch error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/schools/:schoolId/branches/:branchId", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId, branchId } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Branch name is required" });
+    }
+
+    const branch = await storage.updateBranch(branchId, { name });
+    res.json(branch);
+  } catch (error) {
+    console.error("Update branch error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/schools/:schoolId/branches/:branchId/status", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId, branchId } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "suspended", "deleted"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const branch = await storage.updateBranch(branchId, { status });
+    res.json(branch);
+  } catch (error) {
+    console.error("Update branch status error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Feature Management
+router.post("/features", async (req: AuthRequest, res: Response) => {
+  try {
+    const { key, name, description, category, price, pricingType, isCore } = req.body;
+
+    if (!key || !name) {
+      return res.status(400).json({ message: "Feature key and name are required" });
+    }
+
+    const feature = await storage.createFeature({
+      key,
+      name,
+      description: description || "",
+      category: category || "general",
+      price: price || null,
+      pricingType: pricingType || null,
+      isCore: isCore || false,
+    });
+
+    res.status(201).json(feature);
+  } catch (error) {
+    console.error("Create feature error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
+  try {
+    const { featureId } = req.params;
+    const updates = req.body;
+
+    const feature = await storage.updateFeature(featureId, updates);
+    if (!feature) {
+      return res.status(404).json({ message: "Feature not found" });
+    }
+
+    res.json(feature);
+  } catch (error) {
+    console.error("Update feature error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/features/:featureId", async (req: AuthRequest, res: Response) => {
+  try {
+    const { featureId } = req.params;
+    
+    // Soft delete the feature
+    await storage.updateFeature(featureId, { deletedAt: new Date() });
+    res.json({ message: "Feature deleted successfully" });
+  } catch (error) {
+    console.error("Delete feature error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

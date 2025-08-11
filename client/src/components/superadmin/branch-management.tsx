@@ -54,12 +54,7 @@ export default function BranchManagement({ schoolId, schoolName, onClose }: Bran
 
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ["/api/superadmin/schools", schoolId, "branches"],
-    queryFn: async () => {
-      // For now, return mock data until API is implemented
-      return [
-        { id: "1", name: "Main Branch", status: "active", isMain: true, schoolId },
-      ];
-    },
+    queryFn: () => api.superadmin.getSchoolBranches(schoolId),
   });
 
   const form = useForm<BranchFormData>({
@@ -70,10 +65,7 @@ export default function BranchManagement({ schoolId, schoolName, onClose }: Bran
   });
 
   const createBranchMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
-      // Mock implementation until API is ready
-      return { id: Date.now().toString(), ...data, status: "active", isMain: false, schoolId };
-    },
+    mutationFn: (data: { name: string }) => api.superadmin.createBranch(schoolId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools", schoolId, "branches"] });
       toast({
@@ -93,10 +85,8 @@ export default function BranchManagement({ schoolId, schoolName, onClose }: Bran
   });
 
   const updateBranchMutation = useMutation({
-    mutationFn: async ({ branchId, data }: { branchId: string; data: { name: string } }) => {
-      // Mock implementation until API is ready
-      return { id: branchId, ...data, status: "active", isMain: false, schoolId };
-    },
+    mutationFn: ({ branchId, data }: { branchId: string; data: { name: string } }) =>
+      api.superadmin.updateBranch(schoolId, branchId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools", schoolId, "branches"] });
       toast({
@@ -117,10 +107,8 @@ export default function BranchManagement({ schoolId, schoolName, onClose }: Bran
   });
 
   const updateBranchStatusMutation = useMutation({
-    mutationFn: async ({ branchId, status }: { branchId: string; status: string }) => {
-      // Mock implementation until API is ready
-      return { id: branchId, status, isMain: false, schoolId };
-    },
+    mutationFn: ({ branchId, status }: { branchId: string; status: string }) =>
+      api.superadmin.updateBranchStatus(schoolId, branchId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools", schoolId, "branches"] });
       toast({

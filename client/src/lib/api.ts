@@ -167,6 +167,42 @@ export const api = {
       return response.json();
     },
 
+    // Branch Management
+    getSchoolBranches: async (schoolId: string): Promise<any[]> => {
+      const response = await apiRequest("GET", `/api/superadmin/schools/${schoolId}/branches`);
+      return response.json();
+    },
+
+    createBranch: async (schoolId: string, data: { name: string }): Promise<any> => {
+      const response = await apiRequest("POST", `/api/superadmin/schools/${schoolId}/branches`, data);
+      return response.json();
+    },
+
+    updateBranch: async (schoolId: string, branchId: string, data: { name: string }): Promise<any> => {
+      const response = await apiRequest("PUT", `/api/superadmin/schools/${schoolId}/branches/${branchId}`, data);
+      return response.json();
+    },
+
+    updateBranchStatus: async (schoolId: string, branchId: string, status: string): Promise<any> => {
+      const response = await apiRequest("PATCH", `/api/superadmin/schools/${schoolId}/branches/${branchId}/status`, { status });
+      return response.json();
+    },
+
+    // Feature Management
+    createFeature: async (data: any): Promise<any> => {
+      const response = await apiRequest("POST", "/api/superadmin/features", data);
+      return response.json();
+    },
+
+    updateFeature: async (featureId: string, data: any): Promise<any> => {
+      const response = await apiRequest("PUT", `/api/superadmin/features/${featureId}`, data);
+      return response.json();
+    },
+
+    deleteFeature: async (featureId: string): Promise<void> => {
+      await apiRequest("DELETE", `/api/superadmin/features/${featureId}`);
+    },
+
     updatePaymentStatus: async (
       schoolId: string,
       status: string,

@@ -33,6 +33,17 @@ export const paymentStatusEnum = pgEnum("payment_status", ["PENDING", "PAID", "U
 
 export const invoiceStatusEnum = pgEnum("invoice_status", ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"]);
 
+export const pricingTypeEnum = pgEnum("pricing_type", [
+  "per_student",
+  "per_staff", 
+  "per_term",
+  "per_month",
+  "per_year",
+  "one_time",
+  "pay_as_you_go",
+  "custom"
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -76,8 +87,10 @@ export const branches = pgTable("branches", {
   schoolId: varchar("school_id").notNull(),
   name: varchar("name").notNull(),
   isMain: boolean("is_main").default(false),
+  status: varchar("status").default("active"), // active, suspended, deleted
   credentials: jsonb("credentials"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Features table
@@ -86,10 +99,12 @@ export const features = pgTable("features", {
   key: varchar("key").notNull().unique(),
   name: varchar("name").notNull(),
   description: text("description"),
-  price: integer("price").default(0), // Price in smallest currency unit (kobo)
-  category: varchar("category").default("CORE"),
-  type: jsonb("type").$type<{module: boolean; standalone: boolean; both: boolean}>().default({module: false, standalone: false, both: false}),
+  price: integer("price"), // Price in smallest currency unit (kobo) - optional
+  pricingType: pricingTypeEnum("pricing_type"), // Optional pricing type
+  category: varchar("category").default("general"),
+  isCore: boolean("is_core").default(false),
   isActive: boolean("is_active").default(true),
+  deletedAt: timestamp("deleted_at"), // Soft delete
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

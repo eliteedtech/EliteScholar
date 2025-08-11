@@ -32,7 +32,7 @@ import {
   type InvoiceWithLines,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, count, sql, or, ilike } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, or, ilike, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -414,6 +414,26 @@ export class DatabaseStorage implements IStorage {
     // In a full implementation, this would insert into a classes table
     return classData;
   }
+
+  // Branch Management
+  async getSchoolBranches(schoolId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(branches)
+      .where(and(eq(branches.schoolId, schoolId), ne(branches.status, "deleted")))
+      .orderBy(asc(branches.name));
+  }
+
+  async updateBranch(branchId: string, updates: any): Promise<any> {
+    const [branch] = await db
+      .update(branches)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(branches.id, branchId))
+      .returning();
+    return branch;
+  }
+
+
 
   async getGradeSections(schoolId: string): Promise<GradeSection[]> {
     return await db

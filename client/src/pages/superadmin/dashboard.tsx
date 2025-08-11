@@ -2,6 +2,7 @@ import { useLocation } from "wouter";
 import SuperAdminLayout from "@/components/superadmin/layout";
 import StatsCards from "@/components/superadmin/stats-cards";
 import SchoolsTable from "@/components/superadmin/schools-table";
+import FeaturesManagement from "@/components/superadmin/features-management";
 
 export default function SuperAdminDashboard() {
   const [location] = useLocation();
@@ -26,12 +27,7 @@ export default function SuperAdminDashboard() {
           </div>
         );
       case "features":
-        return (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Feature Management</h3>
-            <p className="text-slate-600">Feature management interface coming soon...</p>
-          </div>
-        );
+        return <FeaturesManagement />;
       case "analytics":
         return (
           <div className="bg-white rounded-xl shadow-sm p-6">
