@@ -631,6 +631,17 @@ router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get all features
+router.get("/features", async (req: AuthRequest, res: Response) => {
+  try {
+    const features = await storage.getAllFeatures();
+    res.json(features);
+  } catch (error) {
+    console.error("Get features error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.delete("/features/:featureId", async (req: AuthRequest, res: Response) => {
   try {
     const { featureId } = req.params;

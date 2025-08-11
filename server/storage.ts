@@ -441,6 +441,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(gradeSections.order));
   }
 
+  // Feature Management
+  async getAllFeatures(): Promise<Feature[]> {
+    return await db
+      .select()
+      .from(features)
+      .where(sql`deleted_at IS NULL`)
+      .orderBy(asc(features.name));
+  }
+
+  async createFeature(featureData: InsertFeature): Promise<Feature> {
+    const [feature] = await db.insert(features).values(featureData).returning();
+    return feature;
+  }
+
+  async updateFeature(featureId: string, updates: Partial<InsertFeature>): Promise<Feature | null> {
+    const [feature] = await db
+      .update(features)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(features.id, featureId))
+      .returning();
+    return feature || null;
+  }
+
   async getInvoices(filters?: {
     schoolId?: string;
     status?: string;
