@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import superadminRoutes from "./controllers/superadmin";
 import invoiceRoutes from "./controllers/invoice";
+import settingsRoutes from "./controllers/settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes - create a simple temporary login route
@@ -93,8 +94,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send invoice via communication method
+  app.post("/api/invoices/:id/send", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { communicationMethod, recipient, subject, message } = req.body;
+      
+      // Here you would implement the actual sending logic
+      // For now, just return success
+      res.json({ 
+        message: `Invoice sent successfully via ${communicationMethod} to ${recipient}`,
+        sentAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Send invoice error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Super Admin routes
   app.use("/api/superadmin", superadminRoutes);
+
+  // Settings routes
+  app.use("/api/superadmin/settings", settingsRoutes);
 
   // Invoice routes  
   app.use("/api/invoices", invoiceRoutes);

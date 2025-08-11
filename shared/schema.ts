@@ -133,6 +133,18 @@ export const schoolFeatures = pgTable("school_features", {
   schoolFeatureUnique: unique().on(table.schoolId, table.featureId),
 }));
 
+// Sections table - for organizing students within grades
+export const sections = pgTable("sections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "A", "B", "C", "Alpha", "Beta"
+  code: varchar("code").notNull(), // e.g., "A", "B", "C"
+  capacity: integer("capacity").default(30), // Maximum students
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Grade Sections table
 export const gradeSections = pgTable("grade_sections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -305,6 +317,12 @@ export const insertSchoolFeatureSchema = createInsertSchema(schoolFeatures).omit
   createdAt: true,
 });
 
+export const insertSectionSchema = createInsertSchema(sections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertGradeSectionSchema = createInsertSchema(gradeSections).omit({
   id: true,
   createdAt: true,
@@ -338,6 +356,8 @@ export type Feature = typeof features.$inferSelect;
 export type InsertFeature = z.infer<typeof insertFeatureSchema>;
 export type SchoolFeature = typeof schoolFeatures.$inferSelect;
 export type InsertSchoolFeature = z.infer<typeof insertSchoolFeatureSchema>;
+export type Section = typeof sections.$inferSelect;
+export type InsertSection = z.infer<typeof insertSectionSchema>;
 export type GradeSection = typeof gradeSections.$inferSelect;
 export type InsertGradeSection = z.infer<typeof insertGradeSectionSchema>;
 export type Invoice = typeof invoices.$inferSelect;
@@ -370,6 +390,8 @@ export const appSettings = pgTable("app_settings", {
   appName: varchar("app_name").default("Elite Scholar"),
   appLogo: varchar("app_logo"),
   domain: varchar("domain"),
+  
+  // Email Configuration
   smtpHost: varchar("smtp_host"),
   smtpPort: varchar("smtp_port").default("587"),
   smtpUser: varchar("smtp_user"),
@@ -377,11 +399,25 @@ export const appSettings = pgTable("app_settings", {
   smtpSecure: boolean("smtp_secure").default(false),
   emailFromAddress: varchar("email_from_address"),
   emailFromName: varchar("email_from_name").default("Elite Scholar"),
+  emailTemplate: text("email_template"), // HTML email template
+  
   // Cloudinary Settings
   cloudinaryCloudName: varchar("cloudinary_cloud_name"),
   cloudinaryApiKey: varchar("cloudinary_api_key"),
   cloudinaryApiSecret: varchar("cloudinary_api_secret"),
   cloudinaryUploadPreset: varchar("cloudinary_upload_preset"),
+  
+  // Communication Methods
+  twilioAccountSid: varchar("twilio_account_sid"),
+  twilioAuthToken: varchar("twilio_auth_token"),
+  twilioPhoneNumber: varchar("twilio_phone_number"),
+  twilioWhatsappNumber: varchar("twilio_whatsapp_number"),
+  
+  // Invoice Settings
+  invoiceTemplate: text("invoice_template"), // HTML invoice template
+  invoiceBackgroundImage: varchar("invoice_background_image"),
+  invoiceLogo: varchar("invoice_logo"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

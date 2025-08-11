@@ -46,6 +46,7 @@ function Router() {
               <Route path="/superadmin/schools" component={SchoolsPage} />
               <Route path="/superadmin/invoices" component={InvoicesPage} />
               <Route path="/superadmin/invoices-enhanced" component={EnhancedInvoicesPage} />
+              <Route path="/superadmin/settings-enhanced" component={lazy(() => import("./pages/superadmin/settings-enhanced"))} />
               <Route path="/superadmin/features">
                 <Suspense fallback={<div>Loading...</div>}>
                   <FeaturesPage />

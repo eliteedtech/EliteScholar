@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import SuperAdminLayout from "@/components/superadmin/layout";
+import InvoiceSendPage from "./invoice-send";
 import type { School as SchoolType, Feature as FeatureType, Invoice as InvoiceType } from "@/lib/types";
 
 // Enhanced invoice form schema
@@ -127,6 +128,12 @@ const UNIT_MEASUREMENT_OPTIONS = [
 
 export default function EnhancedInvoicesPage() {
   const { toast } = useToast();
+  const [sendingInvoice, setSendingInvoice] = useState<{
+    id: string;
+    schoolName: string;
+    invoiceNumber: string;
+    totalAmount: string;
+  } | null>(null);
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
@@ -643,7 +650,13 @@ export default function EnhancedInvoicesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {/* View invoice logic */}}
+                            onClick={() => {
+                              // View invoice logic - could open a preview dialog
+                              toast({
+                                title: "View Invoice",
+                                description: `Opening invoice ${invoice.invoiceNumber}`,
+                              });
+                            }}
                             data-testid={`button-view-invoice-${invoice.id}`}
                           >
                             <FileText className="h-4 w-4" />
@@ -651,7 +664,14 @@ export default function EnhancedInvoicesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {/* Send email logic */}}
+                            onClick={() => {
+                              setSendingInvoice({
+                                id: invoice.id,
+                                schoolName: invoice.schoolName,
+                                invoiceNumber: invoice.invoiceNumber,
+                                totalAmount: formatPrice(invoice.finalAmount || invoice.totalAmount),
+                              });
+                            }}
                             data-testid={`button-send-email-${invoice.id}`}
                           >
                             <Send className="h-4 w-4" />

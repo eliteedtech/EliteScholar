@@ -64,6 +64,12 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       icon: "fas fa-cog",
       active: location === "/superadmin/settings",
     },
+    {
+      name: "Enhanced Settings",
+      href: "/superadmin/settings-enhanced",
+      icon: "fas fa-cogs",
+      active: location === "/superadmin/settings-enhanced",
+    },
   ];
 
   const handleLogout = () => {

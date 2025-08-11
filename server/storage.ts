@@ -77,6 +77,10 @@ export interface IStorage {
   
   // Grade section operations with sections
   createDefaultGradeSections(schoolId: string, schoolType: string): Promise<GradeSection[]>;
+  
+  // App settings operations
+  getAppSettings(): Promise<any>;
+  updateAppSettings(settings: any): Promise<any>;
 
   // Invoice operations
   getInvoices(filters?: {
@@ -641,7 +645,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvoice(invoiceData: InsertInvoice): Promise<Invoice> {
-    const [invoice] = await db.insert(invoices).values(invoiceData).returning();
+    // Ensure features field is not null
+    const sanitizedData = {
+      ...invoiceData,
+      features: invoiceData.features || [],
+    };
+    const [invoice] = await db.insert(invoices).values(sanitizedData).returning();
     return invoice;
   }
 
@@ -662,8 +671,11 @@ export class DatabaseStorage implements IStorage {
     // Generate invoice number
     const invoiceNumber = await this.generateInvoiceNumber();
     
+    // Ensure features is an array
+    const features = invoiceData.features || [];
+    
     // Calculate total amount from features
-    const totalAmount = invoiceData.features.reduce((sum: number, feature: any) => {
+    const totalAmount = features.reduce((sum: number, feature: any) => {
       const price = feature.negotiatedPrice || feature.unitPrice;
       return sum + (price * feature.quantity);
     }, 0);
@@ -682,7 +694,7 @@ export class DatabaseStorage implements IStorage {
     const [invoice] = await db.insert(invoices).values(invoiceRecord).returning();
 
     // Create invoice lines for each feature
-    const linesData: InsertInvoiceLine[] = invoiceData.features.map((feature: any) => ({
+    const linesData: InsertInvoiceLine[] = features.map((feature: any) => ({
       invoiceId: invoice.id,
       featureId: feature.featureId,
       description: `Feature: ${feature.featureId}`, // This would be populated with actual feature name in a real app
@@ -695,7 +707,10 @@ export class DatabaseStorage implements IStorage {
       total: ((feature.negotiatedPrice || feature.unitPrice) * feature.quantity).toString(),
     }));
 
-    await this.createInvoiceLines(linesData);
+    // Only create lines if we have features
+    if (linesData.length > 0) {
+      await this.createInvoiceLines(linesData);
+    }
 
     return invoice;
   }
@@ -718,6 +733,33 @@ export class DatabaseStorage implements IStorage {
     }
 
     return `INV-${year}-${nextNumber.toString().padStart(3, "0")}`;
+  }
+
+  async getAppSettings(): Promise<any> {
+    const [settings] = await db.select().from(appSettings).limit(1);
+    return settings || {};
+  }
+
+  async updateAppSettings(settingsData: any): Promise<any> {
+    // Check if settings exist
+    const existing = await this.getAppSettings();
+    
+    if (existing && existing.id) {
+      // Update existing settings
+      const [updated] = await db
+        .update(appSettings)
+        .set({ ...settingsData, updatedAt: new Date() })
+        .where(eq(appSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new settings
+      const [created] = await db
+        .insert(appSettings)
+        .values(settingsData)
+        .returning();
+      return created;
+    }
   }
 
   async getStats(): Promise<{
