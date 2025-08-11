@@ -300,7 +300,7 @@ export default function EnhancedSettingsPage() {
                         data-testid="textarea-email-template"
                       />
                       <p className="text-sm text-slate-600 mt-1">
-                        Available placeholders: {"{"}{"{"}{"}schoolName{"}{"}"}, {"{"}{"{"}{"}invoiceNumber{"}{"}"}, {"{"}{"{"}{"}totalAmount{"}{"}"}, {"{"}{"{"}{"}dueDate{"}{"}"}{"}
+                        Available placeholders: {"{{schoolName}}, {{invoiceNumber}}, {{totalAmount}}, {{dueDate}}"}
                       </p>
                     </div>
                     <Button
@@ -492,7 +492,7 @@ export default function EnhancedSettingsPage() {
                         data-testid="textarea-invoice-template"
                       />
                       <p className="text-sm text-slate-600 mt-1">
-                        Available placeholders: {"{"}{"{"}{"}schoolName{"}{"}"}, {"{"}{"{"}{"}invoiceNumber{"}{"}"}, {"{"}{"{"}{"}totalAmount{"}{"}"}, {"{"}{"{"}{"}items{"}{"}"}, {"{"}{"{"}{"}dueDate{"}{"}"}{"}
+                        Available placeholders: {"{{schoolName}}, {{invoiceNumber}}, {{totalAmount}}, {{items}}, {{dueDate}}"}
                       </p>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
