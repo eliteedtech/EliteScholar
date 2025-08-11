@@ -70,7 +70,7 @@ export default function FeaturesPage() {
     },
   });
 
-  const { data: features = [], isLoading } = useQuery({
+  const { data: features = [], isLoading } = useQuery<Feature[]>({
     queryKey: ["/api/features"],
   });
 
@@ -369,7 +369,7 @@ export default function FeaturesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {features.map((feature: Feature) => (
+                {features.map((feature) => (
                   <TableRow key={feature.id} data-testid={`row-feature-${feature.id}`}>
                     <TableCell className="font-medium" data-testid={`text-feature-name-${feature.id}`}>
                       {feature.name}

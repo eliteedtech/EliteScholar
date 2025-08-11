@@ -243,7 +243,9 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
                 {...form.register("shortName")}
                 data-testid="input-short-name"
               />
-              <p className="text-xs text-slate-500">Will be used for: {form.watch("shortName") || "school-name"}.elitescholar.com</p>
+              <p className="text-xs text-slate-500">
+                Will be used for: {form.watch("shortName") || "school-name"}.{appSettings?.domain?.replace('https://', '')?.replace('http://', '') || 'elitescholar.com'}
+              </p>
               {form.formState.errors.shortName && (
                 <p className="text-sm text-red-600">{form.formState.errors.shortName.message}</p>
               )}
@@ -259,7 +261,7 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
               {form.watch("abbreviation") && (
                 <div className="mt-2 p-2 bg-blue-50 rounded-md">
                   <p className="text-xs text-blue-700">
-                    <strong>Preview Link:</strong> https://{form.watch("abbreviation")?.toLowerCase()}.elitescholar.com
+                    <strong>Preview Link:</strong> https://{form.watch("abbreviation")?.toLowerCase()}.{appSettings?.domain?.replace('https://', '')?.replace('http://', '') || 'elitescholar.com'}
                   </p>
                 </div>
               )}

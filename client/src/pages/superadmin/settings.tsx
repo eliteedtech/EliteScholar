@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/auth";
-import { api } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
 
 // Profile form schema
@@ -65,7 +65,6 @@ export default function SettingsPage() {
   // Fetch app settings
   const { data: appSettings, isLoading: appSettingsLoading } = useQuery({
     queryKey: ["/api/superadmin/settings"],
-    queryFn: () => api.superadmin.getAppSettings(),
   });
 
   // Profile form
@@ -99,7 +98,10 @@ export default function SettingsPage() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: ProfileFormData) => api.auth.updateProfile(data),
+    mutationFn: async (data: ProfileFormData) => {
+      const response = await apiRequest("/api/auth/profile", "PUT", data);
+      return response;
+    },
     onSuccess: (updatedUser) => {
       updateUser(updatedUser);
       profileForm.reset({
@@ -125,7 +127,10 @@ export default function SettingsPage() {
 
   // Update app settings mutation
   const updateAppSettingsMutation = useMutation({
-    mutationFn: (data: AppSettingsFormData) => api.superadmin.updateAppSettings(data),
+    mutationFn: async (data: AppSettingsFormData) => {
+      const response = await apiRequest("/api/superadmin/settings", "PUT", data);
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/superadmin/settings"] });
       toast({
@@ -144,7 +149,10 @@ export default function SettingsPage() {
 
   // Test email connection mutation
   const testEmailMutation = useMutation({
-    mutationFn: () => api.superadmin.testEmailConnection(),
+    mutationFn: async () => {
+      const response = await apiRequest("/api/superadmin/settings/test-email", "POST");
+      return response;
+    },
     onSuccess: () => {
       toast({
         title: "Email test successful",

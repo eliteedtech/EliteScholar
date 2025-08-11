@@ -1,7 +1,9 @@
-import { Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import { storage } from "../storage";
 import { insertAppSettingsSchema } from "@shared/schema";
 import nodemailer from "nodemailer";
+
+const router = Router();
 
 // Get app settings
 export const getAppSettings = async (req: Request, res: Response) => {
@@ -113,3 +115,10 @@ export const testEmailConnection = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Routes
+router.get("/", getAppSettings);
+router.put("/", updateAppSettings);
+router.post("/test-email", testEmailConnection);
+
+export default router;

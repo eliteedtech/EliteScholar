@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, FileText, Send, Calculator, Download } from "lucide-react";
+import { Plus, Edit, Trash2, FileText, Send, Calculator, Download, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +43,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
@@ -70,7 +78,7 @@ interface School {
 interface Feature {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
   isActive: boolean;
 }
@@ -314,16 +322,50 @@ export default function InvoicesPage() {
           </div>
 
           <div className="flex space-x-2">
+            {/* Quick Generate Invoice for Schools */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" data-testid="button-generate-invoice">
+                  <Zap className="mr-2 h-4 w-4" />
+                  Generate Invoice
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>Select School</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {schools.map((school: SchoolType) => {
+                  const schoolInvoices = invoices.filter((inv: Invoice) => inv.schoolId === school.id);
+                  const hasInvoices = schoolInvoices.length > 0;
+                  
+                  return (
+                    <DropdownMenuItem
+                      key={school.id}
+                      onClick={() => generateDefaultInvoiceMutation.mutate(school.id)}
+                      className="flex items-center justify-between"
+                      data-testid={`generate-${school.id}`}
+                    >
+                      <span>{school.name}</span>
+                      {hasInvoices && (
+                        <Badge variant="secondary" className="text-xs">
+                          {schoolInvoices.length} existing
+                        </Badge>
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-create-invoice">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Invoice
+                  Create Custom Invoice
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Create New Invoice</DialogTitle>
+                  <DialogTitle>Create Custom Invoice</DialogTitle>
                   <DialogDescription>
                     Select school and features to generate an invoice. Email will be sent automatically.
                   </DialogDescription>

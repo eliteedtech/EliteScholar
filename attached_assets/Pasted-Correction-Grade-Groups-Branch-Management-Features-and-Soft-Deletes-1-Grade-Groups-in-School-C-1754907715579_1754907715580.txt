@@ -1,0 +1,79 @@
+Correction — Grade Groups, Branch Management, Features, and Soft Deletes
+1. Grade Groups in School Creation
+In the School Creation form:
+
+Instead of listing individual grades directly, display grade groups (e.g., Nursery, Primary, Secondary, Islamiyya, Adult Learning).
+
+When a group is selected, the system should automatically link all grades under that group to the school (even though they are not shown individually).
+
+Examples:
+
+K12 Curriculum: Nursery, Primary, Secondary.
+
+Nigerian Curriculum: Nursery, Primary, Secondary, Islamiyya, Adult Learning.
+
+For Islamiyya and Adult Learning, each group has 6 classes that should be created automatically when the group is selected.
+
+This must work for both K12 and Nigerian Curriculum schools.
+
+2. Branch Management in Schools Component
+Add a Manage Branches action in the Schools list.
+
+In Branch Management:
+
+Add Branch
+
+Edit Branch
+
+Suspend Branch (status = suspended)
+
+Delete Branch → Soft delete by setting status = deleted (do not remove from DB).
+
+Any branch with status = deleted must not appear in the frontend.
+
+3. Feature Management in Schools
+In Manage Features for a school:
+
+Display all features from the Features page.
+
+Each feature has a toggle:
+
+If toggled ON, add the feature to the school.
+
+If toggled OFF, remove the feature from the school.
+
+Ensure this updates the database immediately and works for both creation and editing of schools.
+
+4. Soft Delete for Schools
+When deleting a school:
+
+Set status = deleted (do not remove from DB).
+
+Any school with status = deleted must not appear in the frontend.
+
+5. Edit School
+The Edit School action should open the same form as School Creation.
+
+The form must:
+
+Pre-fill with the school’s existing data.
+
+Allow editing of all fields.
+
+Allow toggling of features ON/OFF.
+
+Allow toggling of grade groups.
+
+On save, update all changes in the database correctly.
+
+✅ Key Points to Enforce:
+
+All soft deletes (status = deleted) are hidden from the frontend.
+
+Grade group selection auto-adds the correct grades and classes.
+
+Branch management supports add, edit, suspend, and soft delete.
+
+Feature toggles work instantly for schools.
+
+Edit school uses the same component as create school.
