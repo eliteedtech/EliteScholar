@@ -8,6 +8,7 @@ import {
   invoices,
   invoiceLines,
   invoiceTemplates,
+  invoiceAssets,
   subscriptions,
   appSettings,
   type User,
@@ -26,6 +27,10 @@ import {
   type InsertInvoice,
   type InvoiceLine,
   type InsertInvoiceLine,
+  type InvoiceTemplate,
+  type InsertInvoiceTemplate,
+  type InvoiceAsset,
+  type InsertInvoiceAsset,
   type AppSettings,
   type InsertAppSettings,
   type SchoolWithDetails,
@@ -102,6 +107,20 @@ export interface IStorage {
     pendingInvoices: number;
     monthlyRevenue: string;
   }>;
+
+  // Invoice template operations
+  getInvoiceTemplates(schoolId?: string): Promise<InvoiceTemplate[]>;
+  getInvoiceTemplate(id: string): Promise<InvoiceTemplate | undefined>;
+  createInvoiceTemplate(template: InsertInvoiceTemplate): Promise<InvoiceTemplate>;
+  updateInvoiceTemplate(id: string, template: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate>;
+  deleteInvoiceTemplate(id: string): Promise<void>;
+
+  // Invoice asset operations
+  getInvoiceAssets(schoolId?: string): Promise<InvoiceAsset[]>;
+  getInvoiceAsset(id: string): Promise<InvoiceAsset | undefined>;
+  createInvoiceAsset(asset: InsertInvoiceAsset): Promise<InvoiceAsset>;
+  updateInvoiceAsset(id: string, asset: Partial<InsertInvoiceAsset>): Promise<InvoiceAsset>;
+  deleteInvoiceAsset(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -878,6 +897,102 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schools.id, schoolId));
     
     return school?.name || "Unknown School";
+  }
+
+  // Invoice Template operations
+  async getInvoiceTemplates(schoolId?: string): Promise<InvoiceTemplate[]> {
+    if (schoolId) {
+      return await db
+        .select()
+        .from(invoiceTemplates)
+        .where(or(
+          eq(invoiceTemplates.schoolId, schoolId),
+          sql`${invoiceTemplates.schoolId} IS NULL`
+        ))
+        .orderBy(desc(invoiceTemplates.createdAt));
+    }
+    
+    return await db
+      .select()
+      .from(invoiceTemplates)
+      .orderBy(desc(invoiceTemplates.createdAt));
+  }
+
+  async getInvoiceTemplate(id: string): Promise<InvoiceTemplate | undefined> {
+    const [template] = await db
+      .select()
+      .from(invoiceTemplates)
+      .where(eq(invoiceTemplates.id, id));
+    return template;
+  }
+
+  async createInvoiceTemplate(templateData: InsertInvoiceTemplate): Promise<InvoiceTemplate> {
+    const [template] = await db
+      .insert(invoiceTemplates)
+      .values(templateData)
+      .returning();
+    return template;
+  }
+
+  async updateInvoiceTemplate(id: string, templateData: Partial<InsertInvoiceTemplate>): Promise<InvoiceTemplate> {
+    const [template] = await db
+      .update(invoiceTemplates)
+      .set({ ...templateData, updatedAt: new Date() })
+      .where(eq(invoiceTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  async deleteInvoiceTemplate(id: string): Promise<void> {
+    await db.delete(invoiceTemplates).where(eq(invoiceTemplates.id, id));
+  }
+
+  // Invoice Asset operations
+  async getInvoiceAssets(schoolId?: string): Promise<InvoiceAsset[]> {
+    if (schoolId) {
+      return await db
+        .select()
+        .from(invoiceAssets)
+        .where(or(
+          eq(invoiceAssets.schoolId, schoolId),
+          sql`${invoiceAssets.schoolId} IS NULL`
+        ))
+        .orderBy(desc(invoiceAssets.createdAt));
+    }
+    
+    return await db
+      .select()
+      .from(invoiceAssets)
+      .orderBy(desc(invoiceAssets.createdAt));
+  }
+
+  async getInvoiceAsset(id: string): Promise<InvoiceAsset | undefined> {
+    const [asset] = await db
+      .select()
+      .from(invoiceAssets)
+      .where(eq(invoiceAssets.id, id));
+    return asset;
+  }
+
+  async createInvoiceAsset(assetData: InsertInvoiceAsset): Promise<InvoiceAsset> {
+    const [asset] = await db
+      .insert(invoiceAssets)
+      .values(assetData)
+      .returning();
+    return asset;
+  }
+
+  async updateInvoiceAsset(id: string, assetData: Partial<InsertInvoiceAsset>): Promise<InvoiceAsset> {
+    const [asset] = await db
+      .update(invoiceAssets)
+      .set({ ...assetData, updatedAt: new Date() })
+      .where(eq(invoiceAssets.id, id))
+      .returning();
+    return asset;
+  }
+
+  async deleteInvoiceAsset(id: string): Promise<void> {
+    await db.delete(invoiceAssets).where(eq(invoiceAssets.id, id));
   }
 }
 

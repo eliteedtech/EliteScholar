@@ -127,6 +127,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes
   app.use("/api/analytics", (await import("./controllers/analytics")).default);
 
+  // Invoice template routes
+  app.use("/api/invoice-templates", (await import("./controllers/invoice-templates")).default);
+
+  // Invoice asset routes
+  app.use("/api/invoice-assets", (await import("./controllers/invoice-assets")).default);
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

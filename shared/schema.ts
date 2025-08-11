@@ -164,9 +164,27 @@ export const invoiceTemplates = pgTable("invoice_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   schoolId: varchar("school_id"), // null for default template
   name: varchar("name").notNull(),
-  features: jsonb("features").notNull(), // Array of feature IDs
-  totalAmount: integer("total_amount").notNull(), // In kobo
+  templateType: varchar("template_type").notNull().default("modern"), // modern, classic, minimal
+  primaryColor: varchar("primary_color").default("#2563eb"),
+  accentColor: varchar("accent_color").default("#64748b"),
+  logoUrl: varchar("logo_url"),
+  watermarkUrl: varchar("watermark_url"),
+  backgroundImageUrl: varchar("background_image_url"),
+  customization: jsonb("customization").default('{"showWatermark": false, "showBackgroundImage": false, "headerStyle": "default", "footerText": ""}'),
   isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Invoice Generation Assets table - for storing logos, watermarks, backgrounds
+export const invoiceAssets = pgTable("invoice_assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id"), // null for system-wide assets
+  name: varchar("name").notNull(),
+  type: varchar("type").notNull(), // "logo", "watermark", "background"
+  url: varchar("url").notNull(),
+  size: integer("size"), // File size in bytes
+  mimeType: varchar("mime_type"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -345,6 +363,18 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   createdAt: true,
 });
 
+export const insertInvoiceTemplateSchema = createInsertSchema(invoiceTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvoiceAssetSchema = createInsertSchema(invoiceAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -378,6 +408,11 @@ export type SchoolWithDetails = School & {
     branches: number;
   };
 };
+
+export type InvoiceTemplate = typeof invoiceTemplates.$inferSelect;
+export type InsertInvoiceTemplate = z.infer<typeof insertInvoiceTemplateSchema>;
+export type InvoiceAsset = typeof invoiceAssets.$inferSelect;
+export type InsertInvoiceAsset = z.infer<typeof insertInvoiceAssetSchema>;
 
 export type InvoiceWithLines = Invoice & {
   school: School;

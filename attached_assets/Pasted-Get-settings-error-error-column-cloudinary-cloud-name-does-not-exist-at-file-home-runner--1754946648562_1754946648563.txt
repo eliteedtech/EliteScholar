@@ -1,0 +1,105 @@
+Get settings error: error: column "cloudinary_cloud_name" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getAppSettings (/home/runner/workspace/server/storage.ts:814:24)
+    at async <anonymous> (/home/runner/workspace/server/controllers/settings.ts:11:22) {
+  length: 122,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '178',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+9:02:06 PM [express] GET /api/superadmin/settings 500 in 154ms :: {"message":"Internal server error"}
+9:02:25 PM [express] GET /api/auth/me 304 in 114ms :: {"id":"7dd8330e-528c-4dff-ab85-25053970be8c","…
+Get settings error: error: column "cloudinary_cloud_name" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getAppSettings (/home/runner/workspace/server/storage.ts:814:24)
+    at async <anonymous> (/home/runner/workspace/server/controllers/settings.ts:11:22) {
+  length: 122,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '178',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+9:02:35 PM [express] GET /api/superadmin/settings 500 in 51ms :: {"message":"Internal server error"}
+9:04:15 PM [express] POST /api/superadmin/settings 401 in 1ms :: {"message":"No token provided"}
+Get settings error: error: column "cloudinary_cloud_name" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getAppSettings (/home/runner/workspace/server/storage.ts:814:24)
+    at async <anonymous> (/home/runner/workspace/server/controllers/settings.ts:11:22) {
+  length: 122,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '178',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+9:04:18 PM [express] GET /api/superadmin/settings 500 in 2552ms :: {"message":"Internal server error…
+9:09:41 PM [express] GET /api/invoices 304 in 681ms :: {"invoices":[],"total":0}
+9:09:42 PM [express] GET /api/superadmin/schools 304 in 102ms :: {"schools":[{"id":"3b65d9a3-7268-4b…
+9:09:46 PM [express] GET /api/schools/8239732f-f976-4721-901d-57bb553fc6d6/enabled-features 304 in 2…
+Create enhanced invoice error: error: value "12010000000" is out of range for type integer
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createEnhancedInvoice (/home/runner/workspace/server/storage.ts:695:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:89:23) {
+  length: 154,
+  severity: 'ERROR',
+  code: '22003',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $4 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'numutils.c',
+  line: '611',
+  routine: 'pg_strtoint32_safe'
+}
+9:10:31 PM [express] POST /api/invoices/enhanced 500 in 142ms :: {"message":"Internal server error"}

@@ -46,6 +46,14 @@ function Router() {
               <Route path="/superadmin/schools" component={SchoolsPage} />
               <Route path="/superadmin/invoices" component={InvoicesPage} />
               <Route path="/superadmin/invoices-enhanced" component={EnhancedInvoicesPage} />
+              <Route path="/superadmin/invoice-pdf-generator">
+                <Suspense fallback={<div>Loading PDF generator...</div>}>
+                  {(() => {
+                    const InvoicePDFGeneratorPage = lazy(() => import("./pages/superadmin/invoice-pdf-generator"));
+                    return <InvoicePDFGeneratorPage />;
+                  })()}
+                </Suspense>
+              </Route>
               <Route path="/superadmin/settings-enhanced">
                 <Suspense fallback={<div>Loading settings...</div>}>
                   {(() => {
