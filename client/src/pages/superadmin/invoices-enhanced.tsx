@@ -208,6 +208,28 @@ export default function EnhancedInvoicesPage() {
     },
   });
 
+  // Delete invoice mutation
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const response = await apiRequest("DELETE", `/api/invoices/${invoiceId}`, null);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Enhanced invoice deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle school selection
   const handleSchoolChange = (schoolId: string) => {
     setSelectedSchoolId(schoolId);
@@ -287,6 +309,12 @@ export default function EnhancedInvoicesPage() {
   const getFeatureName = (featureId: string) => {
     const feature = enabledFeatures.find(f => f.feature.id === featureId);
     return feature?.feature.name || "Unknown Feature";
+  };
+
+  const handleDeleteInvoice = (invoice: any) => {
+    if (window.confirm(`Are you sure you want to delete invoice ${invoice.invoiceNumber}? This action cannot be undone.`)) {
+      deleteInvoiceMutation.mutate(invoice.id);
+    }
   };
 
   return (
@@ -675,6 +703,15 @@ export default function EnhancedInvoicesPage() {
                             data-testid={`button-send-email-${invoice.id}`}
                           >
                             <Send className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteInvoice(invoice)}
+                            disabled={deleteInvoiceMutation.isPending}
+                            data-testid={`button-delete-invoice-${invoice.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
