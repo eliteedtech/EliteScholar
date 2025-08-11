@@ -137,10 +137,14 @@ export const schoolFeatures = pgTable("school_features", {
 export const gradeSections = pgTable("grade_sections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   schoolId: varchar("school_id").notNull(),
+  sectionId: varchar("section_id"), // Reference to section within the grade
   name: varchar("name").notNull(),
   code: varchar("code").notNull(),
+  type: varchar("type"), // "primary", "junior", "senior", "nursery"
   order: integer("order").notNull(),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Invoice templates table - for default and school-specific invoice templates
@@ -304,6 +308,7 @@ export const insertSchoolFeatureSchema = createInsertSchema(schoolFeatures).omit
 export const insertGradeSectionSchema = createInsertSchema(gradeSections).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).omit({

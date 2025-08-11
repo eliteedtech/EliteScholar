@@ -65,9 +65,10 @@ The server-side follows a **Node.js + Express + TypeScript** REST API pattern:
 PostgreSQL database with Drizzle ORM featuring:
 
 - **User Management**: Multi-role user system (superadmin, school_admin, branch_admin, teacher, student, parent)
-- **School Structure**: Schools with branches, grade sections based on curriculum type
+- **School Structure**: Schools with branches, grade sections with section references based on curriculum type
+- **Automatic Grade Section Creation**: When schools are created, grade sections are automatically generated with section IDs
 - **Feature System**: Modular features with per-school toggles
-- **Invoice System**: Complete invoicing with line items and payment tracking
+- **Invoice System**: Complete invoicing with line items, unit measurements, and negotiated pricing
 - **Subscription Management**: School payment status and access control
 
 ### Authentication & Authorization
@@ -82,9 +83,16 @@ JWT-based authentication system with:
 The system is designed with independent modules:
 
 - **Super Admin Module**: School management, invoice creation, feature toggles
-- **Invoice Module**: Invoice generation, payment tracking, email notifications
+- **Invoice Module**: Enhanced invoice generation with unit measurements, negotiated pricing, payment tracking, email notifications
+- **Grade Management**: Automatic grade section creation with section IDs for proper student organization
 - **Auth Module**: User authentication, role management, password policies
 - Each module has dedicated routes, database models, and frontend components
+
+### Recent Enhancements (August 2025)
+- **Enhanced Grade Section Management**: Added section_id field to grade_sections table for proper referencing
+- **Automatic Grade Creation**: Schools now automatically generate appropriate grade sections based on curriculum type (K12 vs Nigerian)
+- **Enhanced Invoice System**: Added unit measurements (per_student, per_staff, etc.), negotiated pricing, and date ranges
+- **Section-Based Organization**: Grade sections now include multiple sections (A, B, C) per grade for better student organization
 
 ## External Dependencies
 

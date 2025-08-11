@@ -74,6 +74,9 @@ export interface IStorage {
 
   // Enhanced invoice operations
   createEnhancedInvoice(invoiceData: any): Promise<Invoice>;
+  
+  // Grade section operations with sections
+  createDefaultGradeSections(schoolId: string, schoolType: string): Promise<GradeSection[]>;
 
   // Invoice operations
   getInvoices(filters?: {
@@ -210,7 +213,107 @@ export class DatabaseStorage implements IStorage {
 
   async createSchool(schoolData: InsertSchool): Promise<School> {
     const [school] = await db.insert(schools).values(schoolData as any).returning();
+    
+    // Automatically create grade sections based on school type
+    await this.createDefaultGradeSections(school.id, school.type);
+    
     return school;
+  }
+
+  async createDefaultGradeSections(schoolId: string, schoolType: string): Promise<GradeSection[]> {
+    let gradeSectionData: InsertGradeSection[] = [];
+
+    if (schoolType === "K12") {
+      // Create K12 grade sections with multiple sections per grade
+      const k12Grades = [
+        // Nursery/Pre-K
+        { name: "Nursery 1", code: "N1", type: "nursery", order: 1 },
+        { name: "Nursery 2", code: "N2", type: "nursery", order: 2 },
+        { name: "Pre-K", code: "PK", type: "nursery", order: 3 },
+        
+        // Primary (Grades 1-6)
+        { name: "Grade 1", code: "G1", type: "primary", order: 4 },
+        { name: "Grade 2", code: "G2", type: "primary", order: 5 },
+        { name: "Grade 3", code: "G3", type: "primary", order: 6 },
+        { name: "Grade 4", code: "G4", type: "primary", order: 7 },
+        { name: "Grade 5", code: "G5", type: "primary", order: 8 },
+        { name: "Grade 6", code: "G6", type: "primary", order: 9 },
+        
+        // Middle School (Grades 7-9)
+        { name: "Grade 7", code: "G7", type: "junior", order: 10 },
+        { name: "Grade 8", code: "G8", type: "junior", order: 11 },
+        { name: "Grade 9", code: "G9", type: "junior", order: 12 },
+        
+        // High School (Grades 10-12)
+        { name: "Grade 10", code: "G10", type: "senior", order: 13 },
+        { name: "Grade 11", code: "G11", type: "senior", order: 14 },
+        { name: "Grade 12", code: "G12", type: "senior", order: 15 },
+      ];
+
+      // Create grade sections with multiple sections (A, B, C) for each grade
+      k12Grades.forEach((grade) => {
+        const sections = ["A", "B", "C"]; // Default sections
+        sections.forEach((sectionLetter, sectionIndex) => {
+          gradeSectionData.push({
+            schoolId,
+            sectionId: `${grade.code}-${sectionLetter}`, // e.g., "G1-A", "G1-B"
+            name: `${grade.name} ${sectionLetter}`,
+            code: `${grade.code}${sectionLetter}`,
+            type: grade.type,
+            order: grade.order * 10 + sectionIndex, // Ensure proper ordering
+            isActive: true,
+          });
+        });
+      });
+    } else if (schoolType === "Nigerian") {
+      // Create Nigerian curriculum grade sections
+      const nigerianGrades = [
+        // Nursery
+        { name: "Nursery 1", code: "NUR1", type: "nursery", order: 1 },
+        { name: "Nursery 2", code: "NUR2", type: "nursery", order: 2 },
+        
+        // Primary
+        { name: "Primary 1", code: "PRI1", type: "primary", order: 3 },
+        { name: "Primary 2", code: "PRI2", type: "primary", order: 4 },
+        { name: "Primary 3", code: "PRI3", type: "primary", order: 5 },
+        { name: "Primary 4", code: "PRI4", type: "primary", order: 6 },
+        { name: "Primary 5", code: "PRI5", type: "primary", order: 7 },
+        { name: "Primary 6", code: "PRI6", type: "primary", order: 8 },
+        
+        // Junior Secondary
+        { name: "JSS 1", code: "JSS1", type: "junior", order: 9 },
+        { name: "JSS 2", code: "JSS2", type: "junior", order: 10 },
+        { name: "JSS 3", code: "JSS3", type: "junior", order: 11 },
+        
+        // Senior Secondary
+        { name: "SSS 1", code: "SSS1", type: "senior", order: 12 },
+        { name: "SSS 2", code: "SSS2", type: "senior", order: 13 },
+        { name: "SSS 3", code: "SSS3", type: "senior", order: 14 },
+      ];
+
+      // Create grade sections with multiple sections for each grade
+      nigerianGrades.forEach((grade) => {
+        const sections = ["A", "B", "C"]; // Default sections
+        sections.forEach((sectionLetter, sectionIndex) => {
+          gradeSectionData.push({
+            schoolId,
+            sectionId: `${grade.code}-${sectionLetter}`, // e.g., "JSS1-A", "SSS2-B"
+            name: `${grade.name} ${sectionLetter}`,
+            code: `${grade.code}${sectionLetter}`,
+            type: grade.type,
+            order: grade.order * 10 + sectionIndex,
+            isActive: true,
+          });
+        });
+      });
+    }
+
+    // Insert all grade sections
+    if (gradeSectionData.length > 0) {
+      return await this.createGradeSections(gradeSectionData);
+    }
+    
+    return [];
   }
 
   async updateSchool(id: string, schoolData: Partial<InsertSchool>): Promise<School> {
