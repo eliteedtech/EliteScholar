@@ -118,8 +118,17 @@ export const api = {
     },
 
     createSchool: async (formData: FormData): Promise<any> => {
+      const authData = localStorage.getItem("elite-scholar-auth");
+      const token = authData ? JSON.parse(authData).state?.token : null;
+      
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch("/api/superadmin/schools", {
         method: "POST",
+        headers,
         body: formData,
         credentials: "include",
       });
@@ -133,8 +142,17 @@ export const api = {
     },
 
     updateSchool: async (schoolId: string, formData: FormData): Promise<any> => {
+      const authData = localStorage.getItem("elite-scholar-auth");
+      const token = authData ? JSON.parse(authData).state?.token : null;
+      
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`/api/superadmin/schools/${schoolId}`, {
         method: "PUT",
+        headers,
         body: formData,
         credentials: "include",
       });

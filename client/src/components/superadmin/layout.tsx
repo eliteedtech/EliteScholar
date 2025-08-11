@@ -24,14 +24,14 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       name: "Schools",
       href: "/superadmin/schools",
       icon: "fas fa-school",
-      count: 127,
+      // count: 127,
       active: location === "/" || location === "/superadmin" || location === "/superadmin/schools",
     },
     {
       name: "Invoices",
       href: "/superadmin/invoices",
       icon: "fas fa-file-invoice-dollar",
-      count: 42,
+      // count: 42,
       active: location === "/superadmin/invoices",
     },
     {

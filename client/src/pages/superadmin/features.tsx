@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import SuperAdminLayout from "@/components/superadmin/layout";
 
 interface Feature {
   id: string;
@@ -167,7 +168,7 @@ export default function FeaturesPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const submitData = {
       name: formData.name,
       description: formData.description,
@@ -191,7 +192,7 @@ export default function FeaturesPage() {
   };
 
   const getTypeDisplay = (type: Feature["type"]) => {
-    if (!type || typeof type !== 'object') return "Not specified";
+    if (!type || typeof type !== "object") return "Not specified";
     const types = [];
     if (type.module) types.push("Module");
     if (type.standalone) types.push("Standalone");
@@ -205,223 +206,256 @@ export default function FeaturesPage() {
   };
 
   return (
-    <div className="space-y-6" data-testid="features-page">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Features Management</h1>
-          <p className="text-muted-foreground">
-            Manage system features and their pricing configuration
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreateDialog} data-testid="button-create-feature">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Feature
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingFeature ? "Edit Feature" : "Create New Feature"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Feature Name</Label>
-                <Input
-                  id="name"
-                  data-testid="input-feature-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  data-testid="input-feature-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
+    <SuperAdminLayout
+      title="Features Management"
+      subtitle=" Manage system features and their pricing configuration"
+    >
+      <div className="space-y-6" data-testid="features-page">
+        <div className="flex items-center justify-between">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={openCreateDialog}
+                data-testid="button-create-feature"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Feature
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingFeature ? "Edit Feature" : "Create New Feature"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Feature Name</Label>
+                  <Input
+                    id="name"
+                    data-testid="input-feature-name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="price">Price (₦)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  data-testid="input-feature-price"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="Leave empty for manual entry"
-                />
-              </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    data-testid="input-feature-description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <select
-                  id="category"
-                  data-testid="select-feature-category"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                >
-                  <option value="CORE">Core</option>
-                  <option value="ACADEMICS">Academics</option>
-                  <option value="FINANCE">Finance</option>
-                  <option value="COMMUNICATION">Communication</option>
-                  <option value="ADMINISTRATION">Administration</option>
-                </select>
-              </div>
+                <div>
+                  <Label htmlFor="price">Price (₦)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    data-testid="input-feature-price"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
+                    placeholder="Leave empty for manual entry"
+                  />
+                </div>
 
-              <div>
-                <Label>Feature Type</Label>
-                <div className="space-y-2 mt-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="module"
-                      data-testid="checkbox-type-module"
-                      checked={formData.type.module}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          type: { ...formData.type, module: !!checked },
-                        })
-                      }
-                    />
-                    <Label htmlFor="module">Module (part of main system)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="standalone"
-                      data-testid="checkbox-type-standalone"
-                      checked={formData.type.standalone}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          type: { ...formData.type, standalone: !!checked },
-                        })
-                      }
-                    />
-                    <Label htmlFor="standalone">Standalone (separate app)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="both"
-                      data-testid="checkbox-type-both"
-                      checked={formData.type.both}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          type: { ...formData.type, both: !!checked },
-                        })
-                      }
-                    />
-                    <Label htmlFor="both">Both (available in both ways)</Label>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <select
+                    id="category"
+                    data-testid="select-feature-category"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                  >
+                    <option value="CORE">Core</option>
+                    <option value="ACADEMICS">Academics</option>
+                    <option value="FINANCE">Finance</option>
+                    <option value="COMMUNICATION">Communication</option>
+                    <option value="ADMINISTRATION">Administration</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Feature Type</Label>
+                  <div className="space-y-2 mt-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="module"
+                        data-testid="checkbox-type-module"
+                        checked={formData.type.module}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            type: { ...formData.type, module: !!checked },
+                          })
+                        }
+                      />
+                      <Label htmlFor="module">
+                        Module (part of main system)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="standalone"
+                        data-testid="checkbox-type-standalone"
+                        checked={formData.type.standalone}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            type: { ...formData.type, standalone: !!checked },
+                          })
+                        }
+                      />
+                      <Label htmlFor="standalone">
+                        Standalone (separate app)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="both"
+                        data-testid="checkbox-type-both"
+                        checked={formData.type.both}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            type: { ...formData.type, both: !!checked },
+                          })
+                        }
+                      />
+                      <Label htmlFor="both">
+                        Both (available in both ways)
+                      </Label>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2 pt-4">
-                <Button
-                  type="submit"
-                  data-testid="button-save-feature"
-                  disabled={createFeatureMutation.isPending || updateFeatureMutation.isPending}
-                >
-                  {editingFeature ? "Update" : "Create"} Feature
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    type="submit"
+                    data-testid="button-save-feature"
+                    disabled={
+                      createFeatureMutation.isPending ||
+                      updateFeatureMutation.isPending
+                    }
+                  >
+                    {editingFeature ? "Update" : "Create"} Feature
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>System Features</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(features as Feature[])?.map((feature: Feature) => (
-                  <TableRow key={feature.id} data-testid={`row-feature-${feature.id}`}>
-                    <TableCell className="font-medium" data-testid={`text-feature-name-${feature.id}`}>
-                      {feature.name}
-                    </TableCell>
-                    <TableCell data-testid={`text-feature-description-${feature.id}`}>
-                      {feature.description}
-                    </TableCell>
-                    <TableCell data-testid={`text-feature-type-${feature.id}`}>
-                      {getTypeDisplay(feature.type)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{feature.category}</Badge>
-                    </TableCell>
-                    <TableCell data-testid={`text-feature-price-${feature.id}`}>
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        {formatPrice(feature.price)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={feature.isActive ? "default" : "secondary"}>
-                        {feature.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(feature)}
-                          data-testid={`button-edit-feature-${feature.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(feature.id)}
-                          data-testid={`button-delete-feature-${feature.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle>System Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {(features as Feature[])?.map((feature: Feature) => (
+                    <TableRow
+                      key={feature.id}
+                      data-testid={`row-feature-${feature.id}`}
+                    >
+                      <TableCell
+                        className="font-medium"
+                        data-testid={`text-feature-name-${feature.id}`}
+                      >
+                        {feature.name}
+                      </TableCell>
+                      <TableCell
+                        data-testid={`text-feature-description-${feature.id}`}
+                      >
+                        {feature.description}
+                      </TableCell>
+                      <TableCell
+                        data-testid={`text-feature-type-${feature.id}`}
+                      >
+                        {getTypeDisplay(feature.type)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{feature.category}</Badge>
+                      </TableCell>
+                      <TableCell
+                        data-testid={`text-feature-price-${feature.id}`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          {formatPrice(feature.price)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={feature.isActive ? "default" : "secondary"}
+                        >
+                          {feature.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(feature)}
+                            data-testid={`button-edit-feature-${feature.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(feature.id)}
+                            data-testid={`button-delete-feature-${feature.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </SuperAdminLayout>
   );
 }
