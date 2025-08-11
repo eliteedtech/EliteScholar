@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import SchoolForm from "./school-form";
 import InvoiceForm from "./invoice-form";
 import FeatureToggle from "./feature-toggle";
+import BranchManagement from "./branch-management";
 import { api } from "@/lib/api";
 import { SchoolWithDetails } from "@/lib/types";
 
@@ -46,6 +47,7 @@ export default function SchoolsTable() {
   const [showSchoolForm, setShowSchoolForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showFeatureToggle, setShowFeatureToggle] = useState(false);
+  const [showBranchManagement, setShowBranchManagement] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
 
   const { data: schoolsData, isLoading } = useQuery({
@@ -107,6 +109,16 @@ export default function SchoolsTable() {
   const handleManageFeatures = (school: SchoolWithDetails) => {
     setSelectedSchool(school);
     setShowFeatureToggle(true);
+  };
+
+  const handleManageBranches = (school: SchoolWithDetails) => {
+    setSelectedSchool(school);
+    setShowBranchManagement(true);
+  };
+
+  const handleEdit = (school: SchoolWithDetails) => {
+    setSelectedSchool(school);
+    setShowSchoolForm(true);
   };
 
   const handleToggleStatus = (school: SchoolWithDetails) => {
@@ -290,10 +302,26 @@ export default function SchoolsTable() {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => handleManageBranches(school)}
+                        data-testid={`button-branches-${school.id}`}
+                      >
+                        <i className="fas fa-sitemap text-blue-600"></i>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={() => handleCreateInvoice(school)}
                         data-testid={`button-invoice-${school.id}`}
                       >
                         <i className="fas fa-file-invoice text-green-600"></i>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEdit(school)}
+                        data-testid={`button-edit-${school.id}`}
+                      >
+                        <i className="fas fa-edit text-purple-600"></i>
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -357,9 +385,14 @@ export default function SchoolsTable() {
       {/* Modals */}
       {showSchoolForm && (
         <SchoolForm 
-          onClose={() => setShowSchoolForm(false)}
+          school={selectedSchool}
+          onClose={() => {
+            setShowSchoolForm(false);
+            setSelectedSchool(null);
+          }}
           onSuccess={() => {
             setShowSchoolForm(false);
+            setSelectedSchool(null);
             queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
           }}
         />
@@ -393,6 +426,17 @@ export default function SchoolsTable() {
               featureKey,
               action: enabled ? "enable" : "disable",
             });
+          }}
+        />
+      )}
+
+      {showBranchManagement && selectedSchool && (
+        <BranchManagement 
+          schoolId={selectedSchool.id}
+          schoolName={selectedSchool.name}
+          onClose={() => {
+            setShowBranchManagement(false);
+            setSelectedSchool(null);
           }}
         />
       )}

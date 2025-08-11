@@ -1,0 +1,88 @@
+Step-by-Step Implementation Plan — Grade Groups, Branch Management, Features, and Soft Deletes
+Step 1 — Grade Groups in School Creation
+In the School Creation form, replace the individual grade checkboxes with grade group checkboxes.
+Example group names:
+
+K12 Curriculum: Nursery, Primary, Secondary.
+
+Nigerian Curriculum: Nursery, Primary, Secondary, Islamiyya, Adult Learning.
+
+When a group is selected, the system should automatically:
+
+Link all grades under that group to the school (these grades are not shown individually in the UI).
+
+Create the correct number of classes for that group.
+
+Special case:
+
+Islamiyya and Adult Learning groups must always have 6 classes created automatically when selected.
+
+This logic must work for both K12 and Nigerian Curriculum schools.
+
+Step 2 — Branch Management in Schools Component
+In the Schools list component, add an "Manage Branches" action for each school.
+
+Branch management should allow:
+
+Add Branch
+
+Edit Branch
+
+Suspend Branch → change status = suspended
+
+Delete Branch → soft delete by setting status = deleted (do not remove from DB).
+
+Ensure any branch with status = deleted is not displayed on the frontend.
+
+Step 3 — Manage Features for a School
+In the Manage Features section for a school:
+
+Display all available features from the Features page.
+
+Each feature has an ON/OFF toggle:
+
+If toggled ON, add that feature to the school in the DB.
+
+If toggled OFF, remove it from the school in the DB.
+
+This must work both in School Creation and Edit School.
+
+Step 4 — Soft Delete for Schools
+When a school is deleted:
+
+Change its status to deleted in the database.
+
+Do not remove the record.
+
+Any school with status = deleted must not appear anywhere in the frontend.
+
+Step 5 — Edit School
+The Edit School action must open the same form used for creating schools.
+
+The form should:
+
+Pre-fill with the school’s existing data.
+
+Allow changing any field.
+
+Allow toggling grade groups ON/OFF.
+
+Allow toggling features ON/OFF.
+
+On save:
+
+Update all school data in the DB.
+
+Update related grade group assignments.
+
+Update features assigned to the school.
+
+✅ Key Rules to Follow:
+
+All deletes for schools and branches must be soft deletes (status = deleted).
+
+Grade group selection should automatically add all grades and classes without showing them individually.
+
+Islamiyya and Adult Learning must always have 6 classes.
+
+Branch and feature management must update immediately in the DB and reflect instantly on the frontend.

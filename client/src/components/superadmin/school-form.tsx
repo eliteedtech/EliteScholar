@@ -43,7 +43,7 @@ const schoolFormSchema = z.object({
   }),
   defaultPassword: z.string().default("123456"),
   initialFeatures: z.array(z.string()).default([]),
-  selectedSections: z.array(z.string()).default([]),
+  selectedGradeGroups: z.array(z.string()).default([]),
   branches: z.array(z.object({
     name: z.string().min(1, "Branch name is required"),
   })).default([{ name: "Main Branch" }]),
@@ -63,16 +63,52 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(school?.logoUrl || null);
 
-  // K12 Grade Sections
-  const k12Sections = [
-    "Pre-K", "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", 
-    "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"
+  // Grade Groups for K12
+  const k12GradeGroups = [
+    {
+      name: "Nursery",
+      classes: 3,
+      grades: ["Pre-K", "Kindergarten"]
+    },
+    {
+      name: "Primary", 
+      classes: 6,
+      grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
+    },
+    {
+      name: "Secondary",
+      classes: 6, 
+      grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+    }
   ];
 
-  // Nigerian Curriculum Sections  
-  const nigerianSections = [
-    "Nursery 1", "Nursery 2", "Primary 1", "Primary 2", "Primary 3", "Primary 4", 
-    "Primary 5", "Primary 6", "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
+  // Grade Groups for Nigerian Curriculum
+  const nigerianGradeGroups = [
+    {
+      name: "Nursery",
+      classes: 3,
+      grades: ["Nursery 1", "Nursery 2"]
+    },
+    {
+      name: "Primary",
+      classes: 6,
+      grades: ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"]
+    },
+    {
+      name: "Secondary",
+      classes: 6,
+      grades: ["JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"]
+    },
+    {
+      name: "Islamiyya",
+      classes: 6, // Always 6 classes
+      grades: ["Islamiyya 1", "Islamiyya 2", "Islamiyya 3", "Islamiyya 4", "Islamiyya 5", "Islamiyya 6"]
+    },
+    {
+      name: "Adult Learning",
+      classes: 6, // Always 6 classes
+      grades: ["Adult Basic", "Adult Intermediate", "Adult Advanced"]
+    }
   ];
 
   const { data: features } = useQuery({
@@ -99,7 +135,7 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
       },
       defaultPassword: "123456",
       initialFeatures: school?.features?.filter(f => f.enabled).map(f => f.feature.key) || [],
-      selectedSections: [],
+      selectedGradeGroups: [],
       branches: school?.branches?.map(b => ({ name: b.name })) || [{ name: "Main Branch" }],
     },
   });
@@ -430,30 +466,38 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
           )}
 
           {/* Initial Features - Only for new schools */}
-          {/* Grade Sections Selection */}
+          {/* Grade Groups Selection */}
           {!school && (
             <div className="border-t border-slate-200 pt-6">
-              <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Sections</h4>
-              <p className="text-sm text-slate-600 mb-4">Select which grade sections this school will offer:</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {(form.watch("type") === "K12" ? k12Sections : nigerianSections).map((section) => (
-                  <div key={section} className="flex items-center space-x-2">
+              <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Groups</h4>
+              <p className="text-sm text-slate-600 mb-4">Select which grade groups this school will offer:</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(form.watch("type") === "K12" ? k12GradeGroups : nigerianGradeGroups).map((group) => (
+                  <div key={group.name} className="flex items-start space-x-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
                     <Checkbox
-                      id={`section-${section}`}
-                      checked={form.watch("selectedSections").includes(section)}
+                      id={`group-${group.name}`}
+                      checked={form.watch("selectedGradeGroups").includes(group.name)}
                       onCheckedChange={(checked) => {
-                        const currentSections = form.getValues("selectedSections");
+                        const currentGroups = form.getValues("selectedGradeGroups");
                         if (checked) {
-                          form.setValue("selectedSections", [...currentSections, section]);
+                          form.setValue("selectedGradeGroups", [...currentGroups, group.name]);
                         } else {
-                          form.setValue("selectedSections", currentSections.filter(s => s !== section));
+                          form.setValue("selectedGradeGroups", currentGroups.filter(g => g !== group.name));
                         }
                       }}
-                      data-testid={`checkbox-section-${section}`}
+                      data-testid={`checkbox-group-${group.name}`}
                     />
-                    <Label htmlFor={`section-${section}`} className="text-sm text-slate-700">
-                      {section}
-                    </Label>
+                    <div className="flex-1">
+                      <Label htmlFor={`group-${group.name}`} className="text-sm font-medium text-slate-700 cursor-pointer">
+                        {group.name}
+                      </Label>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {group.classes} classes • Includes: {group.grades.join(", ")}
+                      </p>
+                      {(group.name === "Islamiyya" || group.name === "Adult Learning") && (
+                        <p className="text-xs text-blue-600 mt-1 font-medium">Always creates 6 classes</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

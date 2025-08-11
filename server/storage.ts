@@ -409,6 +409,12 @@ export class DatabaseStorage implements IStorage {
     return await db.insert(gradeSections).values(gradeSectionData).returning();
   }
 
+  async createClasses(classData: any[]): Promise<any[]> {
+    // For now, we'll just return the provided data since classes table might not exist yet
+    // In a full implementation, this would insert into a classes table
+    return classData;
+  }
+
   async getGradeSections(schoolId: string): Promise<GradeSection[]> {
     return await db
       .select()

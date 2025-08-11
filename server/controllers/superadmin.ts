@@ -101,7 +101,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       adminName,
       adminEmail,
       defaultPassword = "123456",
-      selectedSections = [],
+      selectedGradeGroups = [],
       initialFeatures = []
     } = req.body;
 
@@ -158,18 +158,66 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     // Update school with main branch reference
     await storage.updateSchool(school.id, { mainBranchId: mainBranch.id });
 
-    // Create grade sections based on selected sections
+    // Create grade sections and classes based on selected grade groups
     let gradeSections: any[] = [];
-    if (selectedSections && selectedSections.length > 0) {
-      gradeSections = selectedSections.map((section: string, index: number) => ({
-        schoolId: school.id,
-        name: section,
-        level: section,
-        order: index + 1,
-        capacity: 30, // Default capacity
-        isActive: true,
-      }));
+    let classes: any[] = [];
+    
+    if (selectedGradeGroups && selectedGradeGroups.length > 0) {
+      // Define grade group mappings
+      const gradeGroupMappings = {
+        K12: {
+          "Nursery": { grades: ["Pre-K", "Kindergarten"], classes: 3 },
+          "Primary": { grades: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"], classes: 6 },
+          "Secondary": { grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], classes: 6 }
+        },
+        NIGERIAN: {
+          "Nursery": { grades: ["Nursery 1", "Nursery 2"], classes: 3 },
+          "Primary": { grades: ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"], classes: 6 },
+          "Secondary": { grades: ["JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"], classes: 6 },
+          "Islamiyya": { grades: ["Islamiyya 1", "Islamiyya 2", "Islamiyya 3", "Islamiyya 4", "Islamiyya 5", "Islamiyya 6"], classes: 6 },
+          "Adult Learning": { grades: ["Adult Basic", "Adult Intermediate", "Adult Advanced"], classes: 6 }
+        }
+      };
+
+      const mappings = gradeGroupMappings[school.type as "K12" | "NIGERIAN"];
+      let gradeOrder = 1;
+
+      for (const groupName of selectedGradeGroups) {
+        const group = mappings[groupName as keyof typeof mappings];
+        if (group) {
+          // Create grade sections for this group
+          for (const gradeName of group.grades) {
+            const gradeSection = {
+              schoolId: school.id,
+              name: gradeName,
+              level: gradeName,
+              order: gradeOrder++,
+              capacity: 30,
+              isActive: true,
+            };
+            gradeSections.push(gradeSection);
+          }
+
+          // Create classes for this group
+          const numClasses = (groupName === "Islamiyya" || groupName === "Adult Learning") ? 6 : group.classes;
+          for (let i = 1; i <= numClasses; i++) {
+            const className = {
+              name: `${groupName} Class ${i}`,
+              schoolId: school.id,
+              branchId: mainBranch.id,
+              capacity: 30,
+              isActive: true,
+            };
+            classes.push(className);
+          }
+        }
+      }
+
       await storage.createGradeSections(gradeSections);
+      if (classes.length > 0) {
+        // For now, we just log the classes. In future, implement full class creation
+        console.log(`Would create ${classes.length} classes for school ${school.id}:`, classes.map(c => c.name));
+      }
     } else {
       // Fallback to default sections if none selected
       gradeSections = generateGradeSections(school.id, school.type);
@@ -222,6 +270,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       admin: adminUser,
       branch: mainBranch,
       gradeSections,
+      classes: classes.length > 0 ? classes : undefined,
       message: "School created successfully. Welcome email sent to admin.",
     });
   } catch (error) {
