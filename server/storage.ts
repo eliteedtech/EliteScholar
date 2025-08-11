@@ -694,7 +694,7 @@ export class DatabaseStorage implements IStorage {
     const features = invoiceData.features || [];
     const processedFeatures = features.length > 0 ? features : [];
     
-    // Calculate total amount from features
+    // Calculate total amount from features (values already in kobo from frontend)
     const totalAmount = features.reduce((sum: number, feature: any) => {
       const price = feature.negotiatedPrice || feature.unitPrice;
       return sum + (price * feature.quantity);
@@ -704,7 +704,7 @@ export class DatabaseStorage implements IStorage {
     const invoiceRecord: InsertInvoice = {
       schoolId: invoiceData.schoolId,
       invoiceNumber,
-      totalAmount: totalAmount * 100, // Convert to kobo
+      totalAmount: totalAmount.toString(), // Store as decimal string
       status: "SENT",
       dueDate: new Date(invoiceData.dueDate),
       notes: invoiceData.notes,

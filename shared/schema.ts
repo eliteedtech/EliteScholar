@@ -196,7 +196,7 @@ export const invoices = pgTable("invoices", {
   schoolId: varchar("school_id").notNull(),
   templateId: varchar("template_id"), // Reference to invoice template used
   features: jsonb("features").notNull(), // Array of {id, name, price}
-  totalAmount: integer("total_amount").notNull(), // In kobo
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(), // In kobo
   customAmount: integer("custom_amount"), // Override amount for negotiated pricing
   status: invoiceStatusEnum("status").notNull().default("DRAFT"),
   dueDate: timestamp("due_date").notNull(),
