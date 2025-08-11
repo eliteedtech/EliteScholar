@@ -181,6 +181,12 @@ export const api = {
       return response.json();
     },
 
+    // Get enabled school features for invoice creation
+    getEnabledSchoolFeatures: async (schoolId: string): Promise<any[]> => {
+      const response = await apiRequest("GET", `/api/schools/${schoolId}/enabled-features`);
+      return response.json();
+    },
+
     toggleSchoolFeature: async (
       schoolId: string,
       featureKey: string,
@@ -251,6 +257,26 @@ export const api = {
     testEmailConnection: async (): Promise<any> => {
       const response = await apiRequest("POST", "/api/superadmin/test-email");
       return response.json();
+    },
+
+    // Invoice Template Management
+    getInvoiceTemplates: async (): Promise<any[]> => {
+      const response = await apiRequest("GET", "/api/superadmin/invoice-templates");
+      return response.json();
+    },
+
+    createInvoiceTemplate: async (data: any): Promise<any> => {
+      const response = await apiRequest("POST", "/api/superadmin/invoice-templates", data);
+      return response.json();
+    },
+
+    updateInvoiceTemplate: async (templateId: string, data: any): Promise<any> => {
+      const response = await apiRequest("PUT", `/api/superadmin/invoice-templates/${templateId}`, data);
+      return response.json();
+    },
+
+    deleteInvoiceTemplate: async (templateId: string): Promise<void> => {
+      await apiRequest("DELETE", `/api/superadmin/invoice-templates/${templateId}`);
     },
   },
 

@@ -48,11 +48,19 @@ import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
 import type { School as SchoolType, Feature as FeatureType, Invoice as InvoiceType } from "@/lib/types";
 
-// Invoice form schema
+// Invoice form schema with enhanced features
 const invoiceSchema = z.object({
   schoolId: z.string().min(1, "School is required"),
-  features: z.array(z.string()).min(1, "At least one feature must be selected"),
-  customAmount: z.string().optional(),
+  features: z.array(z.object({
+    featureId: z.string(),
+    quantity: z.number().min(1),
+    unitPrice: z.number(),
+    unitMeasurement: z.string(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    negotiatedPrice: z.number().optional(),
+  })).min(1, "At least one feature must be selected"),
+  finalAmount: z.number().optional(),
   dueDate: z.string().min(1, "Due date is required"),
   notes: z.string().optional(),
 });
@@ -70,9 +78,19 @@ interface School {
 interface Feature {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   price: number;
+  pricingType: "per_student" | "per_staff" | "per_term" | "per_semester" | "per_school" | "per_month" | "per_year" | "one_time" | "pay_as_you_go" | "custom" | "free";
+  requiresDateRange: boolean;
   isActive: boolean;
+}
+
+interface SchoolFeature {
+  id: string;
+  schoolId: string;
+  featureId: string;
+  enabled: boolean;
+  feature: Feature;
 }
 
 interface Invoice {
@@ -96,9 +114,10 @@ export default function InvoicesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<any[]>([]);
   const [calculatedTotal, setCalculatedTotal] = useState(0);
-  const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [schoolFeatures, setSchoolFeatures] = useState<SchoolFeature[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
 
   // Fetch invoices
   const { data: invoicesResponse, isLoading } = useQuery<{ invoices: Invoice[]; total: number }>({
@@ -112,9 +131,10 @@ export default function InvoicesPage() {
   });
   const schools = schoolsResponse?.schools || [];
 
-  // Fetch features
-  const { data: features = [] } = useQuery<FeatureType[]>({
-    queryKey: ["/api/features"],
+  // Fetch enabled school features when school is selected
+  const { data: enabledSchoolFeatures = [], refetch: refetchSchoolFeatures } = useQuery({
+    queryKey: ["/api/schools", selectedSchoolId, "enabled-features"],
+    enabled: !!selectedSchoolId,
   });
 
   // Create invoice mutation

@@ -69,6 +69,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get enabled school features for invoice creation
+  app.get("/api/schools/:schoolId/enabled-features", async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const enabledFeatures = await storage.getEnabledSchoolFeatures(schoolId);
+      res.json(enabledFeatures);
+    } catch (error) {
+      console.error("Get enabled school features error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Enhanced invoice creation
+  app.post("/api/invoices/enhanced", async (req, res) => {
+    try {
+      const invoiceData = req.body;
+      const invoice = await storage.createEnhancedInvoice(invoiceData);
+      res.json(invoice);
+    } catch (error) {
+      console.error("Create enhanced invoice error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Super Admin routes
   app.use("/api/superadmin", superadminRoutes);
 

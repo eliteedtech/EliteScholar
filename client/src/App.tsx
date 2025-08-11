@@ -11,6 +11,7 @@ import SuperAdminDashboard from "@/pages/superadmin/dashboard";
 import SettingsPage from "@/pages/superadmin/settings";
 import SchoolsPage from "@/pages/superadmin/schools";
 import InvoicesPage from "@/pages/superadmin/invoices";
+import EnhancedInvoicesPage from "@/pages/superadmin/invoices-enhanced";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -44,6 +45,7 @@ function Router() {
               <Route path="/superadmin" component={SuperAdminDashboard} />
               <Route path="/superadmin/schools" component={SchoolsPage} />
               <Route path="/superadmin/invoices" component={InvoicesPage} />
+              <Route path="/superadmin/invoices-enhanced" component={EnhancedInvoicesPage} />
               <Route path="/superadmin/features">
                 <Suspense fallback={<div>Loading...</div>}>
                   <FeaturesPage />

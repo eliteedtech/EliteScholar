@@ -35,6 +35,12 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       active: location === "/superadmin/invoices",
     },
     {
+      name: "Enhanced Invoices",
+      href: "/superadmin/invoices-enhanced",
+      icon: "fas fa-file-invoice",
+      active: location === "/superadmin/invoices-enhanced",
+    },
+    {
       name: "Features",
       href: "/superadmin/features",
       icon: "fas fa-cogs",

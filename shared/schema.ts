@@ -111,10 +111,12 @@ export const features = pgTable("features", {
   name: varchar("name").notNull(),
   description: text("description"),
   price: integer("price"), // Price in smallest currency unit (kobo) - optional
-  pricingType: pricingTypeEnum("pricing_type"), // Optional pricing type
+  pricingType: pricingTypeEnum("pricing_type").default("per_school"), // Unit measurement for pricing
   category: varchar("category").default("general"),
   isCore: boolean("is_core").default(false),
   isActive: boolean("is_active").default(true),
+  requiresDateRange: boolean("requires_date_range").default(false), // If feature needs start/end dates
+  type: jsonb("type").default('{"module": false, "standalone": false, "both": false}'), // Feature type information
   deletedAt: timestamp("deleted_at"), // Soft delete
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -176,9 +178,14 @@ export const invoices = pgTable("invoices", {
 export const invoiceLines = pgTable("invoice_lines", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   invoiceId: varchar("invoice_id").notNull(),
+  featureId: varchar("feature_id").notNull(),
   description: varchar("description").notNull(),
   quantity: integer("quantity").notNull().default(1),
   unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
+  unitMeasurement: pricingTypeEnum("unit_measurement").notNull(),
+  startDate: timestamp("start_date"), // For date-based features
+  endDate: timestamp("end_date"), // For date-based features
+  negotiatedPrice: decimal("negotiated_price", { precision: 12, scale: 2 }), // Final/negotiated price
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -365,6 +372,11 @@ export const appSettings = pgTable("app_settings", {
   smtpSecure: boolean("smtp_secure").default(false),
   emailFromAddress: varchar("email_from_address"),
   emailFromName: varchar("email_from_name").default("Elite Scholar"),
+  // Cloudinary Settings
+  cloudinaryCloudName: varchar("cloudinary_cloud_name"),
+  cloudinaryApiKey: varchar("cloudinary_api_key"),
+  cloudinaryApiSecret: varchar("cloudinary_api_secret"),
+  cloudinaryUploadPreset: varchar("cloudinary_upload_preset"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

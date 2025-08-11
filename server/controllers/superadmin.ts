@@ -654,6 +654,9 @@ router.get("/schools/:schoolId/features", async (req: AuthRequest, res: Response
   }
 });
 
+// Get enabled school features for invoice creation (placed in main routes)
+// This route is handled in main routes.ts file
+
 // Enable school feature
 router.post("/schools/:schoolId/features/:featureKey/enable", async (req: AuthRequest, res: Response) => {
   try {

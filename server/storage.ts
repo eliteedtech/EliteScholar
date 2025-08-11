@@ -65,11 +65,15 @@ export interface IStorage {
   getFeatures(): Promise<Feature[]>;
   createFeature(feature: InsertFeature): Promise<Feature>;
   getSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]>;
+  getEnabledSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]>;
   toggleSchoolFeature(schoolId: string, featureId: string, enabled: boolean): Promise<SchoolFeature>;
 
   // Grade Section operations
   createGradeSections(gradeSections: InsertGradeSection[]): Promise<GradeSection[]>;
   getGradeSections(schoolId: string): Promise<GradeSection[]>;
+
+  // Enhanced invoice operations
+  createEnhancedInvoice(invoiceData: any): Promise<Invoice>;
 
   // Invoice operations
   getInvoices(filters?: {
@@ -379,6 +383,18 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async getEnabledSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]> {
+    return await db.query.schoolFeatures.findMany({
+      where: and(
+        eq(schoolFeatures.schoolId, schoolId),
+        eq(schoolFeatures.enabled, true)
+      ),
+      with: {
+        feature: true,
+      },
+    });
+  }
+
   async toggleSchoolFeature(
     schoolId: string,
     featureId: string,
@@ -537,6 +553,48 @@ export class DatabaseStorage implements IStorage {
 
   async createInvoiceLines(linesData: InsertInvoiceLine[]): Promise<InvoiceLine[]> {
     return await db.insert(invoiceLines).values(linesData).returning();
+  }
+
+  async createEnhancedInvoice(invoiceData: any): Promise<Invoice> {
+    // Generate invoice number
+    const invoiceNumber = await this.generateInvoiceNumber();
+    
+    // Calculate total amount from features
+    const totalAmount = invoiceData.features.reduce((sum: number, feature: any) => {
+      const price = feature.negotiatedPrice || feature.unitPrice;
+      return sum + (price * feature.quantity);
+    }, 0);
+
+    // Create the invoice record
+    const invoiceRecord: InsertInvoice = {
+      schoolId: invoiceData.schoolId,
+      invoiceNumber,
+      totalAmount: totalAmount * 100, // Convert to kobo
+      finalAmount: invoiceData.finalAmount ? invoiceData.finalAmount * 100 : undefined,
+      status: "SENT",
+      dueDate: new Date(invoiceData.dueDate),
+      notes: invoiceData.notes,
+    };
+
+    const [invoice] = await db.insert(invoices).values(invoiceRecord).returning();
+
+    // Create invoice lines for each feature
+    const linesData: InsertInvoiceLine[] = invoiceData.features.map((feature: any) => ({
+      invoiceId: invoice.id,
+      featureId: feature.featureId,
+      description: `Feature: ${feature.featureId}`, // This would be populated with actual feature name in a real app
+      quantity: feature.quantity,
+      unitPrice: feature.unitPrice.toString(),
+      unitMeasurement: feature.unitMeasurement,
+      startDate: feature.startDate ? new Date(feature.startDate) : undefined,
+      endDate: feature.endDate ? new Date(feature.endDate) : undefined,
+      negotiatedPrice: feature.negotiatedPrice ? feature.negotiatedPrice.toString() : undefined,
+      total: ((feature.negotiatedPrice || feature.unitPrice) * feature.quantity).toString(),
+    }));
+
+    await this.createInvoiceLines(linesData);
+
+    return invoice;
   }
 
   async generateInvoiceNumber(): Promise<string> {
