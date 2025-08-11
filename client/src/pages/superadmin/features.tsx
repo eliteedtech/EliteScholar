@@ -161,7 +161,11 @@ export default function FeaturesPage() {
       description: feature.description || "",
       price: feature.price ? (feature.price / 100).toString() : "",
       category: feature.category || "CORE",
-      type: feature.type,
+      type: feature.type || {
+        module: false,
+        standalone: false,
+        both: false,
+      },
     });
     setIsDialogOpen(true);
   };
@@ -295,11 +299,14 @@ export default function FeaturesPage() {
                       <Checkbox
                         id="module"
                         data-testid="checkbox-type-module"
-                        checked={formData.type.module}
+                        checked={formData.type?.module || false}
                         onCheckedChange={(checked) =>
                           setFormData({
                             ...formData,
-                            type: { ...formData.type, module: !!checked },
+                            type: { 
+                              ...(formData.type || { module: false, standalone: false, both: false }), 
+                              module: !!checked 
+                            },
                           })
                         }
                       />
@@ -311,11 +318,14 @@ export default function FeaturesPage() {
                       <Checkbox
                         id="standalone"
                         data-testid="checkbox-type-standalone"
-                        checked={formData.type.standalone}
+                        checked={formData.type?.standalone || false}
                         onCheckedChange={(checked) =>
                           setFormData({
                             ...formData,
-                            type: { ...formData.type, standalone: !!checked },
+                            type: { 
+                              ...(formData.type || { module: false, standalone: false, both: false }), 
+                              standalone: !!checked 
+                            },
                           })
                         }
                       />
@@ -327,11 +337,14 @@ export default function FeaturesPage() {
                       <Checkbox
                         id="both"
                         data-testid="checkbox-type-both"
-                        checked={formData.type.both}
+                        checked={formData.type?.both || false}
                         onCheckedChange={(checked) =>
                           setFormData({
                             ...formData,
-                            type: { ...formData.type, both: !!checked },
+                            type: { 
+                              ...(formData.type || { module: false, standalone: false, both: false }), 
+                              both: !!checked 
+                            },
                           })
                         }
                       />
