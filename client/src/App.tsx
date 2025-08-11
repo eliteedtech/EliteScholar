@@ -38,25 +38,27 @@ function Router() {
         </>
       ) : (
         <>
-          {user.role === "superadmin" ? (
+          {user.role === "superadmin" && (
             <>
               <Route path="/" component={SuperAdminDashboard} />
               <Route path="/superadmin" component={SuperAdminDashboard} />
-              <Route path="/superadmin/*" component={SuperAdminDashboard} />
-            </>
-          ) : (
-            <>
-              {/* Default dashboard for other roles */}
-              <Route path="/">
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Welcome to Elite Scholar</h1>
-                    <p className="text-slate-600">Dashboard for {user.role} is coming soon...</p>
-                  </div>
-                </div>
+              <Route path="/superadmin/schools" component={SchoolsPage} />
+              <Route path="/superadmin/invoices" component={InvoicesPage} />
+              <Route path="/superadmin/features">
+                <Suspense fallback={<div>Loading...</div>}>
+                  <FeaturesPage />
+                </Suspense>
               </Route>
+              <Route path="/superadmin/analytics">
+                <Suspense fallback={<div>Loading...</div>}>
+                  <AnalyticsPage />
+                </Suspense>
+              </Route>
+              <Route path="/superadmin/users" component={SuperAdminDashboard} />
+              <Route path="/superadmin/settings" component={SettingsPage} />
             </>
           )}
+          {/* Add other role-specific routes here */}
         </>
       )}
       <Route component={NotFound} />
