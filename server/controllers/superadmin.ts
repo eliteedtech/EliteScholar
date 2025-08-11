@@ -458,6 +458,54 @@ router.patch("/schools/:schoolId/status", async (req: AuthRequest, res: Response
   }
 });
 
+// Enable school
+router.post("/schools/:schoolId/enable", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    
+    const school = await storage.updateSchool(schoolId, { 
+      status: "ACTIVE",
+      accessBlockedAt: null 
+    });
+    
+    if (!school) {
+      return res.status(404).json({ message: "School not found" });
+    }
+
+    res.json({ 
+      school,
+      message: "School enabled successfully" 
+    });
+  } catch (error) {
+    console.error("Enable school error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Disable school
+router.post("/schools/:schoolId/disable", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    
+    const school = await storage.updateSchool(schoolId, { 
+      status: "DISABLED",
+      accessBlockedAt: new Date()
+    });
+    
+    if (!school) {
+      return res.status(404).json({ message: "School not found" });
+    }
+
+    res.json({ 
+      school,
+      message: "School disabled successfully" 
+    });
+  } catch (error) {
+    console.error("Disable school error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Delete school
 router.delete("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
   try {
