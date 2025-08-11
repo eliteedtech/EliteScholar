@@ -87,6 +87,8 @@ router.get("/schools/:schoolId", async (req: AuthRequest, res: Response) => {
 // Create new school
 router.post("/schools", async (req: AuthRequest, res: Response) => {
   try {
+    // Parse form data from multipart request
+    const requestData = JSON.parse(req.body.schoolData || '{}');
     const {
       schoolName,
       shortName,
@@ -98,12 +100,11 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       phones,
       email,
       type,
-      adminName,
-      adminEmail,
+      schoolAdmin: { name: adminName, email: adminEmail } = {},
       defaultPassword = "123456",
       selectedGradeGroups = [],
       initialFeatures = []
-    } = req.body;
+    } = requestData;
 
     // Validate required fields
     if (!schoolName) {
@@ -118,7 +119,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     if (!adminEmail) {
       return res.status(400).json({ message: "Admin email is required" });
     }
-    if (!type || !["K12", "NIGERIAN"].includes(type)) {
+    if (!type || !["K12", "NIGERIAN", "SKILL_ACQUISITION", "ADULT_LEARNING", "TRAINING_CENTER", "VOCATIONAL", "TERTIARY"].includes(type)) {
       return res.status(400).json({ message: "Valid school type is required" });
     }
 
@@ -213,14 +214,49 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
         }
       }
 
+      // Handle non-K12/NIGERIAN school types
+      if (!["K12", "NIGERIAN"].includes(school.type)) {
+        // Create default classes for skill acquisition, adult learning, training centers
+        const defaultClassNames = [
+          "Beginner Level",
+          "Intermediate Level", 
+          "Advanced Level",
+          "Professional Level",
+          "Certification Prep",
+          "Practical Training"
+        ];
+        
+        for (let i = 0; i < defaultClassNames.length; i++) {
+          const className = {
+            name: defaultClassNames[i],
+            schoolId: school.id,
+            branchId: mainBranch.id,
+            capacity: 25,
+            isActive: true,
+          };
+          classes.push(className);
+          
+          // Create corresponding grade sections
+          const gradeSection = {
+            schoolId: school.id,
+            name: defaultClassNames[i],
+            level: defaultClassNames[i],
+            order: i + 1,
+            capacity: 25,
+            isActive: true,
+          };
+          gradeSections.push(gradeSection);
+        }
+      }
+
       await storage.createGradeSections(gradeSections);
       if (classes.length > 0) {
         // For now, we just log the classes. In future, implement full class creation
         console.log(`Would create ${classes.length} classes for school ${school.id}:`, classes.map(c => c.name));
       }
-    } else {
+    } else if (["K12", "NIGERIAN"].includes(school.type)) {
       // Fallback to default sections if none selected
-      gradeSections = generateGradeSections(school.id, school.type);
+      gradeSections = generateGradeSections(school.id, school.type as "K12" | "NIGERIAN");
       await storage.createGradeSections(gradeSections);
     }
 

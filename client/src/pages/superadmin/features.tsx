@@ -191,6 +191,7 @@ export default function FeaturesPage() {
   };
 
   const getTypeDisplay = (type: Feature["type"]) => {
+    if (!type || typeof type !== 'object') return "Not specified";
     const types = [];
     if (type.module) types.push("Module");
     if (type.standalone) types.push("Standalone");
@@ -369,7 +370,7 @@ export default function FeaturesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {features.map((feature: Feature) => (
+                {(features as Feature[])?.map((feature: Feature) => (
                   <TableRow key={feature.id} data-testid={`row-feature-${feature.id}`}>
                     <TableCell className="font-medium" data-testid={`text-feature-name-${feature.id}`}>
                       {feature.name}

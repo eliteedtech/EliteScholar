@@ -12,6 +12,7 @@ export default function SuperAdminDashboard() {
     switch (currentPage) {
       case "schools":
       case "superadmin":
+      case "dashboard":
       case "":
         return (
           <div className="space-y-8">

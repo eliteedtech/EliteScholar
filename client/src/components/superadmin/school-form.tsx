@@ -305,13 +305,18 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">School Type *</Label>
-              <Select value={form.watch("type")} onValueChange={(value) => form.setValue("type", value as "K12" | "NIGERIAN")}>
+              <Select value={form.watch("type")} onValueChange={(value) => form.setValue("type", value as any)}>
                 <SelectTrigger data-testid="select-school-type">
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="K12">K12 (Grade 1-12)</SelectItem>
                   <SelectItem value="NIGERIAN">Nigerian Curriculum</SelectItem>
+                  <SelectItem value="SKILL_ACQUISITION">Skill Acquisition Center</SelectItem>
+                  <SelectItem value="ADULT_LEARNING">Adult Learning Center</SelectItem>
+                  <SelectItem value="TRAINING_CENTER">Training Center</SelectItem>
+                  <SelectItem value="VOCATIONAL">Vocational School</SelectItem>
+                  <SelectItem value="TERTIARY">Tertiary Institution</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -465,9 +470,8 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
             </div>
           )}
 
-          {/* Initial Features - Only for new schools */}
-          {/* Grade Groups Selection */}
-          {!school && (
+          {/* Grade Groups Selection - Only for K12 and NIGERIAN schools */}
+          {!school && ["K12", "NIGERIAN"].includes(form.watch("type")) && (
             <div className="border-t border-slate-200 pt-6">
               <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Groups</h4>
               <p className="text-sm text-slate-600 mb-4">Select which grade groups this school will offer:</p>

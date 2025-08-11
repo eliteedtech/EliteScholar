@@ -25,7 +25,15 @@ export const userRoleEnum = pgEnum("user_role", [
   "parent",
 ]);
 
-export const schoolTypeEnum = pgEnum("school_type", ["K12", "NIGERIAN"]);
+export const schoolTypeEnum = pgEnum("school_type", [
+  "K12", 
+  "NIGERIAN",
+  "SKILL_ACQUISITION",
+  "ADULT_LEARNING", 
+  "TRAINING_CENTER",
+  "VOCATIONAL",
+  "TERTIARY"
+]);
 
 export const schoolStatusEnum = pgEnum("school_status", ["ACTIVE", "DISABLED"]);
 
