@@ -1,0 +1,46 @@
+Create school request body: [Object: null prototype] {
+  school_data: '{"school_name":"Abbas Maje","short_name":"abs","abbreviation":"ABM","motto":"Education with Purpose","state":"Kano","lga":"Nassarawa","address":"Kano, Nigeria\\nKano, Nigeria","phones":["+2348027999992"],"email":"ssirdeeq@gmail.com","type":"NIGERIAN","school_admin":{"name":"Ahmad Ismail","email":"sirdeeq23@gmail.com"},"default_password":"123456","selected_grade_groups":["Nursery","Primary","Secondary","Islamiyya"],"initial_features":[],"branches":[{"name":"Main Branch"}]}'
+}
+Create school files: undefined
+Parsed request data: {
+  school_name: 'Abbas Maje',
+  short_name: 'abs',
+  abbreviation: 'ABM',
+  motto: 'Education with Purpose',
+  state: 'Kano',
+  lga: 'Nassarawa',
+  address: 'Kano, Nigeria\nKano, Nigeria',
+  phones: [ '+2348027999992' ],
+  email: 'ssirdeeq@gmail.com',
+  type: 'NIGERIAN',
+  school_admin: { name: 'Ahmad Ismail', email: 'sirdeeq23@gmail.com' },
+  default_password: '123456',
+  selected_grade_groups: [ 'Nursery', 'Primary', 'Secondary', 'Islamiyya' ],
+  initial_features: [],
+  branches: [ { name: 'Main Branch' } ]
+}
+Create school error: error: null value in column "code" of relation "grade_sections" violates not-null constraint
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createGradeSections (/home/runner/workspace/server/storage.ts:407:12)
+    at async <anonymous> (/home/runner/workspace/server/controllers/superadmin.ts:291:7) {
+  length: 326,
+  severity: 'ERROR',
+  code: '23502',
+  detail: 'Failing row contains (2780b678-7510-42c9-ac39-abc7bbb0227e, 2ff08f99-7fb1-4d95-b0e6-f49346b3a462, Nursery 1, null, 1, 2025-08-11 12:42:30.865646).',
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: 'public',
+  table: 'grade_sections',
+  column: 'code',
+  dataType: undefined,
+  constraint: undefined,
+  file: 'execMain.c',
+  line: '2006',
+  routine: 'ExecConstraints'
+}
+12:42:30 PM [express] POST /api/superadmin/schools 500 in 2289ms :: {"message":"Failed to create scho…

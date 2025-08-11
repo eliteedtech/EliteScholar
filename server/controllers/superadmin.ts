@@ -207,11 +207,9 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
           for (const gradeName of group.grades) {
             const gradeSection = {
               schoolId: school.id,
+              code: `${school.shortName}_${gradeName.replace(/\s+/g, '_').toUpperCase()}`,
               name: gradeName,
-              level: gradeName,
               order: gradeOrder++,
-              capacity: 30,
-              isActive: true,
             };
             gradeSections.push(gradeSection);
           }
@@ -264,11 +262,9 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
             // Create grade section
             const gradeSection = {
               schoolId: school.id,
+              code: `${school.shortName}_${gradeName.replace(/\s+/g, '_').toUpperCase()}`,
               name: gradeName,
-              level: gradeName,
               order: i + 1,
-              capacity: 30,
-              isActive: true,
             };
             gradeSections.push(gradeSection);
             
@@ -295,12 +291,24 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
       }
     } else if (["K12", "NIGERIAN"].includes(school.type)) {
       // Fallback to default sections if none selected
-      gradeSections = generateGradeSections(school.id, school.type as "K12" | "NIGERIAN");
+      // Create default grade sections with proper code field
+      const defaultGrades = school.type === "K12" 
+        ? ["Pre-K", "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+        : ["Nursery 1", "Nursery 2", "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6", "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"];
+      
+      gradeSections = defaultGrades.map((grade, index) => ({
+        schoolId: school.id,
+        code: `${school.shortName}_${grade.replace(/\s+/g, '_').toUpperCase()}`,
+        name: grade,
+        order: index + 1,
+      }));
       await storage.createGradeSections(gradeSections);
     }
 
-    // Create school admin user
+    // Create school admin user with proper credentials
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    console.log("Creating admin user:", { adminName, adminEmail, defaultPassword, schoolId: school.id });
+    
     const adminUser = await storage.createUser({
       name: adminName,
       email: adminEmail,
@@ -310,6 +318,8 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
       branchId: mainBranch.id,
       forcePasswordChange: true,
     });
+    
+    console.log("Admin user created successfully:", { id: adminUser.id, email: adminUser.email, role: adminUser.role });
 
     // Enable initial features if selected
     if (initialFeatures && initialFeatures.length > 0) {
