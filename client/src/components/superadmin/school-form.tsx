@@ -29,7 +29,7 @@ import { SchoolWithDetails } from "@/lib/types";
 const schoolFormSchema = z.object({
   schoolName: z.string().min(1, "School name is required"),
   shortName: z.string().min(1, "Short name is required").regex(/^[a-z0-9-]+$/, "Short name must contain only lowercase letters, numbers, and hyphens"),
-  abbreviation: z.string().optional(),
+  abbreviation: z.string().min(1, "Abbreviation is required"),
   motto: z.string().optional(),
   state: z.string().optional(),
   lga: z.string().optional(),
@@ -43,6 +43,7 @@ const schoolFormSchema = z.object({
   }),
   defaultPassword: z.string().default("123456"),
   initialFeatures: z.array(z.string()).default([]),
+  selectedSections: z.array(z.string()).default([]),
   branches: z.array(z.object({
     name: z.string().min(1, "Branch name is required"),
   })).default([{ name: "Main Branch" }]),
@@ -61,6 +62,18 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(school?.logoUrl || null);
+
+  // K12 Grade Sections
+  const k12Sections = [
+    "Pre-K", "Kindergarten", "Grade 1", "Grade 2", "Grade 3", "Grade 4", 
+    "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"
+  ];
+
+  // Nigerian Curriculum Sections  
+  const nigerianSections = [
+    "Nursery 1", "Nursery 2", "Primary 1", "Primary 2", "Primary 3", "Primary 4", 
+    "Primary 5", "Primary 6", "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
+  ];
 
   const { data: features } = useQuery({
     queryKey: ["/api/superadmin/features"],
@@ -86,6 +99,7 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
       },
       defaultPassword: "123456",
       initialFeatures: school?.features?.filter(f => f.enabled).map(f => f.feature.key) || [],
+      selectedSections: [],
       branches: school?.branches?.map(b => ({ name: b.name })) || [{ name: "Main Branch" }],
     },
   });
@@ -235,13 +249,23 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="abbreviation">Abbreviation</Label>
+              <Label htmlFor="abbreviation">Abbreviation *</Label>
               <Input
                 id="abbreviation"
                 placeholder="GAI"
                 {...form.register("abbreviation")}
                 data-testid="input-abbreviation"
               />
+              {form.watch("abbreviation") && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                  <p className="text-xs text-blue-700">
+                    <strong>Preview Link:</strong> https://{form.watch("abbreviation")?.toLowerCase()}.elitescholar.com
+                  </p>
+                </div>
+              )}
+              {form.formState.errors.abbreviation && (
+                <p className="text-sm text-red-600">{form.formState.errors.abbreviation.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">School Type *</Label>
@@ -406,9 +430,40 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
           )}
 
           {/* Initial Features - Only for new schools */}
+          {/* Grade Sections Selection */}
+          {!school && (
+            <div className="border-t border-slate-200 pt-6">
+              <h4 className="text-lg font-medium text-slate-900 mb-4">Grade Sections</h4>
+              <p className="text-sm text-slate-600 mb-4">Select which grade sections this school will offer:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(form.watch("type") === "K12" ? k12Sections : nigerianSections).map((section) => (
+                  <div key={section} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`section-${section}`}
+                      checked={form.watch("selectedSections").includes(section)}
+                      onCheckedChange={(checked) => {
+                        const currentSections = form.getValues("selectedSections");
+                        if (checked) {
+                          form.setValue("selectedSections", [...currentSections, section]);
+                        } else {
+                          form.setValue("selectedSections", currentSections.filter(s => s !== section));
+                        }
+                      }}
+                      data-testid={`checkbox-section-${section}`}
+                    />
+                    <Label htmlFor={`section-${section}`} className="text-sm text-slate-700">
+                      {section}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {!school && features && (
             <div className="border-t border-slate-200 pt-6">
               <h4 className="text-lg font-medium text-slate-900 mb-4">Initial Features</h4>
+              <p className="text-sm text-slate-600 mb-4">Select which features to enable for this school:</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {features.map((feature) => (
                   <div key={feature.id} className="flex items-center space-x-3">
@@ -427,6 +482,9 @@ export default function SchoolForm({ school, onClose, onSuccess }: SchoolFormPro
                     />
                     <Label htmlFor={feature.key} className="text-sm font-medium text-slate-700">
                       {feature.name}
+                      {feature.description && (
+                        <span className="block text-xs text-slate-500 mt-1">{feature.description}</span>
+                      )}
                     </Label>
                   </div>
                 ))}

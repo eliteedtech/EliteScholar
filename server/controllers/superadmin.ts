@@ -100,7 +100,9 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       type,
       adminName,
       adminEmail,
-      defaultPassword = "123456"
+      defaultPassword = "123456",
+      selectedSections = [],
+      initialFeatures = []
     } = req.body;
 
     // Validate required fields
@@ -156,9 +158,23 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
     // Update school with main branch reference
     await storage.updateSchool(school.id, { mainBranchId: mainBranch.id });
 
-    // Create grade sections based on school type
-    const gradeSections = generateGradeSections(school.id, school.type);
-    await storage.createGradeSections(gradeSections);
+    // Create grade sections based on selected sections
+    let gradeSections: any[] = [];
+    if (selectedSections && selectedSections.length > 0) {
+      gradeSections = selectedSections.map((section: string, index: number) => ({
+        schoolId: school.id,
+        name: section,
+        level: section,
+        order: index + 1,
+        capacity: 30, // Default capacity
+        isActive: true,
+      }));
+      await storage.createGradeSections(gradeSections);
+    } else {
+      // Fallback to default sections if none selected
+      gradeSections = generateGradeSections(school.id, school.type);
+      await storage.createGradeSections(gradeSections);
+    }
 
     // Create school admin user
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
@@ -172,7 +188,19 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
       forcePasswordChange: true,
     });
 
-    // Send welcome email
+    // Enable initial features if selected
+    if (initialFeatures && initialFeatures.length > 0) {
+      try {
+        for (const featureKey of initialFeatures) {
+          await storage.toggleSchoolFeature(school.id, featureKey, true);
+        }
+      } catch (featureError) {
+        console.error("Failed to enable initial features:", featureError);
+        // Continue without failing the school creation
+      }
+    }
+
+    // Send welcome email with enhanced styling
     try {
       await emailService.sendSchoolCreationEmail(
         adminEmail,
@@ -181,6 +209,7 @@ router.post("/schools", async (req: AuthRequest, res: Response) => {
         adminName,
         {
           pathBased: `http://localhost:5000/s/${shortName}/login`,
+          subdomain: abbreviation?.toLowerCase() || shortName,
         }
       );
     } catch (emailError) {
