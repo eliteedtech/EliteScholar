@@ -131,10 +131,42 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
         isFavorite: true,
       },
       {
-        id: 'academic-years',
-        name: 'Academic Years',
-        href: '/school/academic-years',
-        icon: <Calendar className="h-4 w-4" />,
+        id: 'school-setup',
+        name: 'School Setup',
+        href: '/school/setup',
+        icon: <Settings className="h-4 w-4" />,
+        children: [
+          {
+            id: 'sections',
+            name: 'Sections',
+            href: '/school/setup/sections',
+            icon: <School className="h-4 w-4" />,
+          },
+          {
+            id: 'classes',
+            name: 'Classes',
+            href: '/school/setup/classes',
+            icon: <GraduationCap className="h-4 w-4" />,
+          },
+          {
+            id: 'subjects',
+            name: 'Subjects',
+            href: '/school/setup/subjects',
+            icon: <BookOpen className="h-4 w-4" />,
+          },
+          {
+            id: 'branches',
+            name: 'Branches',
+            href: '/school/setup/branches',
+            icon: <School className="h-4 w-4" />,
+          },
+          {
+            id: 'academic-years',
+            name: 'Academic Years',
+            href: '/school/setup/academic-years',
+            icon: <Calendar className="h-4 w-4" />,
+          },
+        ],
       },
     ];
 

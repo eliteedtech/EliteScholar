@@ -286,6 +286,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staff management routes  
   app.use("/api/schools", (await import("./controllers/staff-management")).default);
 
+  // School setup routes
+  app.use("/api/schools/setup", (await import("./controllers/school-setup")).default);
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

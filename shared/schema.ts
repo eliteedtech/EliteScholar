@@ -392,6 +392,96 @@ export const schedules = pgTable("schedules", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// School Setup Sections table (groupings for classes like Primary, Junior Secondary, etc.)
+export const schoolSections = pgTable("school_sections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "Primary", "Junior Secondary", "Senior Secondary"
+  code: varchar("code").notNull(), // e.g., "PRI", "JSS", "SSS"
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  sectionCodeUnique: unique().on(table.schoolId, table.branchId, table.code),
+}));
+
+// Enhanced Classes table with section relationships and levels
+export const classLevels = pgTable("class_levels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  sectionId: varchar("section_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "JSS1", "SSS2"
+  levelLabel: varchar("level_label").default("A"), // e.g., "A", "B", "C"
+  fullName: varchar("full_name").notNull(), // e.g., "JSS1A", "SSS2B"
+  capacity: integer("capacity").default(0),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  classLevelUnique: unique().on(table.schoolId, table.branchId, table.fullName),
+}));
+
+// Enhanced Subjects table with department support for Senior Secondary
+export const subjectsDepartments = pgTable("subjects_departments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "Science", "Arts", "Commercial"
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  departmentNameUnique: unique().on(table.schoolId, table.branchId, table.name),
+}));
+
+// Enhanced Subjects with department relationships
+export const enhancedSubjects = pgTable("enhanced_subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(),
+  code: varchar("code").notNull(),
+  description: text("description"),
+  departmentId: varchar("department_id"), // For Senior Secondary subjects
+  isCore: boolean("is_core").default(false), // Core vs Elective
+  creditUnits: integer("credit_units").default(1),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  subjectCodeUnique: unique().on(table.schoolId, table.branchId, table.code),
+}));
+
+// Subject-Class assignments (many-to-many)
+export const subjectClassAssignments = pgTable("subject_class_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  subjectId: varchar("subject_id").notNull(),
+  classLevelId: varchar("class_level_id").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  subjectClassUnique: unique().on(table.subjectId, table.classLevelId),
+}));
+
+
+
+// Branch Admins table
+export const branchAdmins = pgTable("branch_admins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+}, (table) => ({
+  branchAdminUnique: unique().on(table.branchId, table.userId),
+}));
+
 // Type exports for new tables
 export type StaffType = typeof staffTypes.$inferSelect;
 export type InsertStaffType = typeof staffTypes.$inferInsert;
@@ -401,6 +491,22 @@ export type StaffAssignment = typeof staffAssignments.$inferSelect;
 export type InsertStaffAssignment = typeof staffAssignments.$inferInsert;
 export type Schedule = typeof schedules.$inferSelect;
 export type InsertSchedule = typeof schedules.$inferInsert;
+
+// School Setup types
+export type SchoolSection = typeof schoolSections.$inferSelect;
+export type InsertSchoolSection = typeof schoolSections.$inferInsert;
+export type ClassLevel = typeof classLevels.$inferSelect;
+export type InsertClassLevel = typeof classLevels.$inferInsert;
+export type SubjectDepartment = typeof subjectsDepartments.$inferSelect;
+export type InsertSubjectDepartment = typeof subjectsDepartments.$inferInsert;
+export type EnhancedSubject = typeof enhancedSubjects.$inferSelect;
+export type InsertEnhancedSubject = typeof enhancedSubjects.$inferInsert;
+export type SubjectClassAssignment = typeof subjectClassAssignments.$inferSelect;
+export type InsertSubjectClassAssignment = typeof subjectClassAssignments.$inferInsert;
+export type AcademicWeek = typeof academicWeeks.$inferSelect;
+export type InsertAcademicWeek = typeof academicWeeks.$inferInsert;
+export type BranchAdmin = typeof branchAdmins.$inferSelect;
+export type InsertBranchAdmin = typeof branchAdmins.$inferInsert;
 
 // Relations
 export const userRelations = relations(users, ({ one }) => ({

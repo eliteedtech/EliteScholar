@@ -1,0 +1,49 @@
+
+> **Add a “School Setup” section to School Admin dashboard (frontend + backend + DB)**.
+>
+> **Sidebar**
+>
+> * Parent menu: **School Setup** 
+> * Children: **Sections**, **Classes**, **Subjects**, **Branches**, **Academic Years**
+> * Make the sidebar collapsible on mobile, sticky on desktop.
+>
+> **General rules for all CRUD**
+>
+> * Always filter/create/update/delete using both `school_id` and `branch_id` where applicable.
+> * Use only IDs (never names) for relationships so renames do not break links.
+> * Return proper success/error messages and validate inputs server-side.
+> * All list pages: searchable + sortable table, “Add” button at top right, Edit/Delete actions per row.
+> * Use transactions for multi-step saves.
+>
+> **1. Sections**
+
+> * Simple CRUD. A section is a grouping for classes (e.g., Primary, Junior Secondary, Senior Secondary).
+>
+> **2. Classes**
+> * Allow adding “levels” (e.g., JSS1A, JSS1B).
+> * Level\_label optional; if omitted, default to “A”.
+> * Display list grouped by section; add “Add Level” button inline.
+>
+> **3. Subjects**
+
+> * When creating, if user selects “Primary Section” auto-select all classes in that section.
+> * For Senior Secondary section, require department selection (e.g., Science, Arts, Economics).
+> * Handle multi-class assignment in a single save.
+> * Ensure referencing by class\_id, not name.
+>
+> **4. Branches**
+
+> * List all branches for current school.
+> * Manage branch admins: table of admins with “Add Admin” button → select user → assign to branch.
+> * Validate branch uniqueness per school.
+>
+> **5. Academic Years**
+> * Create academic year (e.g., 2025/2026) with the begin date and end date and term Term eg first term and it should be active → auto-generate academic weeks sequentially from academic year start/end date.
+> * Only 1 active academic year + term at a time (auto-deactivate others when one is activated).
+
+> * Show school calendar view combining all weeks, highlight current week.
+>
+> **UI**
+>
+> * Clean, modern, consistent with existing dashboard styling.
+

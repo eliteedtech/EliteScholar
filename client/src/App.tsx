@@ -170,6 +170,61 @@ function Router() {
                       })()}
                     </Suspense>
                   </Route>
+                  
+                  {/* School Setup routes */}
+                  <Route path="/school/setup">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const SetupIndexPage = lazy(() => import("./pages/school/setup/index"));
+                        return <SetupIndexPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/setup/sections">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const SectionsPage = lazy(() => import("./pages/school/setup/sections"));
+                        return <SectionsPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/setup/classes">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const ClassesPage = lazy(() => import("./pages/school/setup/classes"));
+                        return <ClassesPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/setup/subjects">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const SubjectsPage = lazy(() => import("./pages/school/setup/subjects"));
+                        return <SubjectsPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/setup/branches">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const BranchesPage = lazy(() => import("./pages/school/setup/branches"));
+                        return <BranchesPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/setup/academic-years">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const AcademicYearsPage = lazy(() => import("./pages/school/setup/academic-years"));
+                        return <AcademicYearsPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
                   <Route path="/school/users">
                     <Suspense fallback={<div>Loading...</div>}>
                       {(() => {
