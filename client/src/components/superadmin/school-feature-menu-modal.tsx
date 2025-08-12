@@ -530,7 +530,10 @@ export default function SchoolFeatureMenuModal({
               Cancel
             </Button>
             <Button 
-              onClick={handleSave}
+              onClick={() => {
+                console.log('Save button clicked!');
+                handleSave();
+              }}
               disabled={updateSchoolFeatureSetupMutation.isPending}
               data-testid="button-save-menu-links"
             >
