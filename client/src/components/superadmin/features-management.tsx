@@ -84,8 +84,8 @@ export default function FeaturesManagement() {
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
 
   const { data: features = [], isLoading } = useQuery({
-    queryKey: ["/api/superadmin/features"],
-    queryFn: () => api.superadmin.getFeatures(),
+    queryKey: ["/api/features"],
+    queryFn: () => fetch("/api/features").then(res => res.json()),
   });
 
   const form = useForm<FeatureFormData>({
@@ -107,10 +107,14 @@ export default function FeaturesManagement() {
         ...data,
         price: data.price ? parseFloat(data.price) * 100 : null, // Convert to kobo
       };
-      return api.superadmin.createFeature(payload);
+      return fetch("/api/features", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(res => res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       toast({
         title: "Success",
         description: "Feature created successfully",
@@ -133,10 +137,14 @@ export default function FeaturesManagement() {
         ...data,
         price: data.price ? parseFloat(data.price) * 100 : null,
       };
-      return api.superadmin.updateFeature(featureId, payload);
+      return fetch(`/api/features/${featureId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(res => res.json());
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       toast({
         title: "Success",
         description: "Feature updated successfully",
@@ -155,9 +163,11 @@ export default function FeaturesManagement() {
   });
 
   const deleteFeatureMutation = useMutation({
-    mutationFn: (featureId: string) => api.superadmin.deleteFeature(featureId),
+    mutationFn: (featureId: string) => fetch(`/api/features/${featureId}`, {
+      method: "DELETE",
+    }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       toast({
         title: "Success",
         description: "Feature deleted successfully",
@@ -174,9 +184,13 @@ export default function FeaturesManagement() {
 
   const toggleFeatureStatusMutation = useMutation({
     mutationFn: ({ featureId, isActive }: { featureId: string; isActive: boolean }) => 
-      api.superadmin.updateFeature(featureId, { isActive }),
+      fetch(`/api/features/${featureId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
+      }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       toast({
         title: "Success",
         description: "Feature status updated successfully",
