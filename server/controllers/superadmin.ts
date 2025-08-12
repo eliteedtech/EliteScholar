@@ -892,6 +892,28 @@ router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get school features (for feature selection modal)
+router.get("/schools/:schoolId/features", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    
+    console.log('Getting features for school:', schoolId);
+    
+    // Get all enabled features for this school
+    const schoolFeatures = await storage.getSchoolFeatures(schoolId);
+    const enabledFeatures = schoolFeatures.filter(sf => sf.enabled && sf.feature);
+    
+    // Return the feature details
+    const features = enabledFeatures.map(sf => sf.feature);
+    
+    console.log('Found features for school:', features.length);
+    res.json(features);
+  } catch (error) {
+    console.error("Get school features error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Get school feature setup (menu links) 
 router.get("/schools/:schoolId/feature-setup/:featureId", async (req: AuthRequest, res: Response) => {
   try {
@@ -912,12 +934,16 @@ router.put("/schools/:schoolId/feature-setup", async (req: AuthRequest, res: Res
     const { schoolId } = req.params;
     const { featureId, menuLinks } = req.body;
     
+    console.log('Update school feature setup request:', { schoolId, featureId, menuLinks });
+    
     if (!featureId || !menuLinks) {
+      console.log('Missing required fields:', { featureId: !!featureId, menuLinks: !!menuLinks });
       return res.status(400).json({ message: "Feature ID and menu links are required" });
     }
     
     await storage.updateSchoolFeatureSetup(schoolId, featureId, menuLinks);
     
+    console.log('School feature setup updated successfully');
     res.json({ success: true, message: "School feature setup updated successfully" });
   } catch (error) {
     console.error("Update school feature setup error:", error);

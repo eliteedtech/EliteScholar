@@ -34,9 +34,9 @@ export default function SchoolFeatureSelectorModal({
   school,
   onFeatureSelect 
 }: SchoolFeatureSelectorModalProps) {
-  // Fetch school features
+  // Fetch school features - need to get features assigned to this specific school
   const { data: schoolFeatures, isLoading } = useQuery({
-    queryKey: ["/api/schools/features"],
+    queryKey: ["/api/superadmin/schools", school?.id, "features"],
     enabled: !!(school?.id && isOpen),
   });
 

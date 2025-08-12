@@ -119,12 +119,14 @@ export default function SchoolFeatureMenuModal({
       featureId: string;
       menuLinks: MenuLink[];
     }) => {
+      console.log('Updating school feature setup:', { schoolId, featureId, menuLinks });
       return apiRequest(`/api/superadmin/schools/${schoolId}/feature-setup`, {
         method: "PUT",
         body: { featureId, menuLinks },
       });
     },
     onSuccess: () => {
+      console.log('School feature setup updated successfully');
       queryClient.invalidateQueries({ 
         queryKey: ["/api/superadmin/schools", school?.id, "feature-setup"] 
       });
