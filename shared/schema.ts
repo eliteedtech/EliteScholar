@@ -323,6 +323,85 @@ export const classSubjects = pgTable("class_subjects", {
   classSubjectUnique: unique().on(table.classId, table.subjectId),
 }));
 
+// Staff Types table
+export const staffTypes = pgTable("staff_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "Teacher", "Administrator", "Support Staff"
+  code: varchar("code").notNull(), // e.g., "TCH", "ADM", "SUP"
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Staff table
+export const staff = pgTable("staff", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  staffTypeId: varchar("staff_type_id").notNull(),
+  employeeId: varchar("employee_id").notNull(), // Unique employee identifier
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  dateOfBirth: timestamp("date_of_birth"),
+  hireDate: timestamp("hire_date").notNull(),
+  salary: decimal("salary", { precision: 12, scale: 2 }),
+  isActive: boolean("is_active").default(true),
+  meta: jsonb("meta"), // Additional flexible data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  employeeIdUnique: unique().on(table.schoolId, table.employeeId),
+}));
+
+// Staff Assignments table (for class and subject assignments)
+export const staffAssignments = pgTable("staff_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: varchar("staff_id").notNull(),
+  classId: varchar("class_id"),
+  subjectId: varchar("subject_id"),
+  academicYearId: varchar("academic_year_id").notNull(),
+  academicTermId: varchar("academic_term_id"),
+  assignmentType: varchar("assignment_type").notNull(), // "class_teacher", "subject_teacher", "head_of_department"
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schedules/Timetable table
+export const schedules = pgTable("schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  classId: varchar("class_id").notNull(),
+  subjectId: varchar("subject_id").notNull(),
+  staffId: varchar("staff_id").notNull(),
+  academicYearId: varchar("academic_year_id").notNull(),
+  academicTermId: varchar("academic_term_id").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 1-7 (Monday to Sunday)
+  startTime: varchar("start_time").notNull(), // "08:00"
+  endTime: varchar("end_time").notNull(), // "09:00"
+  room: varchar("room"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Type exports for new tables
+export type StaffType = typeof staffTypes.$inferSelect;
+export type InsertStaffType = typeof staffTypes.$inferInsert;
+export type Staff = typeof staff.$inferSelect;
+export type InsertStaff = typeof staff.$inferInsert;
+export type StaffAssignment = typeof staffAssignments.$inferSelect;
+export type InsertStaffAssignment = typeof staffAssignments.$inferInsert;
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertSchedule = typeof schedules.$inferInsert;
+
 // Relations
 export const userRelations = relations(users, ({ one }) => ({
   school: one(schools, {

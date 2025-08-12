@@ -1,11 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
-import { storage } from "../storage";
+import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
-
-// Get db instance from storage
-const db = storage.db;
 
 const router = Router();
 

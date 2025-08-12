@@ -1,0 +1,27 @@
+Now implement the School Admin dashboard and auto-generate feature pages from the `features` table’s `description` field.
+>
+> **Goal (short):** After a School Admin logs in with `{ school_short_name, username, password }`, show a dashboard and a **sticky** sidebar that lists all features from the `features` table (filtered by `school_id`). Use each feature’s `description` column to generate child menu items and CRUD pages.
+>
+> **Rules & behavior:**
+>
+> 1. **Login → Dashboard:** after successful login (resolve `school_short_name` → `school_id`) route to a School Admin dashboard: greeting (“Hi, \[name]”), quick stats, and quick-action tiles for top features.
+> 2. **Sticky header & sticky sidebar:** header shows logo, school badge + name, branch switcher (School Admin only), current active academic year & term, dark/light toggle, profile dropdown. Sidebar stays visible on desktop and collapses to hamburger on mobile.
+> 3. **Fetch features:** load all rows from `school_features` WHERE `school_id = currentSchoolId`. Each `features` row includes `name` and `description`.
+> 4. **Parse `description` → child features:** treat `description` as a short specification listing sub-features (comma or newline separated). Example row:
+>
+>    * `name`: "Staff Management"
+>    * `description`: "Manage staff type, staff profiles, assignments, and schedules"
+>      From that description create child menu items: `Create Staff`, `Staff List`, `Assignments`, `Schedules`. Create a CRUD page for each child where applicable (e.g., `Staff List` shows table with create/edit/delete; `Schedules` is a calendar/list view).
+>    * If description contains words like “manage”, “list”, “create”, use them to choose UI patterns (list + create modal, form, or calendar).
+> 5. **Auto-create backend + DB:** if certain feature tables do not exist, create simple normalized tables (use IDs/codes as keys) and endpoints (examples):
+>
+>    * `staff` table (id, school\_id, staff\_type\_id, first\_name, last\_name, email, phone, meta)
+>    * `staff_types` table (id, name, school\_id)
+>    * REST endpoints: `GET /schools/:id/staff`, `POST /schools/:id/staff`, `PATCH /staff/:id`, `DELETE /staff/:id`
+>    * Use parameterized queries / ORM and include migrations.
+> 6. **UI conventions:** use icons, collapsible children, search/filter on lists, bulk actions (delete, assign), quick-edit inline for small fields, and a “favorite” quick-access on sidebar items. Highlight the active route.
+> 7. **Scoping & safety:** every create/read/update/delete must use `school_id` (and `branch_id` when branch-scoped) so data is isolated per school. Always reference related records by `id` or stable `code` (not names).
+> 8. **Deliverables:** implement frontend components (Sidebar, Header, Dashboard, Feature pages), backend controllers/services for generated features, DB migrations/seeds (seed all rows from `features` into menus), and at least one example feature fully implemented (suggest: **Staff Management** with `Create Staff`, `Staff List`, `Staff Types`, `Schedules`).
+> 9. **Extras (optional):** add a UI toggle to “regenerate children” from the `description` if the feature text changes; show a warning before overwriting manual edits.
+>
+> **Keep it short, modular, and consistent with existing project patterns.** If you need to make assumptions about column names, follow the examples above and keep them readable so we can adapt later.

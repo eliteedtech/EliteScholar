@@ -124,6 +124,52 @@ function Router() {
                       })()}
                     </Suspense>
                   </Route>
+                  
+                  {/* Feature-based routes */}
+                  <Route path="/school/features/:featureId" component={() => (
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const FeatureOverview = lazy(() => import("./pages/school/features/[featureId]/index"));
+                        return <FeatureOverview />;
+                      })()}
+                    </Suspense>
+                  )} />
+                  
+                  <Route path="/school/features/:featureId/list" component={() => (
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const StaffList = lazy(() => import("./pages/school/features/staff-management/list"));
+                        return <StaffList />;
+                      })()}
+                    </Suspense>
+                  )} />
+                  
+                  <Route path="/school/features/:featureId/create">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const CreatePage = lazy(() => import("./pages/school/features/create"));
+                        return <CreatePage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/features/:featureId/types">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const TypesPage = lazy(() => import("./pages/school/features/types"));
+                        return <TypesPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
+                  <Route path="/school/features/:featureId/schedules">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const SchedulesPage = lazy(() => import("./pages/school/features/schedules"));
+                        return <SchedulesPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
                   <Route path="/school/users">
                     <Suspense fallback={<div>Loading...</div>}>
                       {(() => {
