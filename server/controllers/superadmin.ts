@@ -106,8 +106,10 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
     console.log("Parsed request data:", requestData);
     
     const {
-      school_name: schoolName,
-      short_name: shortName,
+      school_name: schoolNameField,
+      name: nameField,
+      short_name: shortNameField,
+      shortName: shortNameAlt,
       abbreviation,
       motto,
       state,
@@ -117,11 +119,25 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
       email,
       type,
       school_admin: { name: adminName, email: adminEmail } = {},
+      adminName: adminNameAlt,
+      adminEmail: adminEmailAlt,
       default_password: defaultPassword = "123456",
       selected_grade_groups: selectedGradeGroups = [],
       initial_features: initialFeatures = [],
       branches = []
     } = requestData;
+
+    // Handle multiple field name formats
+    const schoolName = schoolNameField || nameField;
+    const shortName = shortNameField || shortNameAlt;
+    const finalAdminName = adminName || adminNameAlt;
+    const finalAdminEmail = adminEmail || adminEmailAlt;
+    
+    // Debug extracted values
+    console.log("Extracted schoolName:", schoolNameField, nameField, "->", schoolName);
+    console.log("Extracted shortName:", shortNameField, shortNameAlt, "->", shortName);
+    console.log("Extracted adminName:", adminName, adminNameAlt, "->", finalAdminName);
+    console.log("Extracted adminEmail:", adminEmail, adminEmailAlt, "->", finalAdminEmail);
 
     // Validate required fields
     if (!schoolName) {
@@ -130,10 +146,10 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
     if (!shortName) {
       return res.status(400).json({ message: "Short name is required" });
     }
-    if (!adminName) {
+    if (!finalAdminName) {
       return res.status(400).json({ message: "Admin name is required" });
     }
-    if (!adminEmail) {
+    if (!finalAdminEmail) {
       return res.status(400).json({ message: "Admin email is required" });
     }
     if (!type || !["K12", "NIGERIAN", "SKILL_ACQUISITION", "ADULT_LEARNING", "TRAINING_CENTER", "VOCATIONAL", "TERTIARY"].includes(type)) {
@@ -307,11 +323,16 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
 
     // Create school admin user with proper credentials
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-    console.log("Creating admin user:", { adminName, adminEmail, defaultPassword, schoolId: school.id });
+    console.log("Creating admin user:", { 
+      adminName: finalAdminName, 
+      adminEmail: finalAdminEmail, 
+      defaultPassword, 
+      schoolId: school.id 
+    });
     
     const adminUser = await storage.createUser({
-      name: adminName,
-      email: adminEmail,
+      name: finalAdminName,
+      email: finalAdminEmail,
       password: hashedPassword,
       role: "school_admin",
       schoolId: school.id,
@@ -336,10 +357,10 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
     // Send welcome email with enhanced styling
     try {
       await emailService.sendSchoolCreationEmail(
-        adminEmail,
+        finalAdminEmail,
         school.name,
         shortName,
-        adminName,
+        finalAdminName,
         {
           pathBased: `http://localhost:5000/s/${shortName}/login`,
           subdomain: abbreviation?.toLowerCase() || shortName,

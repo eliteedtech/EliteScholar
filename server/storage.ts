@@ -4,6 +4,7 @@ import {
   branches,
   features,
   schoolFeatures,
+  sections,
   gradeSections,
   invoices,
   invoiceLines,
@@ -21,6 +22,8 @@ import {
   type InsertFeature,
   type SchoolFeature,
   type InsertSchoolFeature,
+  type Section,
+  type InsertSection,
   type GradeSection,
   type InsertGradeSection,
   type Invoice,
@@ -244,6 +247,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDefaultGradeSections(schoolId: string, schoolType: string): Promise<GradeSection[]> {
+    // First create section records (A, B, C, etc.) in the sections table
+    const defaultSectionLetters = ["A", "B", "C"];
+    const sectionsToCreate = defaultSectionLetters.map(letter => ({
+      schoolId,
+      name: letter,
+      code: letter,
+      capacity: 30,
+      isActive: true,
+    }));
+
+    // Insert sections and get their IDs
+    const createdSections = await this.createSections(sectionsToCreate);
+    
     let gradeSectionData: InsertGradeSection[] = [];
 
     if (schoolType === "K12") {
@@ -273,22 +289,21 @@ export class DatabaseStorage implements IStorage {
         { name: "Grade 12", code: "G12", type: "senior", order: 15 },
       ];
 
-      // Create grade sections with multiple sections (A, B, C) for each grade
+      // Create grade sections with proper section ID references
       k12Grades.forEach((grade) => {
-        const sections = ["A", "B", "C"]; // Default sections
-        sections.forEach((sectionLetter, sectionIndex) => {
+        createdSections.forEach((section, sectionIndex) => {
           gradeSectionData.push({
             schoolId,
-            sectionId: `${grade.code}-${sectionLetter}`, // e.g., "G1-A", "G1-B"
-            name: `${grade.name} ${sectionLetter}`,
-            code: `${grade.code}${sectionLetter}`,
+            sectionId: section.id, // Use actual section ID from sections table
+            name: `${grade.name} ${section.name}`,
+            code: `${grade.code}${section.code}`,
             type: grade.type,
             order: grade.order * 10 + sectionIndex, // Ensure proper ordering
             isActive: true,
           });
         });
       });
-    } else if (schoolType === "Nigerian") {
+    } else if (schoolType === "NIGERIAN") {
       // Create Nigerian curriculum grade sections
       const nigerianGrades = [
         // Nursery
@@ -314,15 +329,14 @@ export class DatabaseStorage implements IStorage {
         { name: "SSS 3", code: "SSS3", type: "senior", order: 14 },
       ];
 
-      // Create grade sections with multiple sections for each grade
+      // Create grade sections with proper section ID references
       nigerianGrades.forEach((grade) => {
-        const sections = ["A", "B", "C"]; // Default sections
-        sections.forEach((sectionLetter, sectionIndex) => {
+        createdSections.forEach((section, sectionIndex) => {
           gradeSectionData.push({
             schoolId,
-            sectionId: `${grade.code}-${sectionLetter}`, // e.g., "JSS1-A", "SSS2-B"
-            name: `${grade.name} ${sectionLetter}`,
-            code: `${grade.code}${sectionLetter}`,
+            sectionId: section.id, // Use actual section ID from sections table
+            name: `${grade.name} ${section.name}`,
+            code: `${grade.code}${section.code}`,
             type: grade.type,
             order: grade.order * 10 + sectionIndex,
             isActive: true,
@@ -545,6 +559,10 @@ export class DatabaseStorage implements IStorage {
     return newFeature;
   }
 
+  async createSections(sectionData: InsertSection[]): Promise<Section[]> {
+    return await db.insert(sections).values(sectionData).returning();
+  }
+
   async createGradeSections(gradeSectionData: InsertGradeSection[]): Promise<GradeSection[]> {
     return await db.insert(gradeSections).values(gradeSectionData).returning();
   }
@@ -564,17 +582,6 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(branches.name));
   }
 
-  async updateBranch(branchId: string, updates: any): Promise<any> {
-    const [branch] = await db
-      .update(branches)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(branches.id, branchId))
-      .returning();
-    return branch;
-  }
-
-
-
   async getGradeSections(schoolId: string): Promise<GradeSection[]> {
     return await db
       .select()
@@ -583,27 +590,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(gradeSections.order));
   }
 
-  // Feature Management
+  // Feature Management - getAllFeatures method
   async getAllFeatures(): Promise<Feature[]> {
     return await db
       .select()
       .from(features)
       .where(sql`deleted_at IS NULL`)
       .orderBy(asc(features.name));
-  }
-
-  async createFeature(featureData: InsertFeature): Promise<Feature> {
-    const [feature] = await db.insert(features).values(featureData).returning();
-    return feature;
-  }
-
-  async updateFeature(featureId: string, updates: Partial<InsertFeature>): Promise<Feature | null> {
-    const [feature] = await db
-      .update(features)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(features.id, featureId))
-      .returning();
-    return feature || null;
   }
 
   async getInvoices(filters?: {
@@ -755,32 +748,7 @@ export class DatabaseStorage implements IStorage {
     return `INV-${year}-${nextNumber.toString().padStart(3, "0")}`;
   }
 
-  async getAppSettings(): Promise<any> {
-    const [settings] = await db.select().from(appSettings).limit(1);
-    return settings || {};
-  }
 
-  async updateAppSettings(settingsData: any): Promise<any> {
-    // Check if settings exist
-    const existing = await this.getAppSettings();
-    
-    if (existing && existing.id) {
-      // Update existing settings
-      const [updated] = await db
-        .update(appSettings)
-        .set({ ...settingsData, updatedAt: new Date() })
-        .where(eq(appSettings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      // Create new settings
-      const [created] = await db
-        .insert(appSettings)
-        .values(settingsData)
-        .returning();
-      return created;
-    }
-  }
 
   async getStats(): Promise<{
     totalSchools: number;
@@ -834,7 +802,7 @@ export class DatabaseStorage implements IStorage {
     return settings || null;
   }
 
-  async upsertAppSettings(settingsData: InsertAppSettings): Promise<AppSettings> {
+  async updateAppSettings(settingsData: InsertAppSettings): Promise<AppSettings> {
     const existingSettings = await this.getAppSettings();
     
     if (existingSettings) {
