@@ -603,6 +603,63 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(features.name));
   }
 
+  // Database Viewer Methods
+  async getTablesInfo(): Promise<{table_name: string; record_count: number; columns: string[]}[]> {
+    const tablesQuery = `
+      SELECT 
+        t.table_name,
+        COALESCE(c.record_count, 0) as record_count,
+        array_agg(col.column_name ORDER BY col.ordinal_position) as columns
+      FROM information_schema.tables t
+      LEFT JOIN (
+        SELECT 
+          schemaname,
+          tablename as table_name,
+          n_tup_ins - n_tup_del as record_count
+        FROM pg_stat_user_tables
+      ) c ON c.table_name = t.table_name
+      LEFT JOIN information_schema.columns col ON col.table_name = t.table_name
+      WHERE t.table_schema = 'public' 
+        AND t.table_type = 'BASE TABLE'
+      GROUP BY t.table_name, c.record_count
+      ORDER BY t.table_name;
+    `;
+    
+    return db.execute(sql.raw(tablesQuery)).then(result => 
+      result.rows as {table_name: string; record_count: number; columns: string[]}[]
+    );
+  }
+
+  async getTableData(tableName: string): Promise<any[]> {
+    // Validate table name to prevent SQL injection
+    const validTables = [
+      'users', 'schools', 'branches', 'features', 'school_features', 
+      'grade_sections', 'sections', 'invoices', 'invoice_lines',
+      'invoice_templates', 'invoice_assets', 'subscriptions', 'app_config', 'app_settings'
+    ];
+    
+    if (!validTables.includes(tableName)) {
+      throw new Error(`Invalid table name: ${tableName}`);
+    }
+
+    try {
+      // Try with created_at first, then fall back to ordering by first column
+      let query = `SELECT * FROM ${tableName} ORDER BY created_at DESC LIMIT 100`;
+      try {
+        const result = await db.execute(sql.raw(query));
+        return result.rows;
+      } catch (error) {
+        // If created_at doesn't exist, order by first column
+        query = `SELECT * FROM ${tableName} LIMIT 100`;
+        const result = await db.execute(sql.raw(query));
+        return result.rows;
+      }
+    } catch (error) {
+      console.error(`Error fetching table data for ${tableName}:`, error);
+      throw error;
+    }
+  }
+
   async getInvoices(filters?: {
     schoolId?: string;
     status?: string;

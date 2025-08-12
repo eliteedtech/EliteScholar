@@ -321,6 +321,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes
   app.use("/api/analytics", (await import("./controllers/analytics")).default);
 
+  // Database viewer endpoints for Super Admin (using route delegation)
+  app.use("/api/superadmin/database", superadminRoutes);
+
   // Invoice template routes
   app.use("/api/invoice-templates", (await import("./controllers/invoice-templates")).default);
 

@@ -750,4 +750,26 @@ router.delete("/features/:featureId", async (req: AuthRequest, res: Response) =>
   }
 });
 
+// Database viewer routes
+router.get("/database/tables", async (req: AuthRequest, res: Response) => {
+  try {
+    const tablesInfo = await storage.getTablesInfo();
+    res.json(tablesInfo);
+  } catch (error) {
+    console.error("Error fetching tables info:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/database/tables/:tableName", async (req: AuthRequest, res: Response) => {
+  try {
+    const { tableName } = req.params;
+    const tableData = await storage.getTableData(tableName);
+    res.json(tableData);
+  } catch (error) {
+    console.error("Error fetching table data:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

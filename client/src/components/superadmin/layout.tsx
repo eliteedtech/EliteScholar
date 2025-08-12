@@ -78,6 +78,12 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       icon: "fas fa-user-cog",
       active: location === "/superadmin/profile",
     },
+    {
+      name: "Database",
+      href: "/superadmin/database",
+      icon: "fas fa-database",
+      active: location === "/superadmin/database",
+    },
   ];
 
   const handleLogout = () => {

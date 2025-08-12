@@ -74,6 +74,14 @@ function Router() {
               </Route>
               <Route path="/superadmin/users" component={SuperAdminDashboard} />
               <Route path="/superadmin/profile" component={ProfilePage} />
+              <Route path="/superadmin/database">
+                <Suspense fallback={<div>Loading database...</div>}>
+                  {(() => {
+                    const DatabasePage = lazy(() => import("./pages/superadmin/database"));
+                    return <DatabasePage />;
+                  })()}
+                </Suspense>
+              </Route>
             </>
           )}
           {/* Add other role-specific routes here */}
