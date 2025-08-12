@@ -120,7 +120,6 @@ export const login = async (req: Request, res: Response) => {
 export const schoolLogin = async (req: Request, res: Response) => {
   try {
     const { email, password, shortName } = req.body;
-
     // Normalize school short name
     const normalizedShortName = shortName.toLowerCase().trim();
 

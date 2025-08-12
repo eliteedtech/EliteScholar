@@ -10,7 +10,7 @@ export default function SchoolDashboard() {
 
   const handleLogout = () => {
     logout();
-    setLocation("/");
+    setLocation("/school-login");
   };
 
   const getDashboardCards = () => {
