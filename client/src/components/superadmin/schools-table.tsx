@@ -34,6 +34,7 @@ import FeatureToggle from "./feature-toggle";
 import BranchManagement from "./branch-management";
 import SchoolFeatureManagementModal from "./school-feature-management-modal";
 import SchoolFeatureMenuModal from "./school-feature-menu-modal";
+import SchoolFeatureSelectorModal from "./school-feature-selector-modal";
 import { api } from "@/lib/api";
 import { SchoolWithDetails } from "@/lib/types";
 
@@ -52,6 +53,7 @@ export default function SchoolsTable() {
   const [showBranchManagement, setShowBranchManagement] = useState(false);
   const [showFeatureManagement, setShowFeatureManagement] = useState(false);
   const [showFeatureMenuModal, setShowFeatureMenuModal] = useState(false);
+  const [showFeatureSelectorModal, setShowFeatureSelectorModal] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
 
@@ -123,7 +125,12 @@ export default function SchoolsTable() {
 
   const handleManageFeatureMenus = (school: SchoolWithDetails) => {
     setSelectedSchool(school);
-    setShowFeatureManagement(true);
+    setShowFeatureSelectorModal(true);
+  };
+
+  const handleFeatureSelect = (feature: any) => {
+    setSelectedFeature(feature);
+    setShowFeatureMenuModal(true);
   };
 
   const handleEdit = (school: SchoolWithDetails) => {
@@ -469,6 +476,18 @@ export default function SchoolsTable() {
             setShowFeatureManagement(false);
             setSelectedSchool(null);
           }}
+        />
+      )}
+      
+      {showFeatureSelectorModal && selectedSchool && (
+        <SchoolFeatureSelectorModal 
+          school={selectedSchool}
+          isOpen={showFeatureSelectorModal}
+          onClose={() => {
+            setShowFeatureSelectorModal(false);
+            setSelectedSchool(null);
+          }}
+          onFeatureSelect={handleFeatureSelect}
         />
       )}
       

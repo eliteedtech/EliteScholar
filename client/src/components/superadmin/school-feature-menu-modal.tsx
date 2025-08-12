@@ -55,9 +55,20 @@ export default function SchoolFeatureMenuModal({
   });
 
   useEffect(() => {
-    if (schoolFeatureSetup) {
+    if (schoolFeatureSetup && schoolFeatureSetup.menuLinks) {
+      // Parse menu links from JSON string if needed
+      let menuLinks = schoolFeatureSetup.menuLinks;
+      if (typeof menuLinks === 'string') {
+        try {
+          menuLinks = JSON.parse(menuLinks);
+        } catch (e) {
+          console.error('Failed to parse menu links:', e);
+          menuLinks = [];
+        }
+      }
+      
       // Extract enabled menu link names from the setup
-      const enabledLinks = (schoolFeatureSetup.menuLinks || [])
+      const enabledLinks = (menuLinks || [])
         .filter((link: MenuLink) => link.enabled)
         .map((link: MenuLink) => link.name);
       setSelectedMenuLinks(enabledLinks);

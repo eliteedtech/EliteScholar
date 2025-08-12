@@ -1259,6 +1259,22 @@ export class DatabaseStorage implements IStorage {
             enabled: true,
           },
         });
+
+      // Auto-populate default menu links for each assignment
+      for (const schoolId of schoolIds) {
+        for (const featureId of featureIds) {
+          const feature = await this.getFeature(featureId);
+          if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
+            // Create default setup with all menu links enabled
+            const defaultMenuLinks = feature.menuLinks.map((link: any) => ({
+              ...link,
+              enabled: true
+            }));
+            
+            await this.updateSchoolFeatureSetup(schoolId, featureId, defaultMenuLinks);
+          }
+        }
+      }
     }
   }
 
@@ -1298,6 +1314,35 @@ export class DatabaseStorage implements IStorage {
           menuLinks: JSON.stringify(menuLinks),
         },
       });
+  }
+
+  // Single school feature assignment with auto menu link setup
+  async assignFeatureToSchool(schoolId: string, featureId: string): Promise<void> {
+    // First assign the feature
+    await db.insert(schoolFeatures)
+      .values({
+        schoolId,
+        featureId,
+        enabled: true,
+      })
+      .onConflictDoUpdate({
+        target: [schoolFeatures.schoolId, schoolFeatures.featureId],
+        set: {
+          enabled: true,
+        },
+      });
+
+    // Auto-populate default menu links for this feature
+    const feature = await this.getFeature(featureId);
+    if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
+      // Create default setup with all menu links enabled
+      const defaultMenuLinks = feature.menuLinks.map((link: any) => ({
+        ...link,
+        enabled: true
+      }));
+      
+      await this.updateSchoolFeatureSetup(schoolId, featureId, defaultMenuLinks);
+    }
   }
 }
 

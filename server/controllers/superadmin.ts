@@ -906,4 +906,23 @@ router.get("/schools/:schoolId/feature-setup/:featureId", async (req: AuthReques
   }
 });
 
+// Update school feature setup (menu links)
+router.put("/schools/:schoolId/feature-setup", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const { featureId, menuLinks } = req.body;
+    
+    if (!featureId || !menuLinks) {
+      return res.status(400).json({ message: "Feature ID and menu links are required" });
+    }
+    
+    await storage.updateSchoolFeatureSetup(schoolId, featureId, menuLinks);
+    
+    res.json({ success: true, message: "School feature setup updated successfully" });
+  } catch (error) {
+    console.error("Update school feature setup error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
