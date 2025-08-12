@@ -7,7 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Save, X, Link, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Save, X, Link, Settings, Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface MenuLink {
@@ -38,6 +40,19 @@ interface SchoolFeatureMenuModalProps {
   feature: Feature | null;
 }
 
+const defaultIcons = [
+  "fas fa-home",
+  "fas fa-dashboard",
+  "fas fa-chart-bar",
+  "fas fa-users",
+  "fas fa-cog",
+  "fas fa-book",
+  "fas fa-graduation-cap",
+  "fas fa-calendar",
+  "fas fa-file-alt",
+  "fas fa-bell",
+];
+
 export default function SchoolFeatureMenuModal({ 
   isOpen, 
   onClose, 
@@ -45,6 +60,15 @@ export default function SchoolFeatureMenuModal({
   feature 
 }: SchoolFeatureMenuModalProps) {
   const [selectedMenuLinks, setSelectedMenuLinks] = useState<string[]>([]);
+  const [customMenuLinks, setCustomMenuLinks] = useState<MenuLink[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [newMenuLink, setNewMenuLink] = useState<MenuLink>({
+    name: "",
+    href: "",
+    icon: "fas fa-home",
+    enabled: true,
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -67,15 +91,24 @@ export default function SchoolFeatureMenuModal({
         }
       }
       
+      // Separate default feature menu links from custom ones
+      const defaultMenuLinks = feature?.menuLinks || [];
+      const existingCustomLinks = (menuLinks || []).filter((link: MenuLink) => 
+        !defaultMenuLinks.some((defaultLink: MenuLink) => defaultLink.name === link.name)
+      );
+      
       // Extract enabled menu link names from the setup
       const enabledLinks = (menuLinks || [])
         .filter((link: MenuLink) => link.enabled)
         .map((link: MenuLink) => link.name);
+      
       setSelectedMenuLinks(enabledLinks);
+      setCustomMenuLinks(existingCustomLinks);
     } else if (feature?.menuLinks) {
       // Default to all menu links enabled if no setup exists
       const allLinks = feature.menuLinks.map(link => link.name);
       setSelectedMenuLinks(allLinks);
+      setCustomMenuLinks([]);
     }
   }, [schoolFeatureSetup, feature]);
 
@@ -123,19 +156,82 @@ export default function SchoolFeatureMenuModal({
   };
 
   const handleSave = () => {
-    if (!school?.id || !feature?.id || !feature.menuLinks) return;
+    if (!school?.id || !feature?.id) return;
 
-    // Create updated menu links with enabled/disabled status
-    const updatedMenuLinks = feature.menuLinks.map(link => ({
+    // Combine default feature menu links with custom menu links
+    const defaultMenuLinks = (feature.menuLinks || []).map(link => ({
       ...link,
       enabled: selectedMenuLinks.includes(link.name)
     }));
 
+    const customMenuLinksWithStatus = customMenuLinks.map(link => ({
+      ...link,
+      enabled: selectedMenuLinks.includes(link.name)
+    }));
+
+    const allMenuLinks = [...defaultMenuLinks, ...customMenuLinksWithStatus];
+
     updateSchoolFeatureSetupMutation.mutate({
       schoolId: school.id,
       featureId: feature.id,
-      menuLinks: updatedMenuLinks
+      menuLinks: allMenuLinks
     });
+  };
+
+  const handleAddCustomMenuLink = () => {
+    if (!newMenuLink.name.trim() || !newMenuLink.href.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Menu link name and URL are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if name already exists
+    const allExistingNames = [
+      ...(feature?.menuLinks || []).map(link => link.name),
+      ...customMenuLinks.map(link => link.name)
+    ];
+
+    if (allExistingNames.includes(newMenuLink.name)) {
+      toast({
+        title: "Validation Error",
+        description: "Menu link name already exists",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCustomMenuLinks([...customMenuLinks, newMenuLink]);
+    setSelectedMenuLinks([...selectedMenuLinks, newMenuLink.name]);
+    setNewMenuLink({
+      name: "",
+      href: "",
+      icon: "fas fa-home",
+      enabled: true,
+    });
+    setShowAddForm(false);
+  };
+
+  const handleUpdateCustomMenuLink = (index: number, updates: Partial<MenuLink>) => {
+    const updated = customMenuLinks.map((link, i) => 
+      i === index ? { ...link, ...updates } : link
+    );
+    setCustomMenuLinks(updated);
+  };
+
+  const handleRemoveCustomMenuLink = (index: number) => {
+    const linkToRemove = customMenuLinks[index];
+    const updated = customMenuLinks.filter((_, i) => i !== index);
+    setCustomMenuLinks(updated);
+    
+    // Remove from selected links as well
+    setSelectedMenuLinks(prev => prev.filter(name => name !== linkToRemove.name));
+    
+    if (editingIndex === index) {
+      setEditingIndex(null);
+    }
   };
 
   if (!school || !feature) return null;
@@ -158,7 +254,17 @@ export default function SchoolFeatureMenuModal({
             <Badge variant="outline">{school.shortName}</Badge>
             <span className="text-sm font-medium">{school.name}</span>
           </div>
-          <Badge variant="default">{feature.name}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="default">{feature.name}</Badge>
+            <Button
+              size="sm"
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-1"
+            >
+              <Plus className="h-3 w-3" />
+              Add Menu Link
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="flex-1 max-h-[50vh]">
@@ -169,51 +275,228 @@ export default function SchoolFeatureMenuModal({
               ))}
             </div>
           ) : (
-            <div className="space-y-3">
-              {feature.menuLinks && feature.menuLinks.length > 0 ? (
-                feature.menuLinks.map((link, index) => (
-                  <Card 
-                    key={index} 
-                    className={`transition-all ${
-                      selectedMenuLinks.includes(link.name) 
-                        ? 'ring-2 ring-blue-500 bg-blue-50' 
-                        : 'opacity-60'
-                    }`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedMenuLinks.includes(link.name)}
-                          onCheckedChange={() => handleToggleMenuLink(link.name)}
-                          data-testid={`checkbox-menu-link-${index}`}
+            <div className="space-y-4">
+              {/* Add New Menu Link Form */}
+              {showAddForm && (
+                <Card className="border-dashed border-2 border-blue-300">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center justify-between">
+                      <span>Add New Menu Link</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowAddForm(false)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="new-name">Link Name</Label>
+                        <Input
+                          id="new-name"
+                          value={newMenuLink.name}
+                          onChange={(e) => setNewMenuLink({ ...newMenuLink, name: e.target.value })}
+                          placeholder="Reports, Analytics, etc."
                         />
-                        <div className="flex items-center gap-3 flex-1">
-                          <i className={`${link.icon} text-gray-600`} />
-                          <div>
-                            <div className="font-medium text-sm">{link.name}</div>
-                            <div className="text-xs text-gray-500">{link.href}</div>
-                          </div>
-                        </div>
-                        <Badge 
-                          variant={selectedMenuLinks.includes(link.name) ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {selectedMenuLinks.includes(link.name) ? "Enabled" : "Disabled"}
-                        </Badge>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
+                      
+                      <div>
+                        <Label htmlFor="new-href">Link URL</Label>
+                        <Input
+                          id="new-href"
+                          value={newMenuLink.href}
+                          onChange={(e) => setNewMenuLink({ ...newMenuLink, href: e.target.value })}
+                          placeholder="/school/features/feature-key/page"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="new-icon">Icon Class</Label>
+                        <select
+                          id="new-icon"
+                          value={newMenuLink.icon}
+                          onChange={(e) => setNewMenuLink({ ...newMenuLink, icon: e.target.value })}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          {defaultIcons.map(icon => (
+                            <option key={icon} value={icon}>
+                              {icon}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="flex items-end">
+                        <Button onClick={handleAddCustomMenuLink} className="w-full">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Menu Link
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Default Feature Menu Links */}
+              {feature.menuLinks && feature.menuLinks.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Default Feature Menu Links</h4>
+                  <div className="space-y-2">
+                    {feature.menuLinks.map((link, index) => (
+                      <Card 
+                        key={`default-${index}`} 
+                        className={`transition-all ${
+                          selectedMenuLinks.includes(link.name) 
+                            ? 'ring-2 ring-blue-500 bg-blue-50' 
+                            : 'opacity-60'
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={selectedMenuLinks.includes(link.name)}
+                              onCheckedChange={() => handleToggleMenuLink(link.name)}
+                              data-testid={`checkbox-default-menu-link-${index}`}
+                            />
+                            <div className="flex items-center gap-3 flex-1">
+                              <i className={`${link.icon} text-gray-600`} />
+                              <div>
+                                <div className="font-medium text-sm">{link.name}</div>
+                                <div className="text-xs text-gray-500">{link.href}</div>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={selectedMenuLinks.includes(link.name) ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {selectedMenuLinks.includes(link.name) ? "Enabled" : "Disabled"}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Menu Links */}
+              {customMenuLinks.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Custom Menu Links</h4>
+                  <div className="space-y-2">
+                    {customMenuLinks.map((link, index) => (
+                      <Card 
+                        key={`custom-${index}`} 
+                        className={`transition-all ${
+                          selectedMenuLinks.includes(link.name) 
+                            ? 'ring-2 ring-green-500 bg-green-50' 
+                            : 'opacity-60'
+                        }`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={selectedMenuLinks.includes(link.name)}
+                              onCheckedChange={() => handleToggleMenuLink(link.name)}
+                              data-testid={`checkbox-custom-menu-link-${index}`}
+                            />
+                            <div className="flex items-center gap-3 flex-1">
+                              <i className={`${link.icon} text-gray-600`} />
+                              <div>
+                                <div className="font-medium text-sm">{link.name}</div>
+                                <div className="text-xs text-gray-500">{link.href}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant={selectedMenuLinks.includes(link.name) ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {selectedMenuLinks.includes(link.name) ? "Enabled" : "Disabled"}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleRemoveCustomMenuLink(index)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {editingIndex === index && (
+                            <div className="mt-4 pt-4 border-t">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label htmlFor={`edit-name-${index}`}>Link Name</Label>
+                                  <Input
+                                    id={`edit-name-${index}`}
+                                    value={link.name}
+                                    onChange={(e) => handleUpdateCustomMenuLink(index, { name: e.target.value })}
+                                    placeholder="Dashboard, Reports, Settings..."
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor={`edit-href-${index}`}>Link URL</Label>
+                                  <Input
+                                    id={`edit-href-${index}`}
+                                    value={link.href}
+                                    onChange={(e) => handleUpdateCustomMenuLink(index, { href: e.target.value })}
+                                    placeholder="/school/features/feature-key/page"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor={`edit-icon-${index}`}>Icon Class</Label>
+                                  <select
+                                    id={`edit-icon-${index}`}
+                                    value={link.icon}
+                                    onChange={(e) => handleUpdateCustomMenuLink(index, { icon: e.target.value })}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                  >
+                                    {defaultIcons.map(icon => (
+                                      <option key={icon} value={icon}>
+                                        {icon}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {(!feature.menuLinks || feature.menuLinks.length === 0) && customMenuLinks.length === 0 && !showAddForm && (
                 <div className="text-center py-8">
                   <Link className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     No Menu Links Available
                   </h3>
-                  <p className="text-gray-600">
-                    This feature doesn't have any configured menu links yet. 
-                    Ask your administrator to add menu links for this feature.
+                  <p className="text-gray-600 mb-4">
+                    This feature doesn't have any configured menu links yet.
                   </p>
+                  <Button onClick={() => setShowAddForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Menu Link
+                  </Button>
                 </div>
               )}
             </div>
@@ -222,7 +505,12 @@ export default function SchoolFeatureMenuModal({
 
         <div className="border-t pt-4">
           <div className="text-sm text-gray-600 mb-3">
-            {selectedMenuLinks.length} of {feature.menuLinks?.length || 0} menu links enabled
+            {selectedMenuLinks.length} of {(feature.menuLinks?.length || 0) + customMenuLinks.length} menu links enabled
+            {customMenuLinks.length > 0 && (
+              <span className="ml-2 text-green-600">
+                ({customMenuLinks.length} custom)
+              </span>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
