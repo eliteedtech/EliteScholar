@@ -12,6 +12,7 @@ import ProfilePage from "@/pages/superadmin/profile";
 import SchoolsPage from "@/pages/superadmin/schools";
 import InvoicesPage from "@/pages/superadmin/invoices";
 import EnhancedInvoicesPage from "@/pages/superadmin/invoices-enhanced";
+import SettingsPage from "@/pages/superadmin/settings";
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -54,6 +55,7 @@ function Router() {
                   })()}
                 </Suspense>
               </Route>
+              <Route path="/superadmin/settings" component={SettingsPage} />
               <Route path="/superadmin/settings-enhanced">
                 <Suspense fallback={<div>Loading settings...</div>}>
                   {(() => {

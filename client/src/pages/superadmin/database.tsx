@@ -40,7 +40,7 @@ export default function DatabasePage() {
   });
 
   // Fetch specific table data using React Query
-  const { data: currentTableData, isLoading: isTableLoading } = useQuery({
+  const { data: currentTableData, isLoading: isTableLoading } = useQuery<TableData[]>({
     queryKey: ['/api/superadmin/database/tables', selectedTable],
     enabled: !!selectedTable
   });
@@ -132,7 +132,7 @@ export default function DatabasePage() {
           </div>
 
           {/* Table Data Display */}
-          {selectedTable && currentTableData && currentTableData.length > 0 && (
+          {selectedTable && currentTableData && Array.isArray(currentTableData) && currentTableData.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <div className="max-h-96 overflow-auto">
                 <Table>
@@ -169,7 +169,7 @@ export default function DatabasePage() {
             </div>
           )}
 
-          {selectedTable && currentTableData && currentTableData.length === 0 && !isTableLoading && (
+          {selectedTable && currentTableData && Array.isArray(currentTableData) && currentTableData.length === 0 && !isTableLoading && (
             <div className="text-center py-8 text-muted-foreground">
               <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No data found in {selectedTable}</p>
