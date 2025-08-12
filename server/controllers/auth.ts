@@ -50,25 +50,26 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 };
 
 // Get current user
-export const getCurrentUser = async (req: AuthRequest, res: Response) => {
+export const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
     }
 
-    const user = await storage.getUser(userId);
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "default_secret") as any;
+    
+    const user = await storage.getUser(decoded.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Return user without password
     const { password, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ message: "Failed to fetch user" });
+    res.status(401).json({ message: "Invalid token" });
   }
 };
 

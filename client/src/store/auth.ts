@@ -14,6 +14,7 @@ interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
+  login: (user: AuthUser, token: string) => void;
   setAuth: (user: AuthUser, token: string) => void;
   logout: () => void;
   updateUser: (user: Partial<AuthUser>) => void;
@@ -24,6 +25,9 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      login: (user: AuthUser, token: string) => {
+        set({ user, token });
+      },
       setAuth: (user: AuthUser, token: string) => {
         set({ user, token });
       },

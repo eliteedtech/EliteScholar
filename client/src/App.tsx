@@ -7,6 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import LoginPage from "@/pages/login";
+import SchoolLoginPage from "@/pages/school-login";
 import SuperAdminDashboard from "@/pages/superadmin/dashboard";
 import ProfilePage from "@/pages/superadmin/profile";
 import SchoolsPage from "@/pages/superadmin/schools";
@@ -40,7 +42,8 @@ function Router() {
       {!user ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/login" component={Landing} />
+          <Route path="/login" component={LoginPage} />
+          <Route path="/school-login" component={SchoolLoginPage} />
         </>
       ) : (
         <>
