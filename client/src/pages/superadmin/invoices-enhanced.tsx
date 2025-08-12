@@ -48,6 +48,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import SuperAdminLayout from "@/components/superadmin/layout";
 import InvoiceSendPage from "./invoice-send";
+import EnhancedInvoiceView from "./enhanced-invoice-view";
 import type { School as SchoolType, Feature as FeatureType, Invoice as InvoiceType } from "@/lib/types";
 
 // Enhanced invoice form schema
@@ -134,6 +135,17 @@ export default function EnhancedInvoicesPage() {
     invoiceNumber: string;
     totalAmount: string;
   } | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<string | null>(null);
+
+  // Show enhanced invoice view if viewing
+  if (viewingInvoice) {
+    return (
+      <EnhancedInvoiceView
+        invoiceId={viewingInvoice}
+        onClose={() => setViewingInvoice(null)}
+      />
+    );
+  }
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
@@ -678,13 +690,7 @@ export default function EnhancedInvoicesPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              // View invoice logic - could open a preview dialog
-                              toast({
-                                title: "View Invoice",
-                                description: `Opening invoice ${invoice.invoiceNumber}`,
-                              });
-                            }}
+                            onClick={() => setViewingInvoice(invoice.id)}
                             data-testid={`button-view-invoice-${invoice.id}`}
                           >
                             <FileText className="h-4 w-4" />
@@ -722,6 +728,17 @@ export default function EnhancedInvoicesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Send Invoice Dialog */}
+        {sendingInvoice && (
+          <InvoiceSendPage
+            invoiceId={sendingInvoice.id}
+            schoolName={sendingInvoice.schoolName}
+            invoiceNumber={sendingInvoice.invoiceNumber}
+            totalAmount={sendingInvoice.totalAmount}
+            onClose={() => setSendingInvoice(null)}
+          />
+        )}
       </div>
     </SuperAdminLayout>
   );

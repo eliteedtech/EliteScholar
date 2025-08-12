@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { storage } from "./storage";
 import superadminRoutes from "./controllers/superadmin";
 import invoiceRoutes from "./controllers/invoice";
+import enhancedInvoiceRoutes from "./controllers/enhanced-invoice";
 import settingsRoutes from "./controllers/settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -82,35 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced invoice creation
-  app.post("/api/invoices/enhanced", async (req, res) => {
-    try {
-      const invoiceData = req.body;
-      const invoice = await storage.createEnhancedInvoice(invoiceData);
-      res.json(invoice);
-    } catch (error) {
-      console.error("Create enhanced invoice error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
 
-  // Send invoice via communication method
-  app.post("/api/invoices/:id/send", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { communicationMethod, recipient, subject, message } = req.body;
-      
-      // Here you would implement the actual sending logic
-      // For now, just return success
-      res.json({ 
-        message: `Invoice sent successfully via ${communicationMethod} to ${recipient}`,
-        sentAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error("Send invoice error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
 
   // Super Admin routes
   app.use("/api/superadmin", superadminRoutes);
@@ -120,6 +93,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Invoice routes  
   app.use("/api/invoices", invoiceRoutes);
+  
+  // Enhanced Invoice routes
+  app.use("/api/invoices/enhanced", enhancedInvoiceRoutes);
 
   // Features routes
   app.use("/api/features", (await import("./controllers/features")).default);
