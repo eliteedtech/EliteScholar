@@ -44,9 +44,11 @@ export default function FeatureAssignment() {
   const { toast } = useToast();
 
   // Fetch schools
-  const { data: schools = [], isLoading: schoolsLoading } = useQuery({
+  const { data: schoolsData, isLoading: schoolsLoading } = useQuery({
     queryKey: ["/api/superadmin/schools"],
   });
+  
+  const schools = schoolsData?.schools || [];
 
   // Fetch all features
   const { data: allFeatures = [], isLoading: featuresLoading } = useQuery({

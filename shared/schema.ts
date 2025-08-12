@@ -117,6 +117,7 @@ export const features = pgTable("features", {
   isActive: boolean("is_active").default(true),
   requiresDateRange: boolean("requires_date_range").default(false), // If feature needs start/end dates
   type: jsonb("type").default('{"module": false, "standalone": false, "both": false}'), // Feature type information
+  menuLinks: jsonb("menu_links").default('[]'), // Default menu links for the feature
   deletedAt: timestamp("deleted_at"), // Soft delete
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -131,6 +132,18 @@ export const schoolFeatures = pgTable("school_features", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   schoolFeatureUnique: unique().on(table.schoolId, table.featureId),
+}));
+
+// School Feature Setup table - for managing menu links per school
+export const schoolFeatureSetup = pgTable("school_feature_setup", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  featureId: varchar("feature_id").notNull(),
+  menuLinks: jsonb("menu_links").notNull().default('[]'), // Customized menu links for this school
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  schoolFeatureSetupUnique: unique().on(table.schoolId, table.featureId),
 }));
 
 // Sections table - for organizing students within grades

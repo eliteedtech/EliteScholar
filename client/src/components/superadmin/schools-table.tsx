@@ -32,6 +32,7 @@ import SchoolForm from "./school-form";
 import InvoiceForm from "./invoice-form";
 import FeatureToggle from "./feature-toggle";
 import BranchManagement from "./branch-management";
+import SchoolFeatureManagementModal from "./school-feature-management-modal";
 import { api } from "@/lib/api";
 import { SchoolWithDetails } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export default function SchoolsTable() {
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [showFeatureToggle, setShowFeatureToggle] = useState(false);
   const [showBranchManagement, setShowBranchManagement] = useState(false);
+  const [showFeatureManagement, setShowFeatureManagement] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
 
   const { data: schoolsData, isLoading } = useQuery({
@@ -114,6 +116,11 @@ export default function SchoolsTable() {
   const handleManageBranches = (school: SchoolWithDetails) => {
     setSelectedSchool(school);
     setShowBranchManagement(true);
+  };
+
+  const handleManageFeatureMenus = (school: SchoolWithDetails) => {
+    setSelectedSchool(school);
+    setShowFeatureManagement(true);
   };
 
   const handleEdit = (school: SchoolWithDetails) => {
@@ -296,8 +303,18 @@ export default function SchoolsTable() {
                         size="sm"
                         onClick={() => handleManageFeatures(school)}
                         data-testid={`button-features-${school.id}`}
+                        title="Manage Features"
                       >
                         <i className="fas fa-cogs text-slate-600"></i>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleManageFeatureMenus(school)}
+                        data-testid={`button-feature-menus-${school.id}`}
+                        title="Feature Menu Links"
+                      >
+                        <i className="fas fa-link text-indigo-600"></i>
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -436,6 +453,17 @@ export default function SchoolsTable() {
           schoolName={selectedSchool.name}
           onClose={() => {
             setShowBranchManagement(false);
+            setSelectedSchool(null);
+          }}
+        />
+      )}
+      
+      {showFeatureManagement && selectedSchool && (
+        <SchoolFeatureManagementModal 
+          school={selectedSchool}
+          isOpen={showFeatureManagement}
+          onClose={() => {
+            setShowFeatureManagement(false);
             setSelectedSchool(null);
           }}
         />

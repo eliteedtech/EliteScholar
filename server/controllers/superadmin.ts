@@ -807,4 +807,52 @@ router.get("/database/tables/:tableName", async (req: AuthRequest, res: Response
   }
 });
 
+// Get school features with menu links
+router.get("/schools/:schoolId/features-with-menu", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    
+    // Get school features with default menu links from features table
+    const schoolFeaturesData = await storage.getSchoolFeaturesWithMenu(schoolId);
+    
+    res.json(schoolFeaturesData);
+  } catch (error) {
+    console.error("Get school features with menu error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get school feature setup (customized menu links)
+router.get("/schools/:schoolId/feature-setup", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    
+    const featureSetup = await storage.getSchoolFeatureSetup(schoolId);
+    
+    res.json(featureSetup);
+  } catch (error) {
+    console.error("Get school feature setup error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update school feature setup (menu links)
+router.put("/schools/:schoolId/feature-setup", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const { featureId, menuLinks } = req.body;
+    
+    if (!featureId || !menuLinks) {
+      return res.status(400).json({ message: "Feature ID and menu links are required" });
+    }
+    
+    await storage.updateSchoolFeatureSetup(schoolId, featureId, menuLinks);
+    
+    res.json({ message: "Feature setup updated successfully" });
+  } catch (error) {
+    console.error("Update school feature setup error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

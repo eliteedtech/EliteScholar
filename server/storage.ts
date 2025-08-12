@@ -4,6 +4,7 @@ import {
   branches,
   features,
   schoolFeatures,
+  schoolFeatureSetup,
   sections,
   gradeSections,
   invoices,
@@ -90,11 +91,18 @@ export interface IStorage {
   updateBranch(id: string, branch: Partial<InsertBranch>): Promise<Branch>;
 
   // Feature operations
+  getAllFeatures(): Promise<Feature[]>;
   getFeatures(): Promise<Feature[]>;
   createFeature(feature: InsertFeature): Promise<Feature>;
+  updateFeature(id: string, feature: Partial<InsertFeature>): Promise<Feature>;
   getSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]>;
   getEnabledSchoolFeatures(schoolId: string): Promise<(SchoolFeature & { feature: Feature })[]>;
   toggleSchoolFeature(schoolId: string, featureId: string, enabled: boolean): Promise<SchoolFeature>;
+  
+  // Feature menu management
+  getSchoolFeaturesWithMenu(schoolId: string): Promise<any[]>;
+  getSchoolFeatureSetup(schoolId: string): Promise<any[]>;
+  updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void>;
 
   // Grade Section operations
   createGradeSections(gradeSections: InsertGradeSection[]): Promise<GradeSection[]>;
@@ -1158,6 +1166,75 @@ export class DatabaseStorage implements IStorage {
 
   async deleteInvoiceAsset(id: string): Promise<void> {
     await db.delete(invoiceAssets).where(eq(invoiceAssets.id, id));
+  }
+
+  // Feature menu management methods
+  async getSchoolFeaturesWithMenu(schoolId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: features.id,
+        key: features.key,
+        name: features.name,
+        description: features.description,
+        menuLinks: features.menuLinks,
+        enabled: schoolFeatures.enabled,
+      })
+      .from(schoolFeatures)
+      .innerJoin(features, eq(schoolFeatures.featureId, features.id))
+      .where(eq(schoolFeatures.schoolId, schoolId));
+    
+    return result;
+  }
+
+  async getSchoolFeatureSetup(schoolId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        id: schoolFeatureSetup.id,
+        featureId: schoolFeatureSetup.featureId,
+        menuLinks: schoolFeatureSetup.menuLinks,
+        featureName: features.name,
+        featureKey: features.key,
+      })
+      .from(schoolFeatureSetup)
+      .innerJoin(features, eq(schoolFeatureSetup.featureId, features.id))
+      .where(eq(schoolFeatureSetup.schoolId, schoolId));
+    
+    return result;
+  }
+
+  async updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void> {
+    await db
+      .insert(schoolFeatureSetup)
+      .values({
+        schoolId,
+        featureId,
+        menuLinks,
+      })
+      .onConflictDoUpdate({
+        target: [schoolFeatureSetup.schoolId, schoolFeatureSetup.featureId],
+        set: {
+          menuLinks,
+          updatedAt: new Date(),
+        },
+      });
+  }
+
+  // Add missing feature methods
+  async getAllFeatures(): Promise<Feature[]> {
+    return await db
+      .select()
+      .from(features)
+      .where(eq(features.isActive, true))
+      .orderBy(asc(features.name));
+  }
+
+  async updateFeature(id: string, featureData: Partial<InsertFeature>): Promise<Feature> {
+    const [feature] = await db
+      .update(features)
+      .set({ ...featureData, updatedAt: new Date() })
+      .where(eq(features.id, id))
+      .returning();
+    return feature;
   }
 }
 

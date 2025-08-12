@@ -76,6 +76,14 @@ function Router() {
                   <FeaturesPage />
                 </Suspense>
               </Route>
+              <Route path="/superadmin/feature-assignment">
+                <Suspense fallback={<div>Loading...</div>}>
+                  {(() => {
+                    const FeatureAssignmentPage = lazy(() => import("./pages/superadmin/feature-assignment"));
+                    return <FeatureAssignmentPage />;
+                  })()}
+                </Suspense>
+              </Route>
               <Route path="/superadmin/analytics">
                 <Suspense fallback={<div>Loading...</div>}>
                   <AnalyticsPage />
