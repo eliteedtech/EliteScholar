@@ -73,6 +73,8 @@ router.get("/sections", async (req: any, res) => {
     const schoolId = req.user.schoolId;
     const branchId = req.user.branchId;
 
+    console.log(`Fetching sections for school: ${schoolId}, branch: ${branchId}`);
+
     const sectionsList = await db
       .select({
         id: schoolSections.id,
@@ -85,14 +87,20 @@ router.get("/sections", async (req: any, res) => {
         classCount: sql<number>`count(${classLevels.id})`,
       })
       .from(schoolSections)
-      .leftJoin(classLevels, eq(schoolSections.id, classLevels.sectionId))
+      .leftJoin(classLevels, and(
+        eq(schoolSections.id, classLevels.sectionId),
+        eq(classLevels.schoolId, schoolId),
+        eq(classLevels.branchId, branchId)
+      ))
       .where(and(
         eq(schoolSections.schoolId, schoolId),
-        eq(schoolSections.branchId, branchId)
+        eq(schoolSections.branchId, branchId),
+        eq(schoolSections.isActive, true)
       ))
       .groupBy(schoolSections.id, schoolSections.name, schoolSections.code, schoolSections.description, schoolSections.sortOrder, schoolSections.isActive, schoolSections.createdAt)
       .orderBy(schoolSections.sortOrder, schoolSections.name);
 
+    console.log(`Found ${sectionsList.length} sections for school ${schoolId}`);
     res.json(sectionsList);
   } catch (error) {
     console.error("Get sections error:", error);
@@ -152,7 +160,7 @@ router.post("/sections", async (req: any, res) => {
 
     res.status(201).json(newSection);
   } catch (error) {
-    console.error("Create section error:", error);
+    console.error(`Create section error for school ${req.user.schoolId}:`, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation error", details: error.errors });
     }
@@ -167,6 +175,8 @@ router.patch("/sections/:id", async (req: any, res) => {
     const branchId = req.user.branchId;
     const sectionId = req.params.id;
     const validatedData = createSectionSchema.partial().parse(req.body);
+
+    console.log(`Updating section ${sectionId} for school: ${schoolId}, branch: ${branchId}`);
 
     const updateData: any = { updatedAt: new Date() };
     if (validatedData.name) updateData.name = validatedData.name;
@@ -184,9 +194,11 @@ router.patch("/sections/:id", async (req: any, res) => {
       .returning();
 
     if (!updatedSection) {
+      console.log(`Section ${sectionId} not found for school ${schoolId}`);
       return res.status(404).json({ error: "Section not found" });
     }
 
+    console.log(`Successfully updated section ${sectionId}`);
     res.json(updatedSection);
   } catch (error) {
     console.error("Update section error:", error);
@@ -201,26 +213,40 @@ router.delete("/sections/:id", async (req: any, res) => {
     const branchId = req.user.branchId;
     const sectionId = req.params.id;
 
-    // Check if section has classes
+    console.log(`Deleting section ${sectionId} for school: ${schoolId}, branch: ${branchId}`);
+
+    // Check if section has classes and belongs to the same school
     const sectionClasses = await db
       .select()
       .from(classLevels)
-      .where(eq(classLevels.sectionId, sectionId))
+      .where(and(
+        eq(classLevels.sectionId, sectionId),
+        eq(classLevels.schoolId, schoolId),
+        eq(classLevels.branchId, branchId)
+      ))
       .limit(1);
 
     if (sectionClasses.length > 0) {
+      console.log(`Cannot delete section ${sectionId} - has existing classes`);
       return res.status(400).json({ error: "Cannot delete section with existing classes" });
     }
 
-    await db
+    const result = await db
       .update(schoolSections)
       .set({ isActive: false, updatedAt: new Date() })
       .where(and(
         eq(schoolSections.id, sectionId),
         eq(schoolSections.schoolId, schoolId),
         eq(schoolSections.branchId, branchId)
-      ));
+      ))
+      .returning();
 
+    if (result.length === 0) {
+      console.log(`Section ${sectionId} not found for school ${schoolId}`);
+      return res.status(404).json({ error: "Section not found" });
+    }
+
+    console.log(`Successfully deleted section ${sectionId}`);
     res.json({ message: "Section deleted successfully" });
   } catch (error) {
     console.error("Delete section error:", error);
