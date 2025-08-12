@@ -88,6 +88,8 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
 
   const handleLogout = () => {
     logout();
+    // Redirect to the main login page for super admin
+    window.location.href = "/login";
   };
 
   return (

@@ -118,6 +118,7 @@ export default function InvoicesPage() {
   const [calculatedTotal, setCalculatedTotal] = useState(0);
   const [schoolFeatures, setSchoolFeatures] = useState<SchoolFeature[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+  const [showCustomAmount, setShowCustomAmount] = useState(false);
 
   // Fetch invoices
   const { data: invoicesResponse, isLoading } = useQuery<{ invoices: Invoice[]; total: number }>({
@@ -257,7 +258,6 @@ export default function InvoicesPage() {
     defaultValues: {
       schoolId: "",
       features: [],
-      customAmount: "",
       dueDate: "",
       notes: "",
     },
@@ -276,10 +276,10 @@ export default function InvoicesPage() {
     setSelectedFeatures(newSelected);
     form.setValue("features", newSelected);
     
-    // Calculate total
+    // Calculate total - Note: features list is available through enabledSchoolFeatures query
     const total = newSelected.reduce((sum, id) => {
-      const feature = features.find((f: FeatureType) => f.id === id);
-      return sum + (feature?.price || 0);
+      const feature = enabledSchoolFeatures.find((f: any) => f.feature.id === id);
+      return sum + (feature?.feature.price || 0);
     }, 0);
     
     setCalculatedTotal(total);
@@ -296,8 +296,12 @@ export default function InvoicesPage() {
     
     form.reset({
       schoolId: invoice.schoolId,
-      features: invoice.features.map(f => f.id),
-      customAmount: invoice.customAmount?.toString() || "",
+      features: invoice.features.map(f => ({
+        featureId: f.id,
+        quantity: 1,
+        unitPrice: f.price,
+        unitMeasurement: "per_school",
+      })),
       dueDate: invoice.dueDate.split('T')[0], // Format for date input
       notes: invoice.notes || "",
     });
@@ -415,23 +419,26 @@ export default function InvoicesPage() {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 max-h-60 overflow-y-auto border rounded-lg p-4">
-                        {features.map((feature: Feature) => (
-                          <div key={feature.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={feature.id}
-                              checked={selectedFeatures.includes(feature.id)}
-                              onCheckedChange={(checked) => handleFeatureChange(feature.id, checked as boolean)}
-                              data-testid={`checkbox-feature-${feature.id}`}
-                            />
-                            <label
-                              htmlFor={feature.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
-                            >
-                              <div>{feature.name}</div>
-                              <div className="text-xs text-muted-foreground">₦{feature.price.toLocaleString()}</div>
-                            </label>
-                          </div>
-                        ))}
+                        {enabledSchoolFeatures.map((schoolFeature: any) => {
+                          const feature = schoolFeature.feature;
+                          return (
+                            <div key={feature.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={feature.id}
+                                checked={selectedFeatures.includes(feature.id)}
+                                onCheckedChange={(checked) => handleFeatureChange(feature.id, checked as boolean)}
+                                data-testid={`checkbox-feature-${feature.id}`}
+                              />
+                              <label
+                                htmlFor={feature.id}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+                              >
+                                <div>{feature.name}</div>
+                                <div className="text-xs text-muted-foreground">₦{feature.price.toLocaleString()}</div>
+                              </label>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -446,7 +453,7 @@ export default function InvoicesPage() {
                         <div className="mt-2">
                           <FormField
                             control={form.control}
-                            name="customAmount"
+                            name="finalAmount"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel className="text-xs">Custom Amount (Override)</FormLabel>
