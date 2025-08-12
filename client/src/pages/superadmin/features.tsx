@@ -76,7 +76,7 @@ export default function FeaturesPage() {
   });
 
   const createFeatureMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/features", "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/features", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       setIsDialogOpen(false);
@@ -97,7 +97,7 @@ export default function FeaturesPage() {
 
   const updateFeatureMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      apiRequest(`/api/features/${id}`, "PUT", data),
+      apiRequest("PUT", `/api/features/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       setIsDialogOpen(false);
@@ -117,7 +117,7 @@ export default function FeaturesPage() {
   });
 
   const deleteFeatureMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/features/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/features/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       toast({
