@@ -64,7 +64,7 @@ export default function Classes() {
 
   // Create class level mutation
   const createClassLevelMutation = useMutation({
-    mutationFn: (data: ClassLevelFormData) => apiRequest("/api/schools/setup/class-levels", "POST", data),
+    mutationFn: (data: ClassLevelFormData) => apiRequest("POST", "/api/schools/setup/class-levels", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/class-levels"] });
       setShowCreateDialog(false);

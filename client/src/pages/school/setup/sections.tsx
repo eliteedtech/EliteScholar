@@ -50,7 +50,7 @@ export default function Sections() {
 
   // Create section mutation
   const createSectionMutation = useMutation({
-    mutationFn: (data: SectionFormData) => apiRequest("/api/schools/setup/sections", "POST", data),
+    mutationFn: (data: SectionFormData) => apiRequest("POST", "/api/schools/setup/sections", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       setShowCreateDialog(false);
@@ -69,7 +69,7 @@ export default function Sections() {
   // Update section mutation
   const updateSectionMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: SectionFormData }) => 
-      apiRequest(`/api/schools/setup/sections/${id}`, "PATCH", data),
+      apiRequest("PATCH", `/api/schools/setup/sections/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       setShowEditDialog(false);
@@ -88,7 +88,7 @@ export default function Sections() {
 
   // Delete section mutation
   const deleteSectionMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/schools/setup/sections/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/schools/setup/sections/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       toast({ title: "Success", description: "Section deleted successfully" });
