@@ -274,6 +274,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Invoice asset routes
   app.use("/api/invoice-assets", (await import("./controllers/invoice-assets")).default);
+  
+  // Database management routes
+  const { databaseRoutes } = await import("./routes/database");
+  app.use("/api/database", databaseRoutes);
 
   // Health check
   app.get("/api/health", (req, res) => {
