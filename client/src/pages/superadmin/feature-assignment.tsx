@@ -40,6 +40,8 @@ interface SchoolFeature {
 export default function FeatureAssignment() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
+  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -121,10 +123,72 @@ export default function FeatureAssignment() {
     toggleFeatureMutation.mutate({ schoolId: selectedSchool, featureId, enabled });
   };
 
+  // Bulk assign features mutation
+  const bulkAssignFeaturesMutation = useMutation({
+    mutationFn: async ({ schoolIds, featureIds }: {
+      schoolIds: string[];
+      featureIds: string[];
+    }) => {
+      return apiRequest(`/api/superadmin/schools/features/bulk-assign`, {
+        method: "POST",
+        body: { schoolIds, featureIds },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/superadmin/schools"] });
+      setSelectedSchools([]);
+      setSelectedFeatures([]);
+      toast({
+        title: "Success",
+        description: "Features assigned to schools successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Bulk assign features error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign features to schools",
+        variant: "destructive",
+      });
+    },
+  });
+
   const assignAllCoreFeatures = () => {
     if (!selectedSchool) return;
     const coreFeatureIds = allFeatures.filter((f: Feature) => f.isCore).map((f: Feature) => f.id);
     assignFeaturesMutation.mutate({ schoolId: selectedSchool, featureIds: coreFeatureIds });
+  };
+
+  const handleBulkAssign = () => {
+    if (selectedSchools.length === 0 || selectedFeatures.length === 0) {
+      toast({
+        title: "Selection Required",
+        description: "Please select both schools and features to assign",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    bulkAssignFeaturesMutation.mutate({
+      schoolIds: selectedSchools,
+      featureIds: selectedFeatures
+    });
+  };
+
+  const toggleSchoolSelection = (schoolId: string) => {
+    setSelectedSchools(prev => 
+      prev.includes(schoolId) 
+        ? prev.filter(id => id !== schoolId)
+        : [...prev, schoolId]
+    );
+  };
+
+  const toggleFeatureSelection = (featureId: string) => {
+    setSelectedFeatures(prev => 
+      prev.includes(featureId)
+        ? prev.filter(id => id !== featureId)
+        : [...prev, featureId]
+    );
   };
 
   const getFeatureStatus = (featureId: string) => {
@@ -322,13 +386,79 @@ export default function FeatureAssignment() {
                 Assign features to multiple schools at once
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
-                <p className="text-gray-600">
-                  Bulk assignment functionality will be available in a future update.
-                </p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Schools Selection */}
+                <div>
+                  <h3 className="font-medium mb-3">Select Schools</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                    {schools.map((school: School) => (
+                      <div
+                        key={school.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                      >
+                        <Checkbox
+                          checked={selectedSchools.includes(school.id)}
+                          onCheckedChange={() => toggleSchoolSelection(school.id)}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{school.name}</div>
+                          <div className="text-xs text-gray-500">{school.shortName}</div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {school.type}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    {selectedSchools.length} school(s) selected
+                  </div>
+                </div>
+
+                {/* Features Selection */}
+                <div>
+                  <h3 className="font-medium mb-3">Select Features</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                    {allFeatures.map((feature: Feature) => (
+                      <div
+                        key={feature.id}
+                        className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                      >
+                        <Checkbox
+                          checked={selectedFeatures.includes(feature.id)}
+                          onCheckedChange={() => toggleFeatureSelection(feature.id)}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{feature.name}</span>
+                            {feature.isCore && (
+                              <Badge variant="default" className="text-xs">Core</Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">{feature.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-2">
+                    {selectedFeatures.length} feature(s) selected
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={handleBulkAssign}
+                  disabled={bulkAssignFeaturesMutation.isPending || selectedSchools.length === 0 || selectedFeatures.length === 0}
+                  className="w-full max-w-md"
+                >
+                  {bulkAssignFeaturesMutation.isPending ? (
+                    "Assigning..."
+                  ) : (
+                    `Assign ${selectedFeatures.length} Feature(s) to ${selectedSchools.length} School(s)`
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>

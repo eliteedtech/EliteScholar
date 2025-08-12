@@ -21,10 +21,18 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, DollarSign } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SuperAdminLayout from "@/components/superadmin/layout";
+import FeatureMenuManagementModal from "@/components/superadmin/feature-menu-management-modal";
+
+interface MenuLink {
+  name: string;
+  href: string;
+  icon: string;
+  enabled?: boolean;
+}
 
 interface Feature {
   id: string;
@@ -34,6 +42,7 @@ interface Feature {
   price?: number;
   category?: string;
   isActive: boolean;
+  menuLinks?: MenuLink[];
   type: {
     module: boolean;
     standalone: boolean;
@@ -58,7 +67,9 @@ export default function FeaturesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
+  const [menuEditingFeature, setMenuEditingFeature] = useState<Feature | null>(null);
   const [formData, setFormData] = useState<FeatureFormData>({
     name: "",
     description: "",
@@ -193,6 +204,11 @@ export default function FeaturesPage() {
     if (confirm("Are you sure you want to delete this feature?")) {
       deleteFeatureMutation.mutate(id);
     }
+  };
+
+  const handleManageMenuLinks = (feature: Feature) => {
+    setMenuEditingFeature(feature);
+    setIsMenuModalOpen(true);
   };
 
   const getTypeDisplay = (type: Feature["type"]) => {
@@ -446,6 +462,15 @@ export default function FeaturesPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleManageMenuLinks(feature)}
+                            data-testid={`button-menu-links-${feature.id}`}
+                            title="Manage Menu Links"
+                          >
+                            <Link className="h-4 w-4 text-indigo-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => openEditDialog(feature)}
                             data-testid={`button-edit-feature-${feature.id}`}
                           >
@@ -469,6 +494,16 @@ export default function FeaturesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Feature Menu Management Modal */}
+      <FeatureMenuManagementModal
+        isOpen={isMenuModalOpen}
+        onClose={() => {
+          setIsMenuModalOpen(false);
+          setMenuEditingFeature(null);
+        }}
+        feature={menuEditingFeature}
+      />
     </SuperAdminLayout>
   );
 }

@@ -1236,6 +1236,31 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return feature;
   }
+
+  async bulkAssignFeaturesToSchools(schoolIds: string[], featureIds: string[]): Promise<void> {
+    const assignments = [];
+    for (const schoolId of schoolIds) {
+      for (const featureId of featureIds) {
+        assignments.push({
+          schoolId,
+          featureId,
+          enabled: true,
+        });
+      }
+    }
+
+    if (assignments.length > 0) {
+      await db
+        .insert(schoolFeatures)
+        .values(assignments)
+        .onConflictDoUpdate({
+          target: [schoolFeatures.schoolId, schoolFeatures.featureId],
+          set: {
+            enabled: true,
+          },
+        });
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

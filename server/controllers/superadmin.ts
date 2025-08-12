@@ -855,4 +855,41 @@ router.put("/schools/:schoolId/feature-setup", async (req: AuthRequest, res: Res
   }
 });
 
+// Bulk assign features to multiple schools
+router.post("/schools/features/bulk-assign", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolIds, featureIds } = req.body;
+    
+    if (!schoolIds || !featureIds || !Array.isArray(schoolIds) || !Array.isArray(featureIds)) {
+      return res.status(400).json({ message: "School IDs and Feature IDs arrays are required" });
+    }
+    
+    await storage.bulkAssignFeaturesToSchools(schoolIds, featureIds);
+    
+    res.json({ message: "Features assigned to schools successfully" });
+  } catch (error) {
+    console.error("Bulk assign features error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update feature menu links (superadmin)
+router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
+  try {
+    const { featureId } = req.params;
+    const { menuLinks } = req.body;
+    
+    if (!menuLinks) {
+      return res.status(400).json({ message: "Menu links are required" });
+    }
+    
+    const feature = await storage.updateFeature(featureId, { menuLinks });
+    
+    res.json({ feature });
+  } catch (error) {
+    console.error("Update feature menu links error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
