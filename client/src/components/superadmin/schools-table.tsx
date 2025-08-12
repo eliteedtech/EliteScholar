@@ -33,6 +33,7 @@ import InvoiceForm from "./invoice-form";
 import FeatureToggle from "./feature-toggle";
 import BranchManagement from "./branch-management";
 import SchoolFeatureManagementModal from "./school-feature-management-modal";
+import SchoolFeatureMenuModal from "./school-feature-menu-modal";
 import { api } from "@/lib/api";
 import { SchoolWithDetails } from "@/lib/types";
 
@@ -50,7 +51,9 @@ export default function SchoolsTable() {
   const [showFeatureToggle, setShowFeatureToggle] = useState(false);
   const [showBranchManagement, setShowBranchManagement] = useState(false);
   const [showFeatureManagement, setShowFeatureManagement] = useState(false);
+  const [showFeatureMenuModal, setShowFeatureMenuModal] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithDetails | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<any>(null);
 
   const { data: schoolsData, isLoading } = useQuery({
     queryKey: ["/api/superadmin/schools", page, filters],
@@ -465,6 +468,19 @@ export default function SchoolsTable() {
           onClose={() => {
             setShowFeatureManagement(false);
             setSelectedSchool(null);
+          }}
+        />
+      )}
+      
+      {showFeatureMenuModal && selectedSchool && selectedFeature && (
+        <SchoolFeatureMenuModal 
+          school={selectedSchool}
+          feature={selectedFeature}
+          isOpen={showFeatureMenuModal}
+          onClose={() => {
+            setShowFeatureMenuModal(false);
+            setSelectedSchool(null);
+            setSelectedFeature(null);
           }}
         />
       )}

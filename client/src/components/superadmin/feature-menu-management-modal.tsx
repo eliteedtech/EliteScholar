@@ -139,7 +139,7 @@ export default function FeatureMenuManagementModal({
       return;
     }
 
-    await updateFeatureMenuLinksMutation.mutateAsync({
+    updateFeatureMenuLinksMutation.mutate({
       featureId: feature.id,
       menuLinks
     });

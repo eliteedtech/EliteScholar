@@ -1261,6 +1261,44 @@ export class DatabaseStorage implements IStorage {
         });
     }
   }
+
+  async getSchoolFeatureSetup(schoolId: string, featureId: string): Promise<any> {
+    const [setup] = await db
+      .select()
+      .from(schoolFeatureSetup)
+      .where(
+        and(
+          eq(schoolFeatureSetup.schoolId, schoolId),
+          eq(schoolFeatureSetup.featureId, featureId)
+        )
+      )
+      .limit(1);
+
+    return setup || null;
+  }
+
+  async getAllSchoolFeatureSetups(schoolId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(schoolFeatureSetup)
+      .where(eq(schoolFeatureSetup.schoolId, schoolId));
+  }
+
+  async updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void> {
+    await db
+      .insert(schoolFeatureSetup)
+      .values({
+        schoolId,
+        featureId,
+        menuLinks: JSON.stringify(menuLinks),
+      })
+      .onConflictDoUpdate({
+        target: [schoolFeatureSetup.schoolId, schoolFeatureSetup.featureId],
+        set: {
+          menuLinks: JSON.stringify(menuLinks),
+        },
+      });
+  }
 }
 
 export const storage = new DatabaseStorage();

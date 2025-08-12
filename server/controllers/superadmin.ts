@@ -892,4 +892,18 @@ router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get school feature setup (menu links) 
+router.get("/schools/:schoolId/feature-setup/:featureId", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId, featureId } = req.params;
+    
+    const setup = await storage.getSchoolFeatureSetup(schoolId, featureId);
+    
+    res.json(setup);
+  } catch (error) {
+    console.error("Get school feature setup error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
