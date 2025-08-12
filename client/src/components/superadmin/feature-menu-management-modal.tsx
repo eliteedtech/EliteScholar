@@ -76,9 +76,8 @@ export default function FeatureMenuManagementModal({
       featureId: string; 
       menuLinks: MenuLink[] 
     }) => {
-      return apiRequest(`/api/superadmin/features/${featureId}`, {
-        method: "PUT",
-        body: { menuLinks },
+      return apiRequest("PUT", `/api/superadmin/features/${featureId}`, {
+        menuLinks
       });
     },
     onSuccess: () => {

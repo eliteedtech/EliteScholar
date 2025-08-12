@@ -12,6 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Table,
   TableBody,
   TableCell,
@@ -290,20 +296,49 @@ export default function SchoolsTable() {
                     )}
                   </TableCell>
                   <TableCell data-testid={`school-features-${school.id}`}>
-                    <div className="flex flex-wrap gap-1">
-                      {school.features
-                        .filter((sf: any) => sf.enabled && sf.feature)
-                        .slice(0, 2)
-                        .map((sf: any) => (
-                          <Badge key={sf.id} variant="secondary" className="text-xs">
-                            {sf.feature?.key || sf.featureId || 'Unknown'}
-                          </Badge>
-                        ))}
-                      {school.features.filter((sf: any) => sf.enabled && sf.feature).length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{school.features.filter((sf: any) => sf.enabled && sf.feature).length - 2}
-                        </Badge>
-                      )}
+                    <div className="max-w-xs">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="features" className="border-0">
+                          <AccordionTrigger className="py-2 hover:no-underline">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {school.features.filter((sf: any) => sf.enabled && sf.feature).length} Features
+                              </Badge>
+                              <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-2">
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                              {school.features
+                                .filter((sf: any) => sf.enabled && sf.feature)
+                                .map((sf: any) => (
+                                  <div key={sf.id} className="bg-gray-50 rounded p-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-gray-700">
+                                        {sf.feature?.name || sf.feature?.key || 'Unknown'}
+                                      </span>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {sf.feature?.key}
+                                      </Badge>
+                                    </div>
+                                    {sf.feature?.menuLinks && sf.feature.menuLinks.length > 0 && (
+                                      <div className="mt-2 space-y-1">
+                                        <div className="text-xs text-gray-500 font-medium">Menu Links:</div>
+                                        {sf.feature.menuLinks.map((link: any, index: number) => (
+                                          <div key={index} className="flex items-center gap-2 text-xs">
+                                            <i className={`${link.icon || 'fas fa-link'} text-gray-400`}></i>
+                                            <span className="text-gray-600">{link.name}</span>
+                                            <span className="text-gray-400">→ {link.href}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
                   </TableCell>
                   <TableCell>
