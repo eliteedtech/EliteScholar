@@ -612,15 +612,25 @@ export class DatabaseStorage implements IStorage {
         array_agg(col.column_name ORDER BY col.ordinal_position) as columns
       FROM information_schema.tables t
       LEFT JOIN (
-        SELECT 
-          schemaname,
-          tablename as table_name,
-          n_tup_ins - n_tup_del as record_count
-        FROM pg_stat_user_tables
+        SELECT 'users' as table_name, (SELECT COUNT(*) FROM users) as record_count UNION ALL
+        SELECT 'schools', (SELECT COUNT(*) FROM schools) UNION ALL
+        SELECT 'branches', (SELECT COUNT(*) FROM branches) UNION ALL
+        SELECT 'features', (SELECT COUNT(*) FROM features) UNION ALL
+        SELECT 'school_features', (SELECT COUNT(*) FROM school_features) UNION ALL
+        SELECT 'grade_sections', (SELECT COUNT(*) FROM grade_sections) UNION ALL
+        SELECT 'sections', (SELECT COUNT(*) FROM sections) UNION ALL
+        SELECT 'invoices', (SELECT COUNT(*) FROM invoices) UNION ALL
+        SELECT 'invoice_lines', (SELECT COUNT(*) FROM invoice_lines) UNION ALL
+        SELECT 'invoice_templates', (SELECT COUNT(*) FROM invoice_templates) UNION ALL
+        SELECT 'invoice_assets', (SELECT COUNT(*) FROM invoice_assets) UNION ALL
+        SELECT 'subscriptions', (SELECT COUNT(*) FROM subscriptions) UNION ALL
+        SELECT 'app_config', (SELECT COUNT(*) FROM app_config) UNION ALL
+        SELECT 'app_settings', (SELECT COUNT(*) FROM app_settings)
       ) c ON c.table_name = t.table_name
       LEFT JOIN information_schema.columns col ON col.table_name = t.table_name
       WHERE t.table_schema = 'public' 
         AND t.table_type = 'BASE TABLE'
+        AND t.table_name IN ('users', 'schools', 'branches', 'features', 'school_features', 'grade_sections', 'sections', 'invoices', 'invoice_lines', 'invoice_templates', 'invoice_assets', 'subscriptions', 'app_config', 'app_settings')
       GROUP BY t.table_name, c.record_count
       ORDER BY t.table_name;
     `;

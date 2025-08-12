@@ -1,0 +1,50 @@
+Got it — here’s an updated, more complete **prompt for Replit AI** that includes your **Academic Year + Academic Weeks** requirement:
+
+---
+
+> **Continue building our School Management System**. You have already created the **Super Admin** section (create schools, school admins, branches, and manage features).
+> Now build the **School Admin** section with the following:
+>
+> **A. Login Page for Schools**
+>
+> * Create a clean, branded login page for School-level users (School Admin, Branch Admin, Teachers, etc.).
+> * single page with inputs `{ school_short_name, username/email, password }`. Backend must normalize `school_short_name`, look up `school_id` by that short name (abbreviation), then authenticate the user **scoped to that `school_id`** (and `branch_id` if provided). Return a JWT/session with `user_id`, `role`, `school_id`, `branch_id`. Sanitize inputs and throttle login attempts.
+> * After login, route the user to their dashboard according to role.
+ and display them as menu items. For now, ignore `school_features` — we will apply feature access restrictions later. Some features have children, e.g.:
+>
+> * **Sticky header & sidebar:** both must be sticky on desktop; sidebar collapses to hamburger on mobile. Header shows logo, school badge + name, branch switcher (only for School Admin), current active academic year & term, light/dark toggle, and profile dropdown. Sidebar fetches features from `features` table use the description column to know how the each feature works and renders children (collapsibles, search, icons). i.e
+>
+> * **School Setup feature ** → Classes, Subjects, Academic Year.
+> * For **Classes**: fetch classes for the current `school_id` (edit, delete).
+> * For **Subjects**: allow bulk assignment. Example: if Primary 1–5 have the same subjects, select the section once to auto-select all classes in it. Do the same for Secondary (SS1, SS2, SS3) with departments like Science/Arts/Economics.
+> * For **Academic Year**: allow School Admin to:
+>
+>   1. Create an **academic year** (e.g., 2025/2026).
+>   2. Inside the academic year, create **terms** (e.g., Term 1, Term 2, Term 3) with start and end dates.
+>   3. For each term, auto-generate **academic weeks**:
+>
+>      * Weeks should have `week_number`, `start_date`, and `end_date`.
+>      * Dates should be calculated sequentially based on the term’s start and end date.
+>      * Allow editing/removing weeks after generation.
+>   4. Display a **school calendar view** combining all weeks, highlighting current week.
+>
+> **C. Header** – Top bar should include:
+>
+> * Company logo + “School Management System”
+> * Current school badge and name
+> * Branch switcher (School Admin can switch branches; Branch Admin cannot)
+> * Current active academic year and term
+> * Light/Dark mode toggle
+> * User profile dropdown (Profile, Logout)
+>
+> **D. Branch & Access Rules** –
+>
+> * Always filter/fetch/create/update/delete with both `school_id` and current `branch_id`.
+> * School Admin can switch branches; Branch Admin sees only their own branch.
+> * For now, show all features from the `features` table.
+>
+> **E. CRUD Functionality** – Implement full create, read, update, and delete for each feature where needed (e.g., Classes, Subjects, Academic Years, Students, Teachers, etc.).
+>
+> * Use **IDs or permanent codes** for references (e.g., `class_id` or `class_code` for subjects). This ensures renaming a class does not break associations.
+>
+> **F. Smart Enhancements** – Make the UI simple and efficient. If you think of a feature that improves usability (e.g., search filters, bulk actions, quick-edit, collapsible menus), feel free to add it.

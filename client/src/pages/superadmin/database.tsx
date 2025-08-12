@@ -33,45 +33,20 @@ interface TableData {
 
 export default function DatabasePage() {
   const [selectedTable, setSelectedTable] = useState<string>("");
-  const [tableData, setTableData] = useState<TableData[]>([]);
-  const [loading, setLoading] = useState(false);
 
   // Fetch table information
   const { data: tablesInfo, isLoading, refetch } = useQuery({
     queryKey: ['/api/superadmin/database/tables'],
-    queryFn: async () => {
-      const response = await fetch('/api/superadmin/database/tables');
-      if (!response.ok) throw new Error('Failed to fetch tables');
-      const data = await response.json();
-      return data as TableInfo[];
-    }
   });
 
-  // Fetch specific table data
-  const fetchTableData = async (tableName: string) => {
-    if (!tableName) return;
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/superadmin/database/tables/${tableName}`);
-      if (!response.ok) throw new Error('Failed to fetch table data');
-      const data = await response.json();
-      setTableData(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch table data",
-        variant: "destructive",
-      });
-      console.error('Error fetching table data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch specific table data using React Query
+  const { data: currentTableData, isLoading: isTableLoading } = useQuery({
+    queryKey: ['/api/superadmin/database/tables', selectedTable],
+    enabled: !!selectedTable
+  });
 
   const handleTableSelect = (tableName: string) => {
     setSelectedTable(tableName);
-    fetchTableData(tableName);
   };
 
   if (isLoading) {
@@ -98,7 +73,7 @@ export default function DatabasePage() {
 
       {/* Tables Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tablesInfo?.map((table) => (
+        {Array.isArray(tablesInfo) && (tablesInfo as TableInfo[]).map((table) => (
           <Card 
             key={table.table_name} 
             className={`cursor-pointer transition-colors hover:bg-accent ${
@@ -140,7 +115,7 @@ export default function DatabasePage() {
                 <SelectValue placeholder="Select a table" />
               </SelectTrigger>
               <SelectContent>
-                {tablesInfo?.map((table) => (
+                {Array.isArray(tablesInfo) && (tablesInfo as TableInfo[]).map((table) => (
                   <SelectItem key={table.table_name} value={table.table_name}>
                     {table.table_name} ({table.record_count})
                   </SelectItem>
@@ -148,30 +123,22 @@ export default function DatabasePage() {
               </SelectContent>
             </Select>
             
-            {selectedTable && (
-              <Button 
-                onClick={() => fetchTableData(selectedTable)}
-                disabled={loading}
-                size="sm"
-              >
-                {loading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Eye className="h-4 w-4 mr-2" />
-                )}
-                {loading ? 'Loading...' : 'View Data'}
-              </Button>
+            {selectedTable && isTableLoading && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                Loading table data...
+              </div>
             )}
           </div>
 
           {/* Table Data Display */}
-          {selectedTable && tableData.length > 0 && (
+          {selectedTable && currentTableData && currentTableData.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <div className="max-h-96 overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      {Object.keys(tableData[0]).map((column) => (
+                      {Object.keys(currentTableData[0]).map((column) => (
                         <TableHead key={column} className="font-semibold">
                           {column}
                         </TableHead>
@@ -179,7 +146,7 @@ export default function DatabasePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tableData.map((row, index) => (
+                    {currentTableData.map((row, index) => (
                       <TableRow key={index}>
                         {Object.values(row).map((value, cellIndex) => (
                           <TableCell key={cellIndex} className="max-w-xs truncate">
@@ -202,7 +169,7 @@ export default function DatabasePage() {
             </div>
           )}
 
-          {selectedTable && tableData.length === 0 && !loading && (
+          {selectedTable && currentTableData && currentTableData.length === 0 && !isTableLoading && (
             <div className="text-center py-8 text-muted-foreground">
               <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No data found in {selectedTable}</p>
