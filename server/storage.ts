@@ -646,6 +646,12 @@ export class DatabaseStorage implements IStorage {
         SELECT 'school_features', (SELECT COUNT(*) FROM school_features) UNION ALL
         SELECT 'grade_sections', (SELECT COUNT(*) FROM grade_sections) UNION ALL
         SELECT 'sections', (SELECT COUNT(*) FROM sections) UNION ALL
+        SELECT 'academic_years', (SELECT COUNT(*) FROM academic_years) UNION ALL
+        SELECT 'academic_terms', (SELECT COUNT(*) FROM academic_terms) UNION ALL
+        SELECT 'academic_weeks', (SELECT COUNT(*) FROM academic_weeks) UNION ALL
+        SELECT 'classes', (SELECT COUNT(*) FROM classes) UNION ALL
+        SELECT 'subjects', (SELECT COUNT(*) FROM subjects) UNION ALL
+        SELECT 'class_subjects', (SELECT COUNT(*) FROM class_subjects) UNION ALL
         SELECT 'invoices', (SELECT COUNT(*) FROM invoices) UNION ALL
         SELECT 'invoice_lines', (SELECT COUNT(*) FROM invoice_lines) UNION ALL
         SELECT 'invoice_templates', (SELECT COUNT(*) FROM invoice_templates) UNION ALL
@@ -657,7 +663,7 @@ export class DatabaseStorage implements IStorage {
       LEFT JOIN information_schema.columns col ON col.table_name = t.table_name
       WHERE t.table_schema = 'public' 
         AND t.table_type = 'BASE TABLE'
-        AND t.table_name IN ('users', 'schools', 'branches', 'features', 'school_features', 'grade_sections', 'sections', 'invoices', 'invoice_lines', 'invoice_templates', 'invoice_assets', 'subscriptions', 'app_config', 'app_settings')
+        AND t.table_name IN ('users', 'schools', 'branches', 'features', 'school_features', 'grade_sections', 'sections', 'academic_years', 'academic_terms', 'academic_weeks', 'classes', 'subjects', 'class_subjects', 'invoices', 'invoice_lines', 'invoice_templates', 'invoice_assets', 'subscriptions', 'app_config', 'app_settings')
       GROUP BY t.table_name, c.record_count
       ORDER BY t.table_name;
     `;
@@ -671,7 +677,8 @@ export class DatabaseStorage implements IStorage {
     // Validate table name to prevent SQL injection
     const validTables = [
       'users', 'schools', 'branches', 'features', 'school_features', 
-      'grade_sections', 'sections', 'invoices', 'invoice_lines',
+      'grade_sections', 'sections', 'academic_years', 'academic_terms', 'academic_weeks',
+      'classes', 'subjects', 'class_subjects', 'invoices', 'invoice_lines',
       'invoice_templates', 'invoice_assets', 'subscriptions', 'app_config', 'app_settings'
     ];
     
