@@ -12,6 +12,12 @@ import {
   invoiceAssets,
   subscriptions,
   appConfig,
+  academicYears,
+  academicTerms,
+  academicWeeks,
+  classes,
+  subjects,
+  classSubjects,
   type User,
   type InsertUser,
   type School,
@@ -39,6 +45,18 @@ import {
   type ConnectionTestResult,
   type SchoolWithDetails,
   type InvoiceWithLines,
+  type AcademicYear,
+  type InsertAcademicYear,
+  type AcademicTerm,
+  type InsertAcademicTerm,
+  type AcademicWeek,
+  type InsertAcademicWeek,
+  type Class,
+  type InsertClass,
+  type Subject,
+  type InsertSubject,
+  type ClassSubject,
+  type InsertClassSubject,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, count, sql, or, ilike, ne } from "drizzle-orm";
@@ -47,6 +65,7 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByEmailAndSchool(email: string, schoolId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, user: Partial<InsertUser>): Promise<User>;
 
@@ -138,6 +157,14 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByEmailAndSchool(email: string, schoolId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), eq(users.schoolId, schoolId)));
     return user;
   }
 

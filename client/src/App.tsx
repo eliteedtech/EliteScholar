@@ -86,7 +86,66 @@ function Router() {
               </Route>
             </>
           )}
-          {/* Add other role-specific routes here */}
+          
+          {/* School-specific routes for all school roles */}
+          {(user.role === "school_admin" || user.role === "teacher" || user.role === "student" || user.role === "parent") && (
+            <>
+              <Route path="/" component={() => {
+                const SchoolDashboard = lazy(() => import("./pages/school/dashboard"));
+                return (
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <SchoolDashboard />
+                  </Suspense>
+                );
+              }} />
+              <Route path="/school" component={() => {
+                const SchoolDashboard = lazy(() => import("./pages/school/dashboard"));
+                return (
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <SchoolDashboard />
+                  </Suspense>
+                );
+              }} />
+              
+              {/* School Admin specific routes */}
+              {user.role === "school_admin" && (
+                <>
+                  <Route path="/school/academic-years" component={() => {
+                    const AcademicYearsPage = lazy(() => import("./pages/school/academic-years"));
+                    return (
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <AcademicYearsPage />
+                      </Suspense>
+                    );
+                  }} />
+                  <Route path="/school/classes" component={() => {
+                    const ClassesPage = lazy(() => import("./pages/school/classes"));
+                    return (
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <ClassesPage />
+                      </Suspense>
+                    );
+                  }} />
+                  <Route path="/school/users" component={() => {
+                    const UsersPage = lazy(() => import("./pages/school/users"));
+                    return (
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <UsersPage />
+                      </Suspense>
+                    );
+                  }} />
+                  <Route path="/school/settings" component={() => {
+                    const SchoolSettingsPage = lazy(() => import("./pages/school/settings"));
+                    return (
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <SchoolSettingsPage />
+                      </Suspense>
+                    );
+                  }} />
+                </>
+              )}
+            </>
+          )}
         </>
       )}
       <Route component={NotFound} />

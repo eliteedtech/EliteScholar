@@ -234,6 +234,95 @@ export const subscriptions = pgTable("subscriptions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Academic year and term related tables
+
+// Academic Years table
+export const academicYears = pgTable("academic_years", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "2025/2026"
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true),
+  isCurrent: boolean("is_current").default(false), // Only one current year per school
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Academic Terms table
+export const academicTerms = pgTable("academic_terms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  academicYearId: varchar("academic_year_id").notNull(),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "Term 1", "First Semester"
+  code: varchar("code").notNull(), // e.g., "T1", "S1"
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true),
+  isCurrent: boolean("is_current").default(false), // Only one current term per academic year
+  order: integer("order").notNull(), // 1, 2, 3
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Academic Weeks table
+export const academicWeeks = pgTable("academic_weeks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  academicTermId: varchar("academic_term_id").notNull(),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  weekNumber: integer("week_number").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Classes table (e.g., Primary 1 A, SS2 Science)
+export const classes = pgTable("classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  gradeSectionId: varchar("grade_section_id").notNull(), // Reference to grade (Primary 1, SS2, etc.)
+  sectionId: varchar("section_id"), // Reference to section (A, B, C, etc.)
+  name: varchar("name").notNull(), // e.g., "Primary 1 A", "SS2 Science A"
+  code: varchar("code").notNull(), // e.g., "P1A", "SS2SA"
+  department: varchar("department"), // For secondary: Science, Arts, Economics
+  capacity: integer("capacity").default(30),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subjects table
+export const subjects = pgTable("subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id").notNull(),
+  name: varchar("name").notNull(), // e.g., "Mathematics", "English"
+  code: varchar("code").notNull(), // e.g., "MATH", "ENG"
+  description: text("description"),
+  isCore: boolean("is_core").default(false), // Core subjects are mandatory
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Class Subjects table (Many-to-many relationship)
+export const classSubjects = pgTable("class_subjects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classId: varchar("class_id").notNull(),
+  subjectId: varchar("subject_id").notNull(),
+  teacherId: varchar("teacher_id"), // Assigned teacher
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  classSubjectUnique: unique().on(table.classId, table.subjectId),
+}));
+
 // Relations
 export const userRelations = relations(users, ({ one }) => ({
   school: one(schools, {
@@ -307,6 +396,97 @@ export const subscriptionRelations = relations(subscriptions, ({ one }) => ({
   }),
 }));
 
+// Academic year relations
+export const academicYearRelations = relations(academicYears, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [academicYears.schoolId],
+    references: [schools.id],
+  }),
+  branch: one(branches, {
+    fields: [academicYears.branchId],
+    references: [branches.id],
+  }),
+  terms: many(academicTerms),
+}));
+
+export const academicTermRelations = relations(academicTerms, ({ one, many }) => ({
+  academicYear: one(academicYears, {
+    fields: [academicTerms.academicYearId],
+    references: [academicYears.id],
+  }),
+  school: one(schools, {
+    fields: [academicTerms.schoolId],
+    references: [schools.id],
+  }),
+  branch: one(branches, {
+    fields: [academicTerms.branchId],
+    references: [branches.id],
+  }),
+  weeks: many(academicWeeks),
+}));
+
+export const academicWeekRelations = relations(academicWeeks, ({ one }) => ({
+  academicTerm: one(academicTerms, {
+    fields: [academicWeeks.academicTermId],
+    references: [academicTerms.id],
+  }),
+  school: one(schools, {
+    fields: [academicWeeks.schoolId],
+    references: [schools.id],
+  }),
+  branch: one(branches, {
+    fields: [academicWeeks.branchId],
+    references: [branches.id],
+  }),
+}));
+
+export const classRelations = relations(classes, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [classes.schoolId],
+    references: [schools.id],
+  }),
+  branch: one(branches, {
+    fields: [classes.branchId],
+    references: [branches.id],
+  }),
+  gradeSection: one(gradeSections, {
+    fields: [classes.gradeSectionId],
+    references: [gradeSections.id],
+  }),
+  section: one(sections, {
+    fields: [classes.sectionId],
+    references: [sections.id],
+  }),
+  subjects: many(classSubjects),
+}));
+
+export const subjectRelations = relations(subjects, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [subjects.schoolId],
+    references: [schools.id],
+  }),
+  branch: one(branches, {
+    fields: [subjects.branchId],
+    references: [branches.id],
+  }),
+  classes: many(classSubjects),
+}));
+
+export const classSubjectRelations = relations(classSubjects, ({ one }) => ({
+  class: one(classes, {
+    fields: [classSubjects.classId],
+    references: [classes.id],
+  }),
+  subject: one(subjects, {
+    fields: [classSubjects.subjectId],
+    references: [subjects.id],
+  }),
+  teacher: one(users, {
+    fields: [classSubjects.teacherId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -375,6 +555,41 @@ export const insertInvoiceAssetSchema = createInsertSchema(invoiceAssets).omit({
   updatedAt: true,
 });
 
+export const insertAcademicYearSchema = createInsertSchema(academicYears).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAcademicTermSchema = createInsertSchema(academicTerms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAcademicWeekSchema = createInsertSchema(academicWeeks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClassSchema = createInsertSchema(classes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubjectSchema = createInsertSchema(subjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertClassSubjectSchema = createInsertSchema(classSubjects).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -418,6 +633,19 @@ export type InvoiceWithLines = Invoice & {
   school: School;
   lines: InvoiceLine[];
 };
+
+export type AcademicYear = typeof academicYears.$inferSelect;
+export type InsertAcademicYear = z.infer<typeof insertAcademicYearSchema>;
+export type AcademicTerm = typeof academicTerms.$inferSelect;
+export type InsertAcademicTerm = z.infer<typeof insertAcademicTermSchema>;
+export type AcademicWeek = typeof academicWeeks.$inferSelect;
+export type InsertAcademicWeek = z.infer<typeof insertAcademicWeekSchema>;
+export type Class = typeof classes.$inferSelect;
+export type InsertClass = z.infer<typeof insertClassSchema>;
+export type Subject = typeof subjects.$inferSelect;
+export type InsertSubject = z.infer<typeof insertSubjectSchema>;
+export type ClassSubject = typeof classSubjects.$inferSelect;
+export type InsertClassSubject = z.infer<typeof insertClassSubjectSchema>;
 
 // Connection Status Enum
 export const connectionStatusEnum = pgEnum("connection_status", [

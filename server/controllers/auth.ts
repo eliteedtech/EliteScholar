@@ -75,8 +75,14 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
 // Login
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, shortName } = req.body;
 
+    // If shortName is provided, this is a school-specific login
+    if (shortName) {
+      return await schoolLogin(req, res);
+    }
+
+    // Regular super admin login
     const user = await storage.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -105,6 +111,68 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error during login:", error);
+    res.status(500).json({ message: "Login failed" });
+  }
+};
+
+// School-specific login
+export const schoolLogin = async (req: Request, res: Response) => {
+  try {
+    const { email, password, shortName } = req.body;
+
+    // Normalize school short name
+    const normalizedShortName = shortName.toLowerCase().trim();
+
+    // Find school by short name
+    const school = await storage.getSchoolByShortName(normalizedShortName);
+    if (!school) {
+      return res.status(401).json({ message: "Invalid school code" });
+    }
+
+    // Check if school is active and payment is up to date
+    if (school.status !== "ACTIVE") {
+      return res.status(401).json({ message: "School account is disabled" });
+    }
+
+    if (school.paymentStatus === "UNPAID" && school.accessBlockedAt) {
+      return res.status(401).json({ message: "School access blocked due to unpaid fees" });
+    }
+
+    // Find user by email within this school
+    const user = await storage.getUserByEmailAndSchool(email, school.id);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role,
+        schoolId: user.schoolId,
+        branchId: user.branchId,
+      },
+      process.env.JWT_SECRET || "default_secret",
+      { expiresIn: "7d" }
+    );
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({
+      user: userWithoutPassword,
+      token,
+      school: {
+        id: school.id,
+        name: school.name,
+        shortName: school.shortName,
+        type: school.type,
+      },
+    });
+  } catch (error) {
+    console.error("Error during school login:", error);
     res.status(500).json({ message: "Login failed" });
   }
 };
