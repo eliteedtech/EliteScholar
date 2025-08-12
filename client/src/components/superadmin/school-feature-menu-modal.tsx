@@ -120,10 +120,11 @@ export default function SchoolFeatureMenuModal({
       menuLinks: MenuLink[];
     }) => {
       console.log('Updating school feature setup:', { schoolId, featureId, menuLinks });
-      return apiRequest(`/api/superadmin/schools/${schoolId}/feature-setup`, {
-        method: "PUT",
-        body: { featureId, menuLinks },
+      const response = await apiRequest("PUT", `/api/superadmin/schools/${schoolId}/feature-setup`, {
+        featureId,
+        menuLinks
       });
+      return response.json();
     },
     onSuccess: () => {
       console.log('School feature setup updated successfully');
@@ -158,7 +159,10 @@ export default function SchoolFeatureMenuModal({
   };
 
   const handleSave = () => {
-    if (!school?.id || !feature?.id) return;
+    if (!school?.id || !feature?.id) {
+      console.error('Missing school or feature ID:', { schoolId: school?.id, featureId: feature?.id });
+      return;
+    }
 
     // Combine default feature menu links with custom menu links
     const defaultMenuLinks = (feature.menuLinks || []).map(link => ({
@@ -172,6 +176,12 @@ export default function SchoolFeatureMenuModal({
     }));
 
     const allMenuLinks = [...defaultMenuLinks, ...customMenuLinksWithStatus];
+
+    console.log('Calling save with data:', {
+      schoolId: school.id,
+      featureId: feature.id,
+      menuLinks: allMenuLinks
+    });
 
     updateSchoolFeatureSetupMutation.mutate({
       schoolId: school.id,
@@ -522,6 +532,7 @@ export default function SchoolFeatureMenuModal({
             <Button 
               onClick={handleSave}
               disabled={updateSchoolFeatureSetupMutation.isPending}
+              data-testid="button-save-menu-links"
             >
               <Save className="h-4 w-4 mr-1" />
               {updateSchoolFeatureSetupMutation.isPending ? 'Saving...' : 'Save Menu Links'}
