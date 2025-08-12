@@ -25,7 +25,7 @@ router.use(authMiddleware);
 // Validation schemas
 const createSectionSchema = z.object({
   name: z.string().min(1),
-  code: z.string().min(1).max(10),
+  code: z.string().optional(), // Optional, will be auto-generated if not provided
   description: z.string().optional(),
   sortOrder: z.number().optional(),
 });
@@ -107,19 +107,35 @@ router.post("/sections", async (req: any, res) => {
     const branchId = req.user.branchId;
     const validatedData = createSectionSchema.parse(req.body);
 
-    // Check for duplicate code
-    const existingSection = await db
-      .select()
-      .from(schoolSections)
-      .where(and(
-        eq(schoolSections.schoolId, schoolId),
-        eq(schoolSections.branchId, branchId),
-        eq(schoolSections.code, validatedData.code)
-      ))
-      .limit(1);
+    // Auto-generate section code from name
+    const generateSectionCode = (name: string): string => {
+      const words = name.trim().split(/\s+/);
+      if (words.length === 1) {
+        return words[0].substring(0, 3).toUpperCase();
+      }
+      return words.map(word => word.substring(0, 1).toUpperCase()).join('').substring(0, 5);
+    };
 
-    if (existingSection.length > 0) {
-      return res.status(400).json({ error: "Section code already exists" });
+    let baseCode = validatedData.code || generateSectionCode(validatedData.name);
+    let finalCode = baseCode;
+    let counter = 1;
+
+    // Ensure unique code by appending number if needed
+    while (true) {
+      const existingSection = await db
+        .select()
+        .from(schoolSections)
+        .where(and(
+          eq(schoolSections.schoolId, schoolId),
+          eq(schoolSections.branchId, branchId),
+          eq(schoolSections.code, finalCode)
+        ))
+        .limit(1);
+
+      if (existingSection.length === 0) break;
+      
+      finalCode = `${baseCode}${counter}`;
+      counter++;
     }
 
     const [newSection] = await db
@@ -128,7 +144,7 @@ router.post("/sections", async (req: any, res) => {
         schoolId,
         branchId,
         name: validatedData.name,
-        code: validatedData.code,
+        code: finalCode,
         description: validatedData.description || null,
         sortOrder: validatedData.sortOrder || 0,
       })
@@ -154,7 +170,6 @@ router.patch("/sections/:id", async (req: any, res) => {
 
     const updateData: any = { updatedAt: new Date() };
     if (validatedData.name) updateData.name = validatedData.name;
-    if (validatedData.code) updateData.code = validatedData.code;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
     if (validatedData.sortOrder !== undefined) updateData.sortOrder = validatedData.sortOrder;
 
@@ -297,6 +312,15 @@ router.post("/class-levels", async (req: any, res) => {
       return res.status(400).json({ error: "Class with this name and level already exists" });
     }
 
+    // Get the sort order from the section
+    const section = await db
+      .select({ sortOrder: schoolSections.sortOrder })
+      .from(schoolSections)
+      .where(eq(schoolSections.id, validatedData.sectionId))
+      .limit(1);
+
+    const sectionSortOrder = section[0]?.sortOrder || 0;
+
     const [newClassLevel] = await db
       .insert(classLevels)
       .values({
@@ -307,6 +331,7 @@ router.post("/class-levels", async (req: any, res) => {
         levelLabel: validatedData.levelLabel,
         fullName,
         capacity: validatedData.capacity || 0,
+        sortOrder: sectionSortOrder * 100 + parseInt(validatedData.name.replace(/\D/g, '') || '0'),
       })
       .returning();
 

@@ -29,7 +29,6 @@ interface SchoolSection {
 
 const sectionFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  code: z.string().min(1, "Code is required").max(10, "Code must be at most 10 characters"),
   description: z.string().optional(),
   sortOrder: z.number().min(0).optional(),
 });
@@ -51,10 +50,7 @@ export default function Sections() {
 
   // Create section mutation
   const createSectionMutation = useMutation({
-    mutationFn: (data: SectionFormData) => apiRequest("/api/schools/setup/sections", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: SectionFormData) => apiRequest("/api/schools/setup/sections", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       setShowCreateDialog(false);
@@ -73,10 +69,7 @@ export default function Sections() {
   // Update section mutation
   const updateSectionMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: SectionFormData }) => 
-      apiRequest(`/api/schools/setup/sections/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
+      apiRequest(`/api/schools/setup/sections/${id}`, "PATCH", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       setShowEditDialog(false);
@@ -95,9 +88,7 @@ export default function Sections() {
 
   // Delete section mutation
   const deleteSectionMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/schools/setup/sections/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: string) => apiRequest(`/api/schools/setup/sections/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools/setup/sections"] });
       toast({ title: "Success", description: "Section deleted successfully" });
@@ -116,7 +107,6 @@ export default function Sections() {
     resolver: zodResolver(sectionFormSchema),
     defaultValues: {
       name: "",
-      code: "",
       description: "",
       sortOrder: 0,
     },
@@ -131,14 +121,13 @@ export default function Sections() {
   const filteredSections = sections.filter(section =>
     section.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     section.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    section.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    (section.description && section.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleEdit = (section: SchoolSection) => {
     setSelectedSection(section);
     editForm.reset({
       name: section.name,
-      code: section.code,
       description: section.description || "",
       sortOrder: section.sortOrder,
     });
@@ -301,7 +290,7 @@ export default function Sections() {
             <DialogHeader>
               <DialogTitle>Add New Section</DialogTitle>
               <DialogDescription>
-                Create a new section for grouping classes
+                Create a new section for grouping classes. Section code will be auto-generated.
               </DialogDescription>
             </DialogHeader>
             <Form {...createForm}>
@@ -319,19 +308,7 @@ export default function Sections() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={createForm.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Section Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., PRI, JSS" data-testid="section-code-input" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
                 <FormField
                   control={createForm.control}
                   name="description"
@@ -412,19 +389,7 @@ export default function Sections() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={editForm.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Section Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., PRI, JSS" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
                 <FormField
                   control={editForm.control}
                   name="description"
