@@ -419,51 +419,93 @@ export type InvoiceWithLines = Invoice & {
   lines: InvoiceLine[];
 };
 
-// App Settings table for global application configuration
-export const appSettings = pgTable("app_settings", {
+// Connection Status Enum
+export const connectionStatusEnum = pgEnum("connection_status", [
+  "connected", 
+  "disconnected", 
+  "error", 
+  "testing"
+]);
+
+// App Config table for comprehensive application configuration with connection status
+export const appConfig = pgTable("app_config", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Basic App Settings
   appName: varchar("app_name").default("Elite Scholar"),
   appLogo: varchar("app_logo"),
   domain: varchar("domain"),
   
-  // Email Configuration
+  // SendGrid Email Configuration
+  sendgridApiKey: varchar("sendgrid_api_key"),
+  sendgridFromEmail: varchar("sendgrid_from_email"),
+  sendgridFromName: varchar("sendgrid_from_name").default("Elite Scholar"),
+  sendgridStatus: connectionStatusEnum("sendgrid_status").default("disconnected"),
+  sendgridLastChecked: timestamp("sendgrid_last_checked"),
+  sendgridErrorMessage: text("sendgrid_error_message"),
+  
+  // SMTP Email Fallback Configuration
   smtpHost: varchar("smtp_host"),
   smtpPort: varchar("smtp_port").default("587"),
   smtpUser: varchar("smtp_user"),
   smtpPassword: varchar("smtp_password"),
   smtpSecure: boolean("smtp_secure").default(false),
-  emailFromAddress: varchar("email_from_address"),
-  emailFromName: varchar("email_from_name").default("Elite Scholar"),
-  emailTemplate: text("email_template"), // HTML email template
+  smtpStatus: connectionStatusEnum("smtp_status").default("disconnected"),
+  smtpLastChecked: timestamp("smtp_last_checked"),
+  smtpErrorMessage: text("smtp_error_message"),
   
-  // Cloudinary Settings
+  // Cloudinary Configuration
   cloudinaryCloudName: varchar("cloudinary_cloud_name"),
   cloudinaryApiKey: varchar("cloudinary_api_key"),
   cloudinaryApiSecret: varchar("cloudinary_api_secret"),
   cloudinaryUploadPreset: varchar("cloudinary_upload_preset"),
+  cloudinaryStatus: connectionStatusEnum("cloudinary_status").default("disconnected"),
+  cloudinaryLastChecked: timestamp("cloudinary_last_checked"),
+  cloudinaryErrorMessage: text("cloudinary_error_message"),
   
-  // Communication Methods
+  // Twilio Communication Configuration
   twilioAccountSid: varchar("twilio_account_sid"),
   twilioAuthToken: varchar("twilio_auth_token"),
   twilioPhoneNumber: varchar("twilio_phone_number"),
   twilioWhatsappNumber: varchar("twilio_whatsapp_number"),
+  twilioSmsStatus: connectionStatusEnum("twilio_sms_status").default("disconnected"),
+  twilioWhatsappStatus: connectionStatusEnum("twilio_whatsapp_status").default("disconnected"),
+  twilioLastChecked: timestamp("twilio_last_checked"),
+  twilioErrorMessage: text("twilio_error_message"),
   
-  // Invoice Settings
-  invoiceTemplate: text("invoice_template"), // HTML invoice template
+  // Invoice Template Settings
+  invoiceTemplate: text("invoice_template"),
   invoiceBackgroundImage: varchar("invoice_background_image"),
   invoiceLogo: varchar("invoice_logo"),
+  
+  // System Settings
+  maintenanceMode: boolean("maintenance_mode").default(false),
+  allowRegistration: boolean("allow_registration").default(true),
+  maxFileUploadSize: integer("max_file_upload_size").default(10485760), // 10MB default
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Schema validation for app settings
-export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({
+// Schema validation for app config
+export const insertAppConfigSchema = createInsertSchema(appConfig).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  sendgridLastChecked: true,
+  smtpLastChecked: true,
+  cloudinaryLastChecked: true,
+  twilioLastChecked: true,
 });
 
-// App Settings types
-export type AppSettings = typeof appSettings.$inferSelect;
-export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
+// App Config types
+export type AppConfig = typeof appConfig.$inferSelect;
+export type InsertAppConfig = z.infer<typeof insertAppConfigSchema>;
+
+// Connection test result type
+export type ConnectionTestResult = {
+  service: string;
+  status: 'connected' | 'disconnected' | 'error';
+  message?: string;
+  lastChecked: Date;
+};

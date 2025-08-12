@@ -13,13 +13,21 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: string;
+  active: boolean;
+  count?: number;
+}
+
 export default function SuperAdminLayout({ title, subtitle, children }: LayoutProps) {
   const [location] = useLocation();
   const { logout } = useAuthStore();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const navigation = [
+  const navigation: NavigationItem[] = [
     {
       name: "Schools",
       href: "/superadmin/schools",
@@ -65,16 +73,10 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       active: location === "/superadmin/users",
     },
     {
-      name: "Settings",
-      href: "/superadmin/settings",
-      icon: "fas fa-cog",
-      active: location === "/superadmin/settings",
-    },
-    {
-      name: "Enhanced Settings",
-      href: "/superadmin/settings-enhanced",
-      icon: "fas fa-cogs",
-      active: location === "/superadmin/settings-enhanced",
+      name: "Profile",
+      href: "/superadmin/profile",
+      icon: "fas fa-user-cog",
+      active: location === "/superadmin/profile",
     },
   ];
 

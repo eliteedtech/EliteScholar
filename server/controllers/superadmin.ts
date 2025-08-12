@@ -1,11 +1,18 @@
 import { Router, Response } from "express";
 import bcrypt from "bcrypt";
+import multer from "multer";
 import { z } from "zod";
 import { storage } from "../storage";
 import { authMiddleware, AuthRequest, superAdminOnly } from "../middleware/auth";
-import { upload, cloudinaryService } from "../services/cloudinary";
+import { cloudinaryService } from "../services/cloudinary";
 import { emailService } from "../services/email";
 import { generateGradeSections } from "../services/gradeSection";
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 const router = Router();
 

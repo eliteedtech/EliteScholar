@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import SuperAdminDashboard from "@/pages/superadmin/dashboard";
-import SettingsPage from "@/pages/superadmin/settings";
+import ProfilePage from "@/pages/superadmin/profile";
 import SchoolsPage from "@/pages/superadmin/schools";
 import InvoicesPage from "@/pages/superadmin/invoices";
 import EnhancedInvoicesPage from "@/pages/superadmin/invoices-enhanced";
@@ -73,7 +73,7 @@ function Router() {
                 </Suspense>
               </Route>
               <Route path="/superadmin/users" component={SuperAdminDashboard} />
-              <Route path="/superadmin/settings" component={SettingsPage} />
+              <Route path="/superadmin/profile" component={ProfilePage} />
             </>
           )}
           {/* Add other role-specific routes here */}

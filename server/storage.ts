@@ -11,7 +11,7 @@ import {
   invoiceTemplates,
   invoiceAssets,
   subscriptions,
-  appSettings,
+  appConfig,
   type User,
   type InsertUser,
   type School,
@@ -34,8 +34,9 @@ import {
   type InsertInvoiceTemplate,
   type InvoiceAsset,
   type InsertInvoiceAsset,
-  type AppSettings,
-  type InsertAppSettings,
+  type AppConfig,
+  type InsertAppConfig,
+  type ConnectionTestResult,
   type SchoolWithDetails,
   type InvoiceWithLines,
 } from "@shared/schema";
@@ -86,9 +87,12 @@ export interface IStorage {
   // Grade section operations with sections
   createDefaultGradeSections(schoolId: string, schoolType: string): Promise<GradeSection[]>;
   
-  // App settings operations
-  getAppSettings(): Promise<any>;
-  updateAppSettings(settings: any): Promise<any>;
+  // App config operations
+  getAppConfig(): Promise<AppConfig | undefined>;
+  updateAppConfig(config: Partial<InsertAppConfig>): Promise<AppConfig>;
+  createAppConfig(config: InsertAppConfig): Promise<AppConfig>;
+  testServiceConnection(service: string, config: any): Promise<ConnectionTestResult>;
+  updateServiceStatus(service: string, status: string, error?: string): Promise<void>;
 
   // Invoice operations
   getInvoices(filters?: {
@@ -796,26 +800,118 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // App Settings operations
-  async getAppSettings(): Promise<AppSettings | null> {
-    const [settings] = await db.select().from(appSettings).limit(1);
-    return settings || null;
+  // App Config operations
+  async getAppConfig(): Promise<AppConfig | undefined> {
+    const [config] = await db.select().from(appConfig).limit(1);
+    return config;
   }
 
-  async updateAppSettings(settingsData: InsertAppSettings): Promise<AppSettings> {
-    const existingSettings = await this.getAppSettings();
+  async updateAppConfig(configData: Partial<InsertAppConfig>): Promise<AppConfig> {
+    const existingConfig = await this.getAppConfig();
     
-    if (existingSettings) {
+    if (existingConfig) {
       const [updated] = await db
-        .update(appSettings)
-        .set({ ...settingsData, updatedAt: new Date() })
-        .where(eq(appSettings.id, existingSettings.id))
+        .update(appConfig)
+        .set({ ...configData, updatedAt: new Date() })
+        .where(eq(appConfig.id, existingConfig.id))
         .returning();
       return updated;
     } else {
-      const [created] = await db.insert(appSettings).values(settingsData).returning();
+      const [created] = await db.insert(appConfig).values(configData as InsertAppConfig).returning();
       return created;
     }
+  }
+
+  async createAppConfig(configData: InsertAppConfig): Promise<AppConfig> {
+    const [config] = await db.insert(appConfig).values(configData).returning();
+    return config;
+  }
+
+  async testServiceConnection(service: string, config: any): Promise<ConnectionTestResult> {
+    const now = new Date();
+    
+    try {
+      switch (service) {
+        case 'sendgrid':
+          if (!config.sendgridApiKey) {
+            return { service, status: 'error', message: 'API key is required', lastChecked: now };
+          }
+          // Test SendGrid connection (mock for now)
+          return { service, status: 'connected', lastChecked: now };
+          
+        case 'twilio':
+          if (!config.twilioAccountSid || !config.twilioAuthToken) {
+            return { service, status: 'error', message: 'Account SID and Auth Token are required', lastChecked: now };
+          }
+          // Test Twilio connection (mock for now)
+          return { service, status: 'connected', lastChecked: now };
+          
+        case 'cloudinary':
+          if (!config.cloudinaryCloudName || !config.cloudinaryApiKey || !config.cloudinaryApiSecret) {
+            return { service, status: 'error', message: 'Cloud name, API key, and API secret are required', lastChecked: now };
+          }
+          // Test Cloudinary connection (mock for now)
+          return { service, status: 'connected', lastChecked: now };
+          
+        case 'smtp':
+          if (!config.smtpHost || !config.smtpUser || !config.smtpPassword) {
+            return { service, status: 'error', message: 'Host, user, and password are required', lastChecked: now };
+          }
+          // Test SMTP connection (mock for now)
+          return { service, status: 'connected', lastChecked: now };
+          
+        default:
+          return { service, status: 'error', message: 'Unknown service', lastChecked: now };
+      }
+    } catch (error) {
+      return { 
+        service, 
+        status: 'error', 
+        message: error instanceof Error ? error.message : 'Connection failed', 
+        lastChecked: now 
+      };
+    }
+  }
+
+  async updateServiceStatus(service: string, status: string, error?: string): Promise<void> {
+    const existingConfig = await this.getAppConfig();
+    if (!existingConfig) return;
+
+    const updateData: any = { updatedAt: new Date() };
+    const now = new Date();
+
+    switch (service) {
+      case 'sendgrid':
+        updateData.sendgridStatus = status;
+        updateData.sendgridLastChecked = now;
+        if (error) updateData.sendgridErrorMessage = error;
+        break;
+      case 'twilio_sms':
+        updateData.twilioSmsStatus = status;
+        updateData.twilioLastChecked = now;
+        if (error) updateData.twilioErrorMessage = error;
+        break;
+      case 'twilio_whatsapp':
+        updateData.twilioWhatsappStatus = status;
+        updateData.twilioLastChecked = now;
+        if (error) updateData.twilioErrorMessage = error;
+        break;
+      case 'cloudinary':
+        updateData.cloudinaryStatus = status;
+        updateData.cloudinaryLastChecked = now;
+        if (error) updateData.cloudinaryErrorMessage = error;
+        break;
+      case 'smtp':
+        updateData.smtpStatus = status;
+        updateData.smtpLastChecked = now;
+        if (error) updateData.smtpErrorMessage = error;
+        break;
+    }
+
+    await db
+      .update(appConfig)
+      .set(updateData)
+      .where(eq(appConfig.id, existingConfig.id));
   }
 
 
