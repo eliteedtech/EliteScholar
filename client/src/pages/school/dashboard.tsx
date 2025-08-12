@@ -39,41 +39,88 @@ export default function SchoolDashboard() {
     queryKey: ["/api/schools/dashboard/stats"],
   });
 
-  // Get quick actions based on user role and enabled features
+  // Fetch assigned features for this school
+  const { data: schoolFeatures = [] } = useQuery({
+    queryKey: ["/api/schools/features"],
+  });
+
+  // Get quick actions based on user role and assigned features
   const getQuickActions = (): QuickAction[] => {
-    const baseActions: QuickAction[] = [
-      {
+    console.log('School features:', schoolFeatures);
+    
+    // Base actions that are always available
+    const baseActions: QuickAction[] = [];
+
+    // Feature-based actions - only show if feature is assigned and enabled
+    const featureActions: Record<string, QuickAction> = {
+      'academic_management': {
         title: "Academic Years",
         description: "Manage academic years and terms",
         icon: <Calendar className="h-6 w-6" />,
         href: "/school/academic-years",
         color: "bg-blue-500",
       },
-      {
+      'class_management': {
         title: "View Classes",
         description: "Browse all classes and sections",
         icon: <School className="h-6 w-6" />,
         href: "/school/classes",
         color: "bg-green-500",
       },
-      {
+      'subject_management': {
         title: "Subjects",
         description: "Manage school subjects",
         icon: <BookOpen className="h-6 w-6" />,
         href: "/school/subjects",
         color: "bg-purple-500",
       },
-    ];
-
-    // Add role-specific actions
-    if (user?.role === "school_admin") {
-      baseActions.unshift({
+      'staff_management': {
         title: "Staff Management",
         description: "Manage staff profiles and assignments",
         icon: <Users className="h-6 w-6" />,
         href: "/school/features/staff-management",
         color: "bg-orange-500",
-      });
+      },
+      'school_setup': {
+        title: "School Setup",
+        description: "Configure school structure",
+        icon: <School className="h-6 w-6" />,
+        href: "/school/setup",
+        color: "bg-indigo-500",
+      },
+      'attendance': {
+        title: "Attendance",
+        description: "Track student attendance",
+        icon: <Clock className="h-6 w-6" />,
+        href: "/school/features/attendance",
+        color: "bg-red-500",
+      },
+      'gradebook': {
+        title: "Gradebook",
+        description: "Manage grades and assessments",
+        icon: <BookOpen className="h-6 w-6" />,
+        href: "/school/features/gradebook",
+        color: "bg-emerald-500",
+      },
+      'report_generation': {
+        title: "Reports",
+        description: "Generate academic reports",
+        icon: <TrendingUp className="h-6 w-6" />,
+        href: "/school/features/reports",
+        color: "bg-blue-600",
+      }
+    };
+
+    // Add features that are assigned and enabled to this school
+    schoolFeatures.forEach((feature: any) => {
+      if (feature.enabled && featureActions[feature.key]) {
+        baseActions.push(featureActions[feature.key]);
+      }
+    });
+
+    // Always show School Setup for school admins
+    if (user?.role === "school_admin" && !baseActions.find(action => action.href === "/school/setup")) {
+      baseActions.push(featureActions['school_setup']);
     }
 
     return baseActions;

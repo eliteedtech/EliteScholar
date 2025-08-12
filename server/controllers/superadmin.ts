@@ -737,6 +737,41 @@ router.post("/schools/:schoolId/features/:featureKey/disable", async (req: AuthR
   }
 });
 
+// Assign/toggle school feature
+router.post("/schools/:schoolId/features", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const { featureId, enabled } = req.body;
+
+    console.log(`Toggling feature ${featureId} for school ${schoolId}: ${enabled}`);
+
+    await storage.toggleSchoolFeature(schoolId, featureId, enabled);
+    res.json({ message: `Feature ${enabled ? 'enabled' : 'disabled'} successfully` });
+  } catch (error) {
+    console.error("Toggle school feature error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Bulk assign features to school
+router.post("/schools/:schoolId/features/bulk", async (req: AuthRequest, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+    const { featureIds } = req.body;
+
+    console.log(`Bulk assigning ${featureIds.length} features to school ${schoolId}`);
+
+    for (const featureId of featureIds) {
+      await storage.toggleSchoolFeature(schoolId, featureId, true);
+    }
+
+    res.json({ message: "Features assigned successfully" });
+  } catch (error) {
+    console.error("Bulk assign features error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.delete("/features/:featureId", async (req: AuthRequest, res: Response) => {
   try {
     const { featureId } = req.params;

@@ -3,6 +3,7 @@ import SuperAdminLayout from "@/components/superadmin/layout";
 import StatsCards from "@/components/superadmin/stats-cards";
 import SchoolsTable from "@/components/superadmin/schools-table";
 import FeaturesManagement from "@/components/superadmin/features-management";
+import FeatureAssignment from "@/pages/superadmin/feature-assignment";
 
 export default function SuperAdminDashboard() {
   const [location] = useLocation();
@@ -29,6 +30,8 @@ export default function SuperAdminDashboard() {
         );
       case "features":
         return <FeaturesManagement />;
+      case "feature-assignment":
+        return <FeatureAssignment />;
       case "analytics":
         return (
           <div className="bg-white rounded-xl shadow-sm p-6">
@@ -71,6 +74,11 @@ export default function SuperAdminDashboard() {
         return {
           title: "Feature Management",
           subtitle: "Configure and manage platform features"
+        };
+      case "feature-assignment":
+        return {
+          title: "Feature Assignment",
+          subtitle: "Assign features to schools and manage access permissions"
         };
       case "analytics":
         return {

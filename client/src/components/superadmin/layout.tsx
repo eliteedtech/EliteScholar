@@ -61,6 +61,12 @@ export default function SuperAdminLayout({ title, subtitle, children }: LayoutPr
       active: location === "/superadmin/features",
     },
     {
+      name: "Feature Assignment",
+      href: "/superadmin/feature-assignment",
+      icon: "fas fa-link",
+      active: location === "/superadmin/feature-assignment",
+    },
+    {
       name: "Analytics",
       href: "/superadmin/analytics",
       icon: "fas fa-chart-bar",

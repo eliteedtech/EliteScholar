@@ -87,6 +87,9 @@ router.get("/stats", async (req: any, res) => {
 router.get("/features", async (req: any, res) => {
   try {
     const schoolId = req.user.schoolId;
+    const userRole = req.user.role;
+
+    console.log(`Fetching features for school: ${schoolId}, user role: ${userRole}`);
 
     if (!schoolId) {
       return res.status(400).json({ error: "School ID required" });
@@ -95,14 +98,19 @@ router.get("/features", async (req: any, res) => {
     const schoolFeaturesList = await db
       .select({
         id: features.id,
+        key: features.key,
         name: features.name,
         description: features.description,
+        category: features.category,
+        isCore: features.isCore,
         enabled: schoolFeatures.enabled,
+        createdAt: schoolFeatures.createdAt,
       })
       .from(schoolFeatures)
       .innerJoin(features, eq(schoolFeatures.featureId, features.id))
       .where(eq(schoolFeatures.schoolId, schoolId));
 
+    console.log(`Found ${schoolFeaturesList.length} features assigned to school ${schoolId}`);
     res.json(schoolFeaturesList);
   } catch (error) {
     console.error("Features fetch error:", error);
