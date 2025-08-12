@@ -275,16 +275,16 @@ export default function SchoolsTable() {
                   <TableCell data-testid={`school-features-${school.id}`}>
                     <div className="flex flex-wrap gap-1">
                       {school.features
-                        .filter((sf: any) => sf.enabled)
+                        .filter((sf: any) => sf.enabled && sf.feature)
                         .slice(0, 2)
                         .map((sf: any) => (
                           <Badge key={sf.id} variant="secondary" className="text-xs">
-                            {sf.feature.key}
+                            {sf.feature?.key || sf.featureId || 'Unknown'}
                           </Badge>
                         ))}
-                      {school.features.filter((sf: any) => sf.enabled).length > 2 && (
+                      {school.features.filter((sf: any) => sf.enabled && sf.feature).length > 2 && (
                         <Badge variant="outline" className="text-xs">
-                          +{school.features.filter((sf: any) => sf.enabled).length - 2}
+                          +{school.features.filter((sf: any) => sf.enabled && sf.feature).length - 2}
                         </Badge>
                       )}
                     </div>

@@ -352,8 +352,18 @@ router.post("/schools", upload.single("logo"), async (req: AuthRequest, res: Res
     // Enable initial features if selected
     if (initialFeatures && initialFeatures.length > 0) {
       try {
+        // Get all features to map keys to IDs
+        const allFeatures = await storage.getAllFeatures();
+        const featureMap = new Map(allFeatures.map(f => [f.key, f.id]));
+        
         for (const featureKey of initialFeatures) {
-          await storage.toggleSchoolFeature(school.id, featureKey, true);
+          const featureId = featureMap.get(featureKey);
+          if (featureId) {
+            await storage.toggleSchoolFeature(school.id, featureId, true);
+            console.log(`Enabled feature ${featureKey} (${featureId}) for school ${school.id}`);
+          } else {
+            console.warn(`Feature with key '${featureKey}' not found in features table`);
+          }
         }
       } catch (featureError) {
         console.error("Failed to enable initial features:", featureError);
