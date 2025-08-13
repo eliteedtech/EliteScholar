@@ -1203,20 +1203,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void> {
-    await db
+    console.log('Updating school feature setup in DB:', { schoolId, featureId, menuLinks });
+    
+    const result = await db
       .insert(schoolFeatureSetup)
       .values({
         schoolId,
         featureId,
-        menuLinks,
+        menuLinks: JSON.stringify(menuLinks),
       })
       .onConflictDoUpdate({
         target: [schoolFeatureSetup.schoolId, schoolFeatureSetup.featureId],
         set: {
-          menuLinks,
+          menuLinks: JSON.stringify(menuLinks),
           updatedAt: new Date(),
         },
       });
+      
+    console.log('School feature setup updated successfully');
   }
 
   // Add missing feature methods
@@ -1260,25 +1264,7 @@ export class DatabaseStorage implements IStorage {
           },
         });
 
-      // Auto-populate default menu links for each assignment
-      for (const schoolId of schoolIds) {
-        for (const featureId of featureIds) {
-          const [feature] = await db
-        .select()
-        .from(features)
-        .where(eq(features.id, featureId))
-        .limit(1);
-          if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
-            // Create default setup with all menu links enabled
-            const defaultMenuLinks = feature.menuLinks.map((link: any) => ({
-              ...link,
-              enabled: true
-            }));
-            
-            await this.updateSchoolFeatureSetup(schoolId, featureId, defaultMenuLinks);
-          }
-        }
-      }
+      // Don't auto-populate menu links - let schools configure them manually
     }
   }
 

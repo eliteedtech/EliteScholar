@@ -879,12 +879,23 @@ router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
     const { featureId } = req.params;
     const { menuLinks } = req.body;
     
+    console.log('Updating feature menu links:', { featureId, menuLinks });
+    
     if (!menuLinks) {
       return res.status(400).json({ message: "Menu links are required" });
     }
     
-    const feature = await storage.updateFeature(featureId, { menuLinks });
+    // Ensure menuLinks is properly structured
+    const processedMenuLinks = menuLinks.map((link: any) => ({
+      name: link.name,
+      href: link.href,
+      icon: link.icon || 'fas fa-home',
+      enabled: link.enabled !== undefined ? link.enabled : true
+    }));
     
+    const feature = await storage.updateFeature(featureId, { menuLinks: processedMenuLinks });
+    
+    console.log('Feature updated successfully:', feature);
     res.json({ feature });
   } catch (error) {
     console.error("Update feature menu links error:", error);

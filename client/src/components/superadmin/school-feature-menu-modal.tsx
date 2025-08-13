@@ -99,23 +99,16 @@ export default function SchoolFeatureMenuModal({
         }
       }
       
-      // Separate default feature menu links from custom ones
-      const defaultMenuLinks = selectedFeature?.menuLinks || [];
-      const existingCustomLinks = (menuLinks || []).filter((link: MenuLink) => 
-        !defaultMenuLinks.some((defaultLink: MenuLink) => defaultLink.name === link.name)
-      );
-      
-      // Extract enabled menu link names from the setup
+      // Use only database menu links - no defaults
       const enabledLinks = (menuLinks || [])
         .filter((link: MenuLink) => link.enabled)
         .map((link: MenuLink) => link.name);
       
       setSelectedMenuLinks(enabledLinks);
-      setCustomMenuLinks(existingCustomLinks);
-    } else if (selectedFeature?.menuLinks) {
-      // Default to all menu links enabled if no setup exists
-      const allLinks = selectedFeature.menuLinks.map(link => link.name);
-      setSelectedMenuLinks(allLinks);
+      setCustomMenuLinks(menuLinks || []);
+    } else {
+      // If no setup exists, start with empty state - no defaults
+      setSelectedMenuLinks([]);
       setCustomMenuLinks([]);
     }
   }, [schoolFeatureSetup, selectedFeature]);
@@ -179,29 +172,22 @@ export default function SchoolFeatureMenuModal({
       return;
     }
 
-    // Combine default feature menu links with custom menu links
-    const defaultMenuLinks = (selectedFeature.menuLinks || []).map(link => ({
+    // Save only the custom menu links with enabled status
+    const menuLinksWithStatus = customMenuLinks.map(link => ({
       ...link,
       enabled: selectedMenuLinks.includes(link.name)
     }));
-
-    const customMenuLinksWithStatus = customMenuLinks.map(link => ({
-      ...link,
-      enabled: selectedMenuLinks.includes(link.name)
-    }));
-
-    const allMenuLinks = [...defaultMenuLinks, ...customMenuLinksWithStatus];
 
     console.log('Calling save with data:', {
       schoolId: school.id,
       featureId: selectedFeature.id,
-      menuLinks: allMenuLinks
+      menuLinks: menuLinksWithStatus
     });
 
     updateSchoolFeatureSetupMutation.mutate({
       schoolId: school.id,
       featureId: selectedFeature.id,
-      menuLinks: allMenuLinks
+      menuLinks: menuLinksWithStatus
     });
   };
 
@@ -216,10 +202,7 @@ export default function SchoolFeatureMenuModal({
     }
 
     // Check if name already exists
-    const allExistingNames = [
-      ...(selectedFeature?.menuLinks || []).map(link => link.name),
-      ...customMenuLinks.map(link => link.name)
-    ];
+    const allExistingNames = customMenuLinks.map(link => link.name);
 
     if (allExistingNames.includes(newMenuLink.name)) {
       toast({
@@ -397,52 +380,10 @@ export default function SchoolFeatureMenuModal({
                 </Card>
               )}
 
-              {/* Default Feature Menu Links */}
-              {selectedFeature?.menuLinks && selectedFeature.menuLinks.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Default Feature Menu Links</h4>
-                  <div className="space-y-2">
-                    {selectedFeature.menuLinks.map((link, index) => (
-                      <Card 
-                        key={`default-${index}`} 
-                        className={`transition-all ${
-                          selectedMenuLinks.includes(link.name) 
-                            ? 'ring-2 ring-blue-500 bg-blue-50' 
-                            : 'opacity-60'
-                        }`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={selectedMenuLinks.includes(link.name)}
-                              onCheckedChange={() => handleToggleMenuLink(link.name)}
-                              data-testid={`checkbox-default-menu-link-${index}`}
-                            />
-                            <div className="flex items-center gap-3 flex-1">
-                              <i className={`${link.icon} text-gray-600`} />
-                              <div>
-                                <div className="font-medium text-sm">{link.name}</div>
-                                <div className="text-xs text-gray-500">{link.href}</div>
-                              </div>
-                            </div>
-                            <Badge 
-                              variant={selectedMenuLinks.includes(link.name) ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {selectedMenuLinks.includes(link.name) ? "Enabled" : "Disabled"}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Custom Menu Links */}
+              {/* Menu Links from Database */}
               {customMenuLinks.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Custom Menu Links</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Menu Links</h4>
                   <div className="space-y-2">
                     {customMenuLinks.map((link, index) => (
                       <Card 
@@ -541,14 +482,14 @@ export default function SchoolFeatureMenuModal({
               )}
 
               {/* Empty State */}
-              {(!selectedFeature?.menuLinks || selectedFeature.menuLinks.length === 0) && customMenuLinks.length === 0 && !showAddForm && (
+              {customMenuLinks.length === 0 && !showAddForm && (
                 <div className="text-center py-8">
                   <Link className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No Menu Links Available
+                    No Menu Links Yet
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    This feature doesn't have any configured menu links yet.
+                    Add menu links for this feature to make them available to the school.
                   </p>
                   <Button onClick={() => setShowAddForm(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -564,12 +505,8 @@ export default function SchoolFeatureMenuModal({
         {selectedFeature && (
         <div className="border-t pt-4">
           <div className="text-sm text-gray-600 mb-3">
-            {selectedMenuLinks.length} of {(selectedFeature.menuLinks?.length || 0) + customMenuLinks.length} menu links enabled
-            {customMenuLinks.length > 0 && (
-              <span className="ml-2 text-green-600">
-                ({customMenuLinks.length} custom)
-              </span>
-            )}
+            {selectedMenuLinks.length} of {customMenuLinks.length} menu links enabled
+
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
