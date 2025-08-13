@@ -144,10 +144,13 @@ export default function EnhancedAssetSetup() {
     queryKey: ["/api/assets", selectedAsset?.id, "details"],
     enabled: !!selectedAsset?.id && showDetailsDialog,
     queryFn: async () => {
-      const [purchases, assignments] = await Promise.all([
-        apiRequest(`/api/assets/${selectedAsset?.id}/purchases`, "GET"),
-        apiRequest(`/api/assets/${selectedAsset?.id}/assignments`, "GET"),
+      const [purchasesResponse, assignmentsResponse] = await Promise.all([
+        apiRequest("GET", `/api/assets/${selectedAsset?.id}/purchases`),
+        apiRequest("GET", `/api/assets/${selectedAsset?.id}/assignments`),
       ]);
+      
+      const purchases = await purchasesResponse.json();
+      const assignments = await assignmentsResponse.json();
       
       // Calculate totals
       const totalPurchaseCost = purchases.reduce((sum: number, purchase: AssetPurchase) => 
@@ -166,11 +169,12 @@ export default function EnhancedAssetSetup() {
   // Create asset mutation
   const createAssetMutation = useMutation({
     mutationFn: async (data: AssetFormData) => {
-      return apiRequest(`/api/assets`, "POST", {
+      const response = await apiRequest("POST", `/api/assets`, {
         ...data,
         schoolId: user?.schoolId,
         createdBy: user?.id,
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "assets"] });
@@ -185,7 +189,8 @@ export default function EnhancedAssetSetup() {
   // Add purchase mutation
   const addPurchaseMutation = useMutation({
     mutationFn: async (data: PurchaseFormData & { totalCost: number }) => {
-      return apiRequest(`/api/assets/${selectedAsset?.id}/purchases`, "POST", data);
+      const response = await apiRequest("POST", `/api/assets/${selectedAsset?.id}/purchases`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "assets"] });
@@ -201,7 +206,8 @@ export default function EnhancedAssetSetup() {
   // Assign asset mutation
   const assignAssetMutation = useMutation({
     mutationFn: async (data: AssignmentFormData) => {
-      return apiRequest(`/api/assets/${selectedAsset?.id}/assignments`, "POST", data);
+      const response = await apiRequest("POST", `/api/assets/${selectedAsset?.id}/assignments`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "assets"] });
