@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Plus, Settings, Trash2, Edit, Home, MapPin } from "lucide-react";
+import { Building2, Plus, Settings, Trash2, Edit, Home, MapPin, Users, GraduationCap } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { insertSchoolBuildingSchema } from "@shared/schema";
 import { useAuthStore } from "@/store/auth";
@@ -35,6 +35,7 @@ type SchoolBuilding = {
     type: string;
     capacity: number;
     isActive: boolean;
+    assignedGrade?: string;
   }>;
   isActive: boolean;
   createdAt: string;
@@ -112,8 +113,11 @@ export default function BlockManager() {
   const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showRoomDialog, setShowRoomDialog] = useState(false);
+  const [showClassAssignDialog, setShowClassAssignDialog] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<SchoolBuilding | null>(null);
   const [editingRoom, setEditingRoom] = useState<RoomEditData | null>(null);
+  const [assigningRoom, setAssigningRoom] = useState<any>(null);
+  const [selectedGrade, setSelectedGrade] = useState<string>("");
 
   const buildingForm = useForm<BuildingFormData>({
     resolver: zodResolver(buildingFormSchema),
@@ -145,6 +149,12 @@ export default function BlockManager() {
 
   // Watch the type field to show/hide custom input
   const watchedType = roomForm.watch("type");
+
+  // Fetch grade sections for class assignment
+  const { data: gradeSections = [] } = useQuery<any[]>({
+    queryKey: [`/api/schools/${user?.schoolId}/grade-sections`],
+    enabled: !!user?.schoolId,
+  });
 
   // Fetch buildings
   const { data: buildings = [], isLoading } = useQuery<SchoolBuilding[]>({
@@ -270,6 +280,32 @@ export default function BlockManager() {
       id: selectedBuilding.id,
       data: { rooms: updatedRooms as any }
     });
+  };
+
+  const handleAssignClass = (room: any) => {
+    setAssigningRoom(room);
+    setSelectedGrade(room.assignedGrade || "");
+    setShowClassAssignDialog(true);
+  };
+
+  const handleSaveClassAssignment = () => {
+    if (!selectedBuilding || !assigningRoom) return;
+
+    const updatedRooms = selectedBuilding.rooms.map(room =>
+      room.id === assigningRoom.id ? { 
+        ...room, 
+        assignedGrade: selectedGrade || undefined
+      } : room
+    );
+
+    updateBuildingMutation.mutate({
+      id: selectedBuilding.id,
+      data: { rooms: updatedRooms as any }
+    });
+
+    setShowClassAssignDialog(false);
+    setAssigningRoom(null);
+    setSelectedGrade("");
   };
 
   if (isLoading) {
@@ -546,6 +582,17 @@ export default function BlockManager() {
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
+                        {(room.type === 'classroom' || room.type === 'lecture_hall' || room.type === 'seminar_room' || room.type === 'tutorial_room') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAssignClass(room)}
+                            data-testid={`button-assign-class-${room.id}`}
+                            title="Assign Class"
+                          >
+                            <GraduationCap className="h-3 w-3" />
+                          </Button>
+                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -582,6 +629,11 @@ export default function BlockManager() {
                       <div>Type: {room.type}</div>
                       <div>Capacity: {room.capacity}</div>
                       <div>Status: {room.isActive ? 'Active' : 'Inactive'}</div>
+                      {room.assignedGrade && (
+                        <div className="text-blue-600 font-medium">
+                          Assigned: {gradeSections.find(g => g.id === room.assignedGrade)?.name || room.assignedGrade}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -728,6 +780,76 @@ export default function BlockManager() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Class Assignment Dialog */}
+      <Dialog open={showClassAssignDialog} onOpenChange={setShowClassAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Assign Class to {assigningRoom?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600 mb-4">
+              Select a grade section to assign to this classroom. Only one grade can be assigned per room.
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="no-assignment"
+                  name="gradeAssignment"
+                  value=""
+                  checked={selectedGrade === ""}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <label htmlFor="no-assignment" className="text-sm font-medium">
+                  No Assignment (General Use)
+                </label>
+              </div>
+
+              {gradeSections.map((section: any) => (
+                <div key={section.id} className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id={`grade-${section.id}`}
+                    name="gradeAssignment"
+                    value={section.id}
+                    checked={selectedGrade === section.id}
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <label htmlFor={`grade-${section.id}`} className="text-sm font-medium">
+                    {section.name}
+                    {section.code && (
+                      <span className="ml-2 text-xs text-gray-500">({section.code})</span>
+                    )}
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowClassAssignDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveClassAssignment}
+                disabled={updateBuildingMutation.isPending}
+              >
+                {updateBuildingMutation.isPending ? "Saving..." : "Save Assignment"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
       </SchoolLayout>
   );
