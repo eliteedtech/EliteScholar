@@ -505,6 +505,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...purchaseData,
         assetId,
         createdBy: req.user?.id || purchaseData.schoolId,
+        purchaseDate: purchaseData.purchaseDate ? new Date(purchaseData.purchaseDate) : new Date(),
+        purchasePrice: parseFloat(purchaseData.purchasePrice),
+        quantity: parseInt(purchaseData.quantity),
+        totalCost: parseFloat(purchaseData.totalCost),
       });
 
       res.json(purchase);
