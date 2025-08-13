@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -51,9 +52,57 @@ const roomEditSchema = z.object({
   name: z.string().min(1, "Room name is required"),
   floor: z.number().min(1, "Floor must be at least 1"),
   type: z.string().min(1, "Room type is required"),
+  customType: z.string().optional(),
   capacity: z.number().min(1, "Capacity must be at least 1"),
   isActive: z.boolean(),
 });
+
+// Room type options with grouping
+const roomTypeOptions = [
+  {
+    group: "Classrooms",
+    options: [
+      { value: "classroom", label: "Standard Classroom" },
+      { value: "lecture_hall", label: "Lecture Hall" },
+      { value: "seminar_room", label: "Seminar Room" },
+      { value: "tutorial_room", label: "Tutorial Room" },
+    ]
+  },
+  {
+    group: "Laboratories",
+    options: [
+      { value: "computer_lab", label: "Computer Lab" },
+      { value: "chemistry_lab", label: "Chemistry Lab" },
+      { value: "physics_lab", label: "Physics Lab" },
+      { value: "biology_lab", label: "Biology Lab" },
+      { value: "language_lab", label: "Language Lab" },
+      { value: "science_lab", label: "General Science Lab" },
+      { value: "engineering_lab", label: "Engineering Lab" },
+      { value: "art_studio", label: "Art Studio" },
+    ]
+  },
+  {
+    group: "Support Facilities",
+    options: [
+      { value: "library", label: "Library" },
+      { value: "staff_room", label: "Staff Room" },
+      { value: "office", label: "Office" },
+      { value: "reception", label: "Reception" },
+      { value: "storage", label: "Storage Room" },
+      { value: "cafeteria", label: "Cafeteria" },
+      { value: "auditorium", label: "Auditorium" },
+      { value: "gymnasium", label: "Gymnasium" },
+      { value: "medical_room", label: "Medical Room" },
+      { value: "meeting_room", label: "Meeting Room" },
+    ]
+  },
+  {
+    group: "Other",
+    options: [
+      { value: "other", label: "Other (Custom)" },
+    ]
+  }
+];
 
 type RoomEditData = z.infer<typeof roomEditSchema>;
 
@@ -88,10 +137,14 @@ export default function BlockManager() {
       name: "",
       floor: 1,
       type: "classroom",
+      customType: "",
       capacity: 30,
       isActive: true,
     },
   });
+
+  // Watch the type field to show/hide custom input
+  const watchedType = roomForm.watch("type");
 
   // Fetch buildings
   const { data: buildings = [], isLoading } = useQuery<SchoolBuilding[]>({
@@ -172,22 +225,40 @@ export default function BlockManager() {
     setShowRoomDialog(true);
   };
 
-  const handleEditRoom = (room: RoomEditData) => {
-    setEditingRoom(room);
-    roomForm.reset(room);
+  const handleEditRoom = (room: any) => {
+    const roomData = {
+      ...room,
+      customType: "",
+    };
+    setEditingRoom(roomData);
+    roomForm.reset(roomData);
   };
 
   const handleSaveRoom = (data: RoomEditData) => {
     if (!selectedBuilding) return;
 
+    // Use custom type if "other" is selected and customType is provided
+    const finalType = data.type === "other" && data.customType?.trim() 
+      ? data.customType.trim() 
+      : data.type;
+
     const updatedRooms = selectedBuilding.rooms.map(room =>
-      room.id === data.id ? { ...room, ...data } : room
+      room.id === data.id ? { 
+        ...room, 
+        name: data.name,
+        floor: data.floor,
+        type: finalType,
+        capacity: data.capacity,
+        isActive: data.isActive
+      } : room
     );
 
     updateBuildingMutation.mutate({
       id: selectedBuilding.id,
       data: { rooms: updatedRooms as any }
     });
+
+    setEditingRoom(null);
   };
 
   const handleDeleteRoom = (roomId: string) => {
@@ -595,13 +666,50 @@ export default function BlockManager() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Room Type</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-room-type" />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-room-type">
+                            <SelectValue placeholder="Select room type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {roomTypeOptions.map((group) => (
+                            <SelectGroup key={group.group}>
+                              <SelectLabel>{group.group}</SelectLabel>
+                              {group.options.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Custom type input - shown when "other" is selected */}
+                {watchedType === "other" && (
+                  <FormField
+                    control={roomForm.control}
+                    name="customType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Room Type</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="Enter custom room type"
+                            data-testid="input-custom-room-type" 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <div className="flex justify-end gap-2">
                   <Button
