@@ -157,50 +157,14 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
         icon: <Home className="h-4 w-4" />,
         isFavorite: true,
       },
-      {
-        id: 'school-setup',
-        name: 'School Setup',
-        href: '/school/setup',
-        icon: <Settings className="h-4 w-4" />,
-        children: [
-          {
-            id: 'sections',
-            name: 'Sections',
-            href: '/school/setup/sections',
-            icon: <School className="h-4 w-4" />,
-          },
-          {
-            id: 'classes',
-            name: 'Classes',
-            href: '/school/setup/classes',
-            icon: <GraduationCap className="h-4 w-4" />,
-          },
-          {
-            id: 'subjects',
-            name: 'Subjects',
-            href: '/school/setup/subjects',
-            icon: <BookOpen className="h-4 w-4" />,
-          },
-          {
-            id: 'branches',
-            name: 'Branches',
-            href: '/school/setup/branches',
-            icon: <School className="h-4 w-4" />,
-          },
-          {
-            id: 'academic-years',
-            name: 'Academic Years',
-            href: '/school/setup/academic-years',
-            icon: <Calendar className="h-4 w-4" />,
-          },
-        ],
-      },
     ];
 
     // Add feature-based navigation with menu links from database
     const featureNavigation: NavItem[] = features
       .filter(f => f.enabled)
       .map(feature => {
+        console.log(`Processing feature: ${feature.name}, menuLinks:`, feature.menuLinks);
+        
         // Use menu links from feature if available, otherwise use parsed description
         const menuLinks = feature.menuLinks && Array.isArray(feature.menuLinks) && feature.menuLinks.length > 0
           ? feature.menuLinks.filter(link => link.enabled !== false)
@@ -208,12 +172,14 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
         
         const children = menuLinks.length > 0
           ? menuLinks.map(link => ({
-              id: `${feature.id}-${link.name}`,
+              id: `${feature.id}-${link.name?.replace(/\s+/g, '-')}`,
               name: link.name,
               href: link.href,
               icon: getMenuLinkIcon(link.icon),
             }))
           : parseFeatureDescription(feature);
+
+        console.log(`Feature ${feature.name} has ${children.length} menu items`);
 
         return {
           id: feature.id,
@@ -224,6 +190,7 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
         };
       });
 
+    console.log('Generated navigation:', [...baseNavigation, ...featureNavigation]);
     return [...baseNavigation, ...featureNavigation];
   };
 
@@ -241,15 +208,19 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
     
     // Map FontAwesome classes to Lucide icons
     if (iconClass.includes('fa-home')) return <Home className="h-4 w-4" />;
-    if (iconClass.includes('fa-user-graduate')) return <GraduationCap className="h-4 w-4" />;
+    if (iconClass.includes('fa-user-graduate') || iconClass.includes('fa-graduation-cap')) return <GraduationCap className="h-4 w-4" />;
     if (iconClass.includes('fa-users')) return <Users className="h-4 w-4" />;
     if (iconClass.includes('fa-list')) return <List className="h-4 w-4" />;
-    if (iconClass.includes('fa-chart')) return <BarChart className="h-4 w-4" />;
+    if (iconClass.includes('fa-chart-bar') || iconClass.includes('fa-chart-line')) return <BarChart className="h-4 w-4" />;
     if (iconClass.includes('fa-calendar')) return <Calendar className="h-4 w-4" />;
     if (iconClass.includes('fa-exclamation-triangle')) return <AlertTriangle className="h-4 w-4" />;
     if (iconClass.includes('fa-book')) return <BookOpen className="h-4 w-4" />;
     if (iconClass.includes('fa-edit')) return <Edit className="h-4 w-4" />;
     if (iconClass.includes('fa-cog')) return <Settings className="h-4 w-4" />;
+    if (iconClass.includes('fa-plus')) return <Edit className="h-4 w-4" />;
+    if (iconClass.includes('fa-building')) return <School className="h-4 w-4" />;
+    if (iconClass.includes('fa-money-bill')) return <BarChart className="h-4 w-4" />;
+    if (iconClass.includes('fa-file-alt')) return <BookOpen className="h-4 w-4" />;
     
     return <Settings className="h-4 w-4" />;
   };
