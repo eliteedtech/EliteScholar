@@ -20,19 +20,21 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import SchoolLayout from "@/components/school/layout";
 
-// Supply categories
-const SUPPLY_CATEGORIES = [
-  "Uniforms",
-  "Textbooks", 
-  "Stationery",
-  "Sports",
-  "Cleaning",
-  "Teaching Materials",
-  "Laboratory",
-  "Medical",
-  "Kitchen",
-  "Other"
-];
+// Supply categories with their types
+const SUPPLY_CATEGORY_TYPES = {
+  "Uniforms": ["Shirt", "Trouser", "Complete Set", "Tie", "Blazer", "Skirt", "Socks", "Shoes", "Belt", "Other"],
+  "Textbooks": ["Primary Books", "Secondary Books", "Workbooks", "Reference Books", "Study Guides", "Past Questions", "Other"],
+  "Stationery": ["Exercise Books", "Pens", "Pencils", "Rulers", "Erasers", "Notebooks", "Files", "Paper", "Other"],
+  "Sports": ["Football", "Basketball", "Tennis Balls", "Sports Wear", "Equipment", "Shoes", "Other"],
+  "Cleaning": ["Detergent", "Soap", "Mop", "Broom", "Bucket", "Toilet Paper", "Hand Sanitizer", "Other"],
+  "Teaching Materials": ["Charts", "Markers", "Chalk", "Board", "Projector", "Books", "Models", "Other"],
+  "Laboratory": ["Chemicals", "Equipment", "Glassware", "Safety Gear", "Specimens", "Instruments", "Other"],
+  "Medical": ["First Aid", "Medicines", "Thermometer", "Bandages", "Antiseptic", "Equipment", "Other"],
+  "Kitchen": ["Utensils", "Plates", "Cups", "Cooking Equipment", "Food Items", "Cleaning Supplies", "Other"],
+  "Other": ["Custom Item"]
+};
+
+const SUPPLY_CATEGORIES = Object.keys(SUPPLY_CATEGORY_TYPES);
 
 // Supply units
 const SUPPLY_UNITS = [
@@ -66,7 +68,9 @@ const supplyFormSchema = z.object({
   name: z.string().min(1, "Supply name is required"),
   description: z.string().optional(),
   category: z.string().min(1, "Category is required"),
+  customCategory: z.string().optional(),
   type: z.string().min(1, "Type is required"),
+  customType: z.string().optional(),
   unit: z.string().min(1, "Unit is required"),
   minimumStock: z.number().min(0, "Minimum stock must be positive").default(0),
   maximumStock: z.number().min(1, "Maximum stock must be positive").default(1000),
@@ -152,6 +156,8 @@ export default function SupplySetup() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [filters, setFilters] = useState({ category: "all", stockLevel: "all" });
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("");
 
   // Fetch supplies
   const { data: supplies = [], isLoading, error } = useQuery<Supply[]>({
@@ -172,7 +178,9 @@ export default function SupplySetup() {
       name: "",
       description: "",
       category: "",
+      customCategory: "",
       type: "",
+      customType: "",
       unit: "piece",
       minimumStock: 0,
       maximumStock: 1000,
@@ -266,7 +274,20 @@ export default function SupplySetup() {
 
   // Form handlers
   const onCreateSubmit = (data: SupplyFormData) => {
-    createSupplyMutation.mutate(data);
+    // Process custom category and type
+    const finalCategory = data.category === "Other" ? (data.customCategory || "Other") : data.category;
+    const finalType = data.type === "Other" ? (data.customType || "Other") : data.type;
+    
+    const processedData = {
+      ...data,
+      category: finalCategory,
+      type: finalType,
+      // Remove the custom fields from submission
+      customCategory: undefined,
+      customType: undefined
+    };
+    
+    createSupplyMutation.mutate(processedData);
   };
 
   const onPurchaseSubmit = (data: PurchaseFormData) => {
@@ -340,7 +361,12 @@ export default function SupplySetup() {
             <h1 className="text-3xl font-bold text-gray-900">Supply Management</h1>
             <p className="text-gray-600 mt-1">Manage school supplies, track inventory and purchases</p>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} data-testid="button-add-supply">
+          <Button onClick={() => {
+            setSelectedCategory("");
+            setSelectedType("");
+            createForm.reset();
+            setShowCreateDialog(true);
+          }} data-testid="button-add-supply">
             <Plus className="h-4 w-4 mr-2" />
             Add Supply
           </Button>
@@ -538,7 +564,14 @@ export default function SupplySetup() {
       </div>
 
       {/* Create Supply Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) {
+          setSelectedCategory("");
+          setSelectedType("");
+          createForm.reset();
+        }
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Supply</DialogTitle>
@@ -566,7 +599,14 @@ export default function SupplySetup() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category*</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedCategory(value);
+                        // Reset type when category changes
+                        createForm.setValue("type", "");
+                        createForm.setValue("customType", "");
+                        setSelectedType("");
+                      }} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-supply-category">
                             <SelectValue placeholder="Select category" />
@@ -584,6 +624,23 @@ export default function SupplySetup() {
                     </FormItem>
                   )}
                 />
+
+                {/* Custom Category Input for "Other" */}
+                {selectedCategory === "Other" && (
+                  <FormField
+                    control={createForm.control}
+                    name="customCategory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Category*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter custom category" {...field} data-testid="input-custom-category" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -593,13 +650,53 @@ export default function SupplySetup() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Type*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Polo Shirt, Exercise Book" {...field} data-testid="input-supply-type" />
-                      </FormControl>
+                      {selectedCategory && SUPPLY_CATEGORY_TYPES[selectedCategory as keyof typeof SUPPLY_CATEGORY_TYPES] ? (
+                        <Select onValueChange={(value) => {
+                          field.onChange(value);
+                          setSelectedType(value);
+                          if (value !== "Other") {
+                            createForm.setValue("customType", "");
+                          }
+                        }} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-supply-type">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SUPPLY_CATEGORY_TYPES[selectedCategory as keyof typeof SUPPLY_CATEGORY_TYPES].map((type: string) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input placeholder="e.g. Polo Shirt, Exercise Book" {...field} data-testid="input-supply-type" />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Custom Type Input for "Other" */}
+                {selectedType === "Other" && (
+                  <FormField
+                    control={createForm.control}
+                    name="customType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Type*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter custom type" {...field} data-testid="input-custom-type" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={createForm.control}
