@@ -131,7 +131,8 @@ export default function SchoolsTable() {
 
   const handleManageFeatureMenus = (school: SchoolWithDetails) => {
     setSelectedSchool(school);
-    setShowFeatureSelectorModal(true);
+    // Load all features instead of just assigned ones
+    setShowFeatureMenuModal(true);
   };
 
   const handleFeatureSelect = (feature: any) => {

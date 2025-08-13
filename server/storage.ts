@@ -1263,7 +1263,11 @@ export class DatabaseStorage implements IStorage {
       // Auto-populate default menu links for each assignment
       for (const schoolId of schoolIds) {
         for (const featureId of featureIds) {
-          const feature = await this.getFeature(featureId);
+          const [feature] = await db
+        .select()
+        .from(features)
+        .where(eq(features.id, featureId))
+        .limit(1);
           if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
             // Create default setup with all menu links enabled
             const defaultMenuLinks = feature.menuLinks.map((link: any) => ({
@@ -1333,7 +1337,11 @@ export class DatabaseStorage implements IStorage {
       });
 
     // Auto-populate default menu links for this feature
-    const feature = await this.getFeature(featureId);
+    const [feature] = await db
+      .select()
+      .from(features)
+      .where(eq(features.id, featureId))
+      .limit(1);
     if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
       // Create default setup with all menu links enabled
       const defaultMenuLinks = feature.menuLinks.map((link: any) => ({

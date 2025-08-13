@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Save, X, Link, Settings, Plus, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,7 +38,7 @@ interface SchoolFeatureMenuModalProps {
   isOpen: boolean;
   onClose: () => void;
   school: School | null;
-  feature: Feature | null;
+  feature?: Feature | null;
 }
 
 const defaultIcons = [
@@ -57,8 +58,9 @@ export default function SchoolFeatureMenuModal({
   isOpen, 
   onClose, 
   school,
-  feature 
+  feature = null
 }: SchoolFeatureMenuModalProps) {
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(feature);
   const [selectedMenuLinks, setSelectedMenuLinks] = useState<string[]>([]);
   const [customMenuLinks, setCustomMenuLinks] = useState<MenuLink[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -72,10 +74,16 @@ export default function SchoolFeatureMenuModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch current school feature setup
+  // Fetch all features
+  const { data: allFeatures, isLoading: featuresLoading } = useQuery({
+    queryKey: ["/api/superadmin/features"],
+    enabled: isOpen,
+  });
+
+  // Fetch current school feature setup for selected feature
   const { data: schoolFeatureSetup, isLoading } = useQuery({
-    queryKey: ["/api/superadmin/schools", school?.id, "feature-setup", feature?.id],
-    enabled: !!(school?.id && feature?.id && isOpen),
+    queryKey: ["/api/superadmin/schools", school?.id, "feature-setup", selectedFeature?.id],
+    enabled: !!(school?.id && selectedFeature?.id && isOpen),
   });
 
   useEffect(() => {
@@ -92,7 +100,7 @@ export default function SchoolFeatureMenuModal({
       }
       
       // Separate default feature menu links from custom ones
-      const defaultMenuLinks = feature?.menuLinks || [];
+      const defaultMenuLinks = selectedFeature?.menuLinks || [];
       const existingCustomLinks = (menuLinks || []).filter((link: MenuLink) => 
         !defaultMenuLinks.some((defaultLink: MenuLink) => defaultLink.name === link.name)
       );
@@ -104,13 +112,20 @@ export default function SchoolFeatureMenuModal({
       
       setSelectedMenuLinks(enabledLinks);
       setCustomMenuLinks(existingCustomLinks);
-    } else if (feature?.menuLinks) {
+    } else if (selectedFeature?.menuLinks) {
       // Default to all menu links enabled if no setup exists
-      const allLinks = feature.menuLinks.map(link => link.name);
+      const allLinks = selectedFeature.menuLinks.map(link => link.name);
       setSelectedMenuLinks(allLinks);
       setCustomMenuLinks([]);
     }
-  }, [schoolFeatureSetup, feature]);
+  }, [schoolFeatureSetup, selectedFeature]);
+
+  // Set initial feature if provided
+  useEffect(() => {
+    if (feature && !selectedFeature) {
+      setSelectedFeature(feature);
+    }
+  }, [feature, selectedFeature]);
 
   // Update school feature setup mutation
   const updateSchoolFeatureSetupMutation = useMutation({
@@ -159,13 +174,13 @@ export default function SchoolFeatureMenuModal({
   };
 
   const handleSave = () => {
-    if (!school?.id || !feature?.id) {
-      console.error('Missing school or feature ID:', { schoolId: school?.id, featureId: feature?.id });
+    if (!school?.id || !selectedFeature?.id) {
+      console.error('Missing school or feature ID:', { schoolId: school?.id, featureId: selectedFeature?.id });
       return;
     }
 
     // Combine default feature menu links with custom menu links
-    const defaultMenuLinks = (feature.menuLinks || []).map(link => ({
+    const defaultMenuLinks = (selectedFeature.menuLinks || []).map(link => ({
       ...link,
       enabled: selectedMenuLinks.includes(link.name)
     }));
@@ -179,13 +194,13 @@ export default function SchoolFeatureMenuModal({
 
     console.log('Calling save with data:', {
       schoolId: school.id,
-      featureId: feature.id,
+      featureId: selectedFeature.id,
       menuLinks: allMenuLinks
     });
 
     updateSchoolFeatureSetupMutation.mutate({
       schoolId: school.id,
-      featureId: feature.id,
+      featureId: selectedFeature.id,
       menuLinks: allMenuLinks
     });
   };
@@ -202,7 +217,7 @@ export default function SchoolFeatureMenuModal({
 
     // Check if name already exists
     const allExistingNames = [
-      ...(feature?.menuLinks || []).map(link => link.name),
+      ...(selectedFeature?.menuLinks || []).map(link => link.name),
       ...customMenuLinks.map(link => link.name)
     ];
 
@@ -246,7 +261,7 @@ export default function SchoolFeatureMenuModal({
     }
   };
 
-  if (!school || !feature) return null;
+  if (!school) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -254,31 +269,61 @@ export default function SchoolFeatureMenuModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Configure Menu Links - {feature.name}
+            Configure Menu Links - {school.name}
           </DialogTitle>
           <DialogDescription>
-            Select which menu links should be available for {school.name} when using the {feature.name} feature
+            Select a feature and manage its menu links for this school
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">{school.shortName}</Badge>
-            <span className="text-sm font-medium">{school.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="default">{feature.name}</Badge>
-            <Button
-              size="sm"
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1"
+        {/* Feature Selection */}
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="feature-select">Select Feature</Label>
+            <Select 
+              value={selectedFeature?.id || ""} 
+              onValueChange={(value) => {
+                const feature = allFeatures?.find((f: Feature) => f.id === value);
+                setSelectedFeature(feature || null);
+                setSelectedMenuLinks([]);
+                setCustomMenuLinks([]);
+              }}
             >
-              <Plus className="h-3 w-3" />
-              Add Menu Link
-            </Button>
+              <SelectTrigger id="feature-select">
+                <SelectValue placeholder="Choose a feature to manage" />
+              </SelectTrigger>
+              <SelectContent>
+                {allFeatures?.map((feature: Feature) => (
+                  <SelectItem key={feature.id} value={feature.id}>
+                    {feature.name} ({feature.key})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
+        {selectedFeature && (
+          <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{school.shortName}</Badge>
+              <span className="text-sm font-medium">{school.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="default">{selectedFeature.name}</Badge>
+              <Button
+                size="sm"
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                Add Menu Link
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {selectedFeature && (
         <ScrollArea className="flex-1 max-h-[50vh]">
           {isLoading ? (
             <div className="space-y-3">
@@ -353,11 +398,11 @@ export default function SchoolFeatureMenuModal({
               )}
 
               {/* Default Feature Menu Links */}
-              {feature.menuLinks && feature.menuLinks.length > 0 && (
+              {selectedFeature?.menuLinks && selectedFeature.menuLinks.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Default Feature Menu Links</h4>
                   <div className="space-y-2">
-                    {feature.menuLinks.map((link, index) => (
+                    {selectedFeature.menuLinks.map((link, index) => (
                       <Card 
                         key={`default-${index}`} 
                         className={`transition-all ${
@@ -496,7 +541,7 @@ export default function SchoolFeatureMenuModal({
               )}
 
               {/* Empty State */}
-              {(!feature.menuLinks || feature.menuLinks.length === 0) && customMenuLinks.length === 0 && !showAddForm && (
+              {(!selectedFeature?.menuLinks || selectedFeature.menuLinks.length === 0) && customMenuLinks.length === 0 && !showAddForm && (
                 <div className="text-center py-8">
                   <Link className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -514,10 +559,12 @@ export default function SchoolFeatureMenuModal({
             </div>
           )}
         </ScrollArea>
+        )}
 
+        {selectedFeature && (
         <div className="border-t pt-4">
           <div className="text-sm text-gray-600 mb-3">
-            {selectedMenuLinks.length} of {(feature.menuLinks?.length || 0) + customMenuLinks.length} menu links enabled
+            {selectedMenuLinks.length} of {(selectedFeature.menuLinks?.length || 0) + customMenuLinks.length} menu links enabled
             {customMenuLinks.length > 0 && (
               <span className="ml-2 text-green-600">
                 ({customMenuLinks.length} custom)
@@ -542,6 +589,7 @@ export default function SchoolFeatureMenuModal({
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
