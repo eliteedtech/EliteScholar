@@ -30,6 +30,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get school features with menu links for school dashboard
+  app.get("/api/schools/features", async (req, res) => {
+    try {
+      const schoolId = req.query.schoolId as string;
+      if (!schoolId) {
+        return res.status(400).json({ message: "School ID is required" });
+      }
+
+      const schoolFeatures = await storage.getSchoolFeatures(schoolId);
+      
+      // Filter enabled features and include menu links from feature definition
+      const enabledFeaturesWithMenuLinks = schoolFeatures
+        .filter(sf => sf.enabled && sf.feature && sf.feature.key)
+        .map(sf => ({
+          ...sf.feature,
+          enabled: sf.enabled,
+          menuLinks: sf.feature.menuLinks || []
+        }));
+
+      console.log(`Retrieved ${enabledFeaturesWithMenuLinks.length} enabled features with menu links for school ${schoolId}`);
+      res.json(enabledFeaturesWithMenuLinks);
+    } catch (error) {
+      console.error("Get school features error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
 
 
   // Super Admin routes

@@ -24,7 +24,16 @@ import {
   GraduationCap,
   Star,
   Moon,
-  Sun
+  Sun,
+  Clock,
+  List,
+  BarChart,
+  AlertTriangle,
+  Edit,
+  User,
+  MoreHorizontal,
+  MapPin,
+  Heart
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -37,9 +46,16 @@ interface SchoolLayoutProps {
 
 interface Feature {
   id: string;
+  key: string;
   name: string;
   description: string;
   enabled: boolean;
+  menuLinks?: {
+    name: string;
+    href: string;
+    icon?: string;
+    enabled?: boolean;
+  }[];
 }
 
 interface NavItem {
@@ -62,6 +78,17 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
   // Fetch enabled features for the school
   const { data: features = [] } = useQuery<Feature[]>({
     queryKey: ["/api/schools/features"],
+    queryFn: () => {
+      // Get school ID from user context or URL
+      const schoolId = user?.schoolId;
+      if (!schoolId) {
+        console.error("No school ID found for user");
+        return [];
+      }
+      return fetch(`/api/schools/features?schoolId=${schoolId}`)
+        .then(res => res.json());
+    },
+    enabled: !!user?.schoolId,
   });
 
   // Parse feature descriptions to generate navigation items
@@ -170,15 +197,28 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
       },
     ];
 
-    // Add feature-based navigation
+    // Add feature-based navigation with menu links from database
     const featureNavigation: NavItem[] = features
       .filter(f => f.enabled)
       .map(feature => {
-        const children = parseFeatureDescription(feature);
+        // Use menu links from feature if available, otherwise use parsed description
+        const menuLinks = feature.menuLinks && Array.isArray(feature.menuLinks) && feature.menuLinks.length > 0
+          ? feature.menuLinks.filter(link => link.enabled !== false)
+          : [];
+        
+        const children = menuLinks.length > 0
+          ? menuLinks.map(link => ({
+              id: `${feature.id}-${link.name}`,
+              name: link.name,
+              href: link.href,
+              icon: getMenuLinkIcon(link.icon),
+            }))
+          : parseFeatureDescription(feature);
+
         return {
           id: feature.id,
           name: feature.name,
-          href: `/school/features/${feature.id}`,
+          href: `/school/features/${feature.key}`,
           icon: getFeatureIcon(feature.name),
           children: children.length > 0 ? children : undefined,
         };
@@ -192,6 +232,25 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
     if (featureName.toLowerCase().includes('student')) return <GraduationCap className="h-4 w-4" />;
     if (featureName.toLowerCase().includes('class')) return <School className="h-4 w-4" />;
     if (featureName.toLowerCase().includes('subject')) return <BookOpen className="h-4 w-4" />;
+    if (featureName.toLowerCase().includes('attendance')) return <Clock className="h-4 w-4" />;
+    return <Settings className="h-4 w-4" />;
+  };
+
+  const getMenuLinkIcon = (iconClass?: string) => {
+    if (!iconClass) return <Settings className="h-4 w-4" />;
+    
+    // Map FontAwesome classes to Lucide icons
+    if (iconClass.includes('fa-home')) return <Home className="h-4 w-4" />;
+    if (iconClass.includes('fa-user-graduate')) return <GraduationCap className="h-4 w-4" />;
+    if (iconClass.includes('fa-users')) return <Users className="h-4 w-4" />;
+    if (iconClass.includes('fa-list')) return <List className="h-4 w-4" />;
+    if (iconClass.includes('fa-chart')) return <BarChart className="h-4 w-4" />;
+    if (iconClass.includes('fa-calendar')) return <Calendar className="h-4 w-4" />;
+    if (iconClass.includes('fa-exclamation-triangle')) return <AlertTriangle className="h-4 w-4" />;
+    if (iconClass.includes('fa-book')) return <BookOpen className="h-4 w-4" />;
+    if (iconClass.includes('fa-edit')) return <Edit className="h-4 w-4" />;
+    if (iconClass.includes('fa-cog')) return <Settings className="h-4 w-4" />;
+    
     return <Settings className="h-4 w-4" />;
   };
 
