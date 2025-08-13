@@ -126,6 +126,7 @@ interface SchoolBuilding {
     type: string;
     capacity: number;
     isActive: boolean;
+    assignedGrade?: string;
   }>;
 }
 
@@ -207,9 +208,19 @@ export default function EnhancedAssetSetup() {
         building.rooms
           .filter(room => room.isActive)
           .forEach((room) => {
+            // For classroom-type rooms with assigned grades, show the grade name
+            let displayType = room.type;
+            if (room.assignedGrade && (room.type === 'classroom' || room.type === 'lecture_hall' || room.type === 'seminar_room' || room.type === 'tutorial_room')) {
+              // Find the grade section name from the assignedGrade ID
+              const assignedGradeSection = gradeSections.find(g => g.id === room.assignedGrade);
+              if (assignedGradeSection) {
+                displayType = assignedGradeSection.name;
+              }
+            }
+            
             options.push({
-              value: `${building.buildingName} - ${room.name} (${room.type})`,
-              label: `${building.buildingName} - ${room.name} (${room.type})`,
+              value: `${building.buildingName} - ${room.name} (${displayType})`,
+              label: `${building.buildingName} - ${room.name} (${displayType})`,
               building: building.buildingName,
               room: room.name,
               type: room.type,
@@ -225,17 +236,6 @@ export default function EnhancedAssetSetup() {
           type: "building",
         });
       }
-    });
-
-    // Also include grade sections as backup locations
-    gradeSections.forEach((section) => {
-      options.push({
-        value: section.name,
-        label: `${section.name} (Class)`,
-        building: "Academic",
-        room: section.name,
-        type: "classroom",
-      });
     });
 
     return options.sort((a, b) => a.label.localeCompare(b.label));
