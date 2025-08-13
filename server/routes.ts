@@ -353,7 +353,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/assets", upload.single('image'), async (req, res) => {
     try {
-      const assetData = JSON.parse(req.body.assetData);
+      let assetData;
+      
+      // Handle both JSON and multipart form data
+      if (req.body.assetData) {
+        // Multipart form data (with image upload)
+        assetData = JSON.parse(req.body.assetData);
+      } else {
+        // Regular JSON data (no image)
+        assetData = req.body;
+      }
       
       // Validate required fields
       if (!assetData.schoolId || !assetData.name || !assetData.category || !assetData.type) {
@@ -371,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               { quality: 'auto', fetch_format: 'auto' }
             ]
           });
-          imageUrl = uploadResult.secure_url;
+          imageUrl = uploadResult.url;
         } catch (uploadError) {
           console.error('Image upload failed:', uploadError);
           // Continue without image if upload fails
@@ -398,7 +407,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/assets/:id", upload.single('image'), async (req, res) => {
     try {
       const { id } = req.params;
-      const assetData = JSON.parse(req.body.assetData);
+      let assetData;
+      
+      // Handle both JSON and multipart form data
+      if (req.body.assetData) {
+        // Multipart form data (with image upload)
+        assetData = JSON.parse(req.body.assetData);
+      } else {
+        // Regular JSON data (no image)
+        assetData = req.body;
+      }
 
       // Handle image upload if provided
       let imageUrl = assetData.imageUrl; // Keep existing image by default
@@ -411,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               { quality: 'auto', fetch_format: 'auto' }
             ]
           });
-          imageUrl = uploadResult.secure_url;
+          imageUrl = uploadResult.url;
         } catch (uploadError) {
           console.error('Image upload failed:', uploadError);
         }
