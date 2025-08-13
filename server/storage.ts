@@ -21,6 +21,8 @@ import {
   classSubjects,
   assets,
   schoolSuppliers,
+  assetPurchases,
+  assetAssignments,
   type User,
   type InsertUser,
   type School,
