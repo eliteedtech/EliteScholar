@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import SchoolLayout from "@/components/school/layout";
 
 // Enhanced Asset form schema
 const assetFormSchema = z.object({
@@ -283,6 +284,7 @@ export default function EnhancedAssetSetup() {
   };
 
   return (
+    <SchoolLayout title="Asset Management" subtitle="Manage school assets and equipment">
     <div className="space-y-6" data-testid="enhanced-asset-setup">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1081,5 +1083,6 @@ export default function EnhancedAssetSetup() {
         </DialogContent>
       </Dialog>
     </div>
+    </SchoolLayout>
   );
 }

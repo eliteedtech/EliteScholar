@@ -11,6 +11,16 @@ import { connectionTestService } from "./services/connection-test";
 import { cloudinaryService } from "./services/cloudinary";
 import multer from "multer";
 import { authMiddleware, schoolAdminOnly } from "./middleware/auth";
+import type { User } from "@shared/schema";
+
+// Extend Express Request interface to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -504,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(purchase);
     } catch (error) {
       console.error("Create asset purchase error:", error);
-      res.status(500).json({ message: error.message || "Internal server error" });
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
     }
   });
 
@@ -537,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(assignment);
     } catch (error) {
       console.error("Assign asset error:", error);
-      res.status(500).json({ message: error.message || "Internal server error" });
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
     }
   });
 
@@ -561,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(assignment);
     } catch (error) {
       console.error("Return asset error:", error);
-      res.status(500).json({ message: error.message || "Internal server error" });
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
     }
   });
 

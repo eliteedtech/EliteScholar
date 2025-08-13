@@ -93,6 +93,14 @@ The system is designed with independent modules:
 - **Automatic Grade Creation**: Schools now automatically generate appropriate grade sections based on curriculum type (K12 vs Nigerian)
 - **Enhanced Invoice System**: Added unit measurements (per_student, per_staff, etc.), negotiated pricing, and date ranges
 - **Section-Based Organization**: Grade sections now include multiple sections (A, B, C) per grade for better student organization
+- **Enhanced Asset Management System (August 13, 2025)**:
+  - Comprehensive database schema with assets, asset_purchases, and asset_assignments tables
+  - Advanced quantity tracking with total_quantity and available_quantity fields
+  - Purchase history with accordion view for different price periods
+  - Assignment management with location dropdown populated from grade_sections table
+  - Enhanced UI with separate dialogs for assignments and purchase additions
+  - Complete CRUD operations through enhanced-asset-setup.tsx interface
+  - Full database integration with proper API routes and storage operations
 
 ## External Dependencies
 
