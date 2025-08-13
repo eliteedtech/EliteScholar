@@ -105,9 +105,13 @@ export default function FeatureMenuManagementModal({
   });
 
   const handleAddMenuLink = () => {
+    // Generate suggested URL based on feature key
+    const featureKey = feature?.key?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'feature';
+    const suggestedHref = `/school/${featureKey}/dashboard`;
+    
     const newLink: MenuLink = {
       name: "",
-      href: "",
+      href: suggestedHref,
       icon: "fas fa-home",
       enabled: true,
     };
@@ -238,7 +242,7 @@ export default function FeatureMenuManagementModal({
                             id={`href-${index}`}
                             value={link.href}
                             onChange={(e) => handleUpdateMenuLink(index, { href: e.target.value })}
-                            placeholder="/school/features/feature-key/page"
+                            placeholder={`/school/${feature?.key?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'feature-name'}/dashboard`}
                           />
                         </div>
                         
@@ -275,6 +279,9 @@ export default function FeatureMenuManagementModal({
                       <div className="text-sm text-gray-600">
                         <div><strong>URL:</strong> {link.href || 'Not set'}</div>
                         <div><strong>Icon:</strong> {link.icon}</div>
+                      </div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        💡 Use pattern: /school/{feature?.key?.toLowerCase().replace(/[^a-z0-9]/g, '-')}/page-name
                       </div>
                     </CardContent>
                   )}

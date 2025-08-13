@@ -133,7 +133,17 @@ function Router() {
                     </Suspense>
                   </Route>
                   
-                  {/* Feature-based routes */}
+                  {/* Feature-based routes - New URL pattern /school/feature-name/* */}
+                  <Route path="/school/:featureName/:page?" component={() => {
+                    const FeaturePage = lazy(() => import("./pages/school/feature-page"));
+                    return (
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <FeaturePage />
+                      </Suspense>
+                    );
+                  }} />
+                  
+                  {/* Legacy feature routes for backward compatibility */}
                   <Route path="/school/features/:featureId" component={() => (
                     <Suspense fallback={<div>Loading...</div>}>
                       {(() => {
