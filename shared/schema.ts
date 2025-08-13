@@ -270,6 +270,71 @@ export const assetAssignments = pgTable("asset_assignments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// School Supplies table for consumable items management
+export const schoolSupplies = pgTable("school_supplies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull(), // "Uniforms", "Textbooks", "Stationery", "Sports", "Cleaning", "Other"
+  type: varchar("type").notNull(), // More specific type within category
+  unit: varchar("unit").notNull().default("piece"), // "piece", "set", "kg", "liter", "meter", etc.
+  currentStock: integer("current_stock").default(0),
+  minimumStock: integer("minimum_stock").default(0),
+  maximumStock: integer("maximum_stock").default(1000),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  supplier: varchar("supplier"),
+  location: varchar("location"), // Storage location
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  schoolSupplyIdx: index("idx_supplies_school").on(table.schoolId),
+  categoryIdx: index("idx_supplies_category").on(table.category),
+  activeIdx: index("idx_supplies_active").on(table.isActive),
+}));
+
+// Supply Purchase History for tracking supply purchases
+export const supplyPurchases = pgTable("supply_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supplyId: varchar("supply_id")
+    .notNull()
+    .references(() => schoolSupplies.id, { onDelete: "cascade" }),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull(),
+  supplier: varchar("supplier"),
+  invoiceNumber: varchar("invoice_number"),
+  notes: text("notes"),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Supply Usage/Distribution tracking
+export const supplyUsage = pgTable("supply_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supplyId: varchar("supply_id")
+    .notNull()
+    .references(() => schoolSupplies.id, { onDelete: "cascade" }),
+  usageType: varchar("usage_type").notNull(), // 'issued', 'sold', 'consumed', 'lost', 'damaged'
+  quantity: integer("quantity").notNull(),
+  recipient: varchar("recipient"), // Who received the supplies
+  purpose: varchar("purpose"), // Purpose of usage
+  usageDate: timestamp("usage_date").notNull(),
+  notes: text("notes"),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Invoices table - updated for feature-based invoicing
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -608,6 +673,22 @@ export const insertAssetAssignmentSchema = createInsertSchema(assetAssignments).
   createdAt: true,
 });
 
+export const insertSchoolSupplySchema = createInsertSchema(schoolSupplies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSupplyPurchaseSchema = createInsertSchema(supplyPurchases).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSupplyUsageSchema = createInsertSchema(supplyUsage).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const updateAssetSchema = insertAssetSchema.partial();
 export type InsertAssetInput = z.infer<typeof insertAssetSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
@@ -615,6 +696,12 @@ export type InsertAssetPurchase = z.infer<typeof insertAssetPurchaseSchema>;
 export type InsertAssetAssignment = z.infer<typeof insertAssetAssignmentSchema>;
 export type AssetPurchase = typeof assetPurchases.$inferSelect;
 export type AssetAssignment = typeof assetAssignments.$inferSelect;
+export type SchoolSupply = typeof schoolSupplies.$inferSelect;
+export type InsertSchoolSupply = z.infer<typeof insertSchoolSupplySchema>;
+export type SupplyPurchase = typeof supplyPurchases.$inferSelect;
+export type InsertSupplyPurchase = z.infer<typeof insertSupplyPurchaseSchema>;
+export type SupplyUsage = typeof supplyUsage.$inferSelect;
+export type InsertSupplyUsage = z.infer<typeof insertSupplyUsageSchema>;
 
 // School Suppliers table
 export const schoolSuppliers = pgTable("school_suppliers", {

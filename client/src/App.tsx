@@ -143,6 +143,16 @@ function Router() {
                     </Suspense>
                   </Route>
                   
+                  {/* Supply setup route */}
+                  <Route path="/school/school-setup/supply-setup">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const SupplySetupPage = lazy(() => import("./pages/school/supply-setup"));
+                        return <SupplySetupPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
                   {/* Block Manager route */}
                   <Route path="/school/school-premises-setup/block-manager">
                     <Suspense fallback={<div>Loading block manager...</div>}>

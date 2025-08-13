@@ -567,6 +567,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // School Supplies Management Routes
+  
+  // Get school supplies
+  app.get("/api/schools/:schoolId/supplies", authMiddleware, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const supplies = await storage.getSchoolSupplies(schoolId);
+      res.json(supplies);
+    } catch (error) {
+      console.error("Get school supplies error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create supply
+  app.post("/api/supplies", authMiddleware, async (req, res) => {
+    try {
+      const supplyData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const supply = await storage.createSupply({
+        ...supplyData,
+        createdBy: req.user.id,
+      });
+
+      res.json(supply);
+    } catch (error) {
+      console.error("Create supply error:", error);
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // Update supply
+  app.put("/api/supplies/:id", authMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const supplyData = req.body;
+      
+      const supply = await storage.updateSupply(id, supplyData);
+      res.json(supply);
+    } catch (error) {
+      console.error("Update supply error:", error);
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // Delete supply
+  app.delete("/api/supplies/:id", authMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSupply(id);
+      res.json({ message: "Supply deleted successfully" });
+    } catch (error) {
+      console.error("Delete supply error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Add supply purchase
+  app.post("/api/supplies/:id/purchases", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const purchaseData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const purchase = await storage.addSupplyPurchase({
+        ...purchaseData,
+        supplyId,
+        createdBy: req.user.id,
+      });
+
+      res.json(purchase);
+    } catch (error) {
+      console.error("Add supply purchase error:", error);
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // Get supply purchase history
+  app.get("/api/supplies/:id/purchases", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const purchases = await storage.getSupplyPurchases(supplyId);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Get supply purchases error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Record supply usage
+  app.post("/api/supplies/:id/usage", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const usageData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const usage = await storage.recordSupplyUsage({
+        ...usageData,
+        supplyId,
+        createdBy: req.user.id,
+      });
+
+      res.json(usage);
+    } catch (error) {
+      console.error("Record supply usage error:", error);
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // Get supply usage history
+  app.get("/api/supplies/:id/usage", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const usage = await storage.getSupplyUsageHistory(supplyId);
+      res.json(usage);
+    } catch (error) {
+      console.error("Get supply usage error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.put("/api/assignments/:id/return", authMiddleware, schoolAdminOnly, async (req, res) => {
     try {
       const { id: assignmentId } = req.params;

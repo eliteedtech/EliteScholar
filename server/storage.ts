@@ -73,6 +73,15 @@ import {
   type InsertAssetPurchase,
   type AssetAssignment,
   type InsertAssetAssignment,
+  schoolSupplies,
+  supplyPurchases,
+  supplyUsage,
+  type SchoolSupply,
+  type InsertSchoolSupply,
+  type SupplyPurchase,
+  type InsertSupplyPurchase,
+  type SupplyUsage,
+  type InsertSupplyUsage,
   assetPurchases,
   assetAssignments,
 } from "@shared/schema";
@@ -1633,6 +1642,125 @@ export class DatabaseStorage implements IStorage {
       .update(schoolBuildings)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(schoolBuildings.id, id));
+  }
+
+  // Supply Management operations
+  async getSchoolSupplies(schoolId: string): Promise<SchoolSupply[]> {
+    return await db
+      .select()
+      .from(schoolSupplies)
+      .where(and(eq(schoolSupplies.schoolId, schoolId), eq(schoolSupplies.isActive, true)))
+      .orderBy(desc(schoolSupplies.createdAt));
+  }
+
+  async createSupply(supplyData: InsertSchoolSupply): Promise<SchoolSupply> {
+    const [supply] = await db
+      .insert(schoolSupplies)
+      .values({
+        ...supplyData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return supply;
+  }
+
+  async updateSupply(id: string, supplyData: Partial<InsertSchoolSupply>): Promise<SchoolSupply> {
+    const [supply] = await db
+      .update(schoolSupplies)
+      .set({
+        ...supplyData,
+        updatedAt: new Date(),
+      })
+      .where(eq(schoolSupplies.id, id))
+      .returning();
+    return supply;
+  }
+
+  async deleteSupply(id: string): Promise<void> {
+    await db
+      .update(schoolSupplies)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(schoolSupplies.id, id));
+  }
+
+  // Supply Purchase operations
+  async addSupplyPurchase(purchaseData: InsertSupplyPurchase): Promise<SupplyPurchase> {
+    return db.transaction(async (tx) => {
+      // Convert string date to Date object if needed
+      const purchaseDate = typeof purchaseData.purchaseDate === 'string' 
+        ? new Date(purchaseData.purchaseDate) 
+        : purchaseData.purchaseDate;
+
+      // Create purchase record
+      const [purchase] = await tx.insert(supplyPurchases).values({
+        ...purchaseData,
+        purchaseDate,
+        createdAt: new Date(),
+      }).returning();
+
+      // Update supply stock and unit price
+      await tx
+        .update(schoolSupplies)
+        .set({
+          currentStock: sql`${schoolSupplies.currentStock} + ${purchaseData.quantity}`,
+          unitPrice: purchaseData.unitPrice, // Update to latest purchase price
+          updatedAt: new Date()
+        })
+        .where(eq(schoolSupplies.id, purchaseData.supplyId));
+
+      return purchase;
+    });
+  }
+
+  async getSupplyPurchases(supplyId: string): Promise<SupplyPurchase[]> {
+    return await db
+      .select()
+      .from(supplyPurchases)
+      .where(eq(supplyPurchases.supplyId, supplyId))
+      .orderBy(desc(supplyPurchases.purchaseDate));
+  }
+
+  // Supply Usage operations
+  async recordSupplyUsage(usageData: InsertSupplyUsage): Promise<SupplyUsage> {
+    return db.transaction(async (tx) => {
+      // Check current stock
+      const [supply] = await tx.select().from(schoolSupplies).where(eq(schoolSupplies.id, usageData.supplyId));
+      if (!supply || (supply.currentStock || 0) < usageData.quantity) {
+        throw new Error('Insufficient stock for this usage');
+      }
+
+      // Convert string date to Date object if needed
+      const usageDate = typeof usageData.usageDate === 'string' 
+        ? new Date(usageData.usageDate) 
+        : usageData.usageDate;
+
+      // Create usage record
+      const [usage] = await tx.insert(supplyUsage).values({
+        ...usageData,
+        usageDate,
+        createdAt: new Date(),
+      }).returning();
+
+      // Update stock
+      await tx
+        .update(schoolSupplies)
+        .set({
+          currentStock: sql`${schoolSupplies.currentStock} - ${usageData.quantity}`,
+          updatedAt: new Date()
+        })
+        .where(eq(schoolSupplies.id, usageData.supplyId));
+
+      return usage;
+    });
+  }
+
+  async getSupplyUsageHistory(supplyId: string): Promise<SupplyUsage[]> {
+    return await db
+      .select()
+      .from(supplyUsage)
+      .where(eq(supplyUsage.supplyId, supplyId))
+      .orderBy(desc(supplyUsage.usageDate));
   }
 }
 
