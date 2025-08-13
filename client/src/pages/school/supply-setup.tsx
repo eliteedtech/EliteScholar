@@ -154,13 +154,13 @@ export default function SupplySetup() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch supplies
-  const { data: supplies = [], isLoading, error } = useQuery({
+  const { data: supplies = [], isLoading, error } = useQuery<Supply[]>({
     queryKey: ["/api/schools", user?.schoolId, "supplies"],
     enabled: !!user?.schoolId,
   });
 
   // Fetch suppliers for dropdown
-  const { data: suppliers = [] } = useQuery({
+  const { data: suppliers = [] } = useQuery<any[]>({
     queryKey: ["/api/schools", user?.schoolId, "suppliers"],
     enabled: !!user?.schoolId,
   });
@@ -278,7 +278,7 @@ export default function SupplySetup() {
   };
 
   // Filter supplies
-  const filteredSupplies = supplies.filter((supply: Supply) => {
+  const filteredSupplies = supplies.filter((supply) => {
     const matchesSearch = supply.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          supply.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filters.category === "all" || supply.category === filters.category;
@@ -328,11 +328,11 @@ export default function SupplySetup() {
     setShowUsageDialog(true);
   };
 
-  if (isLoading) return <SchoolLayout><div>Loading supplies...</div></SchoolLayout>;
-  if (error) return <SchoolLayout><div>Error loading supplies</div></SchoolLayout>;
+  if (isLoading) return <SchoolLayout title="Supply Management"><div>Loading supplies...</div></SchoolLayout>;
+  if (error) return <SchoolLayout title="Supply Management"><div>Error loading supplies</div></SchoolLayout>;
 
   return (
-    <SchoolLayout>
+    <SchoolLayout title="Supply Management">
       <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -363,7 +363,7 @@ export default function SupplySetup() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">
-                {supplies.filter((s: Supply) => s.currentStock <= s.minimumStock && s.currentStock > 0).length}
+                {supplies.filter((s) => s.currentStock <= s.minimumStock && s.currentStock > 0).length}
               </div>
             </CardContent>
           </Card>
@@ -374,7 +374,7 @@ export default function SupplySetup() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {supplies.filter((s: Supply) => s.currentStock === 0).length}
+                {supplies.filter((s) => s.currentStock === 0).length}
               </div>
             </CardContent>
           </Card>
@@ -385,7 +385,7 @@ export default function SupplySetup() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${supplies.reduce((sum: number, s: Supply) => sum + ((s.unitPrice || 0) * s.currentStock), 0).toFixed(2)}
+                ${supplies.reduce((sum, s) => sum + ((s.unitPrice || 0) * s.currentStock), 0).toFixed(2)}
               </div>
             </CardContent>
           </Card>
