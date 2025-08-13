@@ -76,12 +76,18 @@ export default function FeatureMenuManagementModal({
       featureId: string; 
       menuLinks: MenuLink[] 
     }) => {
+      console.log('Updating feature menu links via API:', { featureId, menuLinks });
       return apiRequest("PUT", `/api/superadmin/features/${featureId}`, {
         menuLinks
       });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      console.log('Feature menu links updated successfully:', response);
+      // Invalidate all related queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/features"] });
       queryClient.invalidateQueries({ queryKey: ["/api/superadmin/features"] });
+      // Refresh the features table
+      queryClient.refetchQueries({ queryKey: ["/api/features"] });
       toast({
         title: "Success",
         description: "Feature menu links updated successfully",
@@ -127,20 +133,14 @@ export default function FeatureMenuManagementModal({
   const handleSave = async () => {
     if (!feature) return;
 
-    // Validate menu links
-    const invalidLinks = menuLinks.filter(link => !link.name.trim() || !link.href.trim());
-    if (invalidLinks.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: "All menu links must have a name and href",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validate menu links - filter out incomplete ones
+    const validMenuLinks = menuLinks.filter(link => link.name.trim() && link.href.trim());
+    
+    console.log('Saving feature menu links:', { featureId: feature.id, validMenuLinks });
 
     updateFeatureMenuLinksMutation.mutate({
       featureId: feature.id,
-      menuLinks
+      menuLinks: validMenuLinks
     });
   };
 

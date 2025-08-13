@@ -1225,19 +1225,57 @@ export class DatabaseStorage implements IStorage {
 
   // Add missing feature methods
   async getAllFeatures(): Promise<Feature[]> {
-    return await db
+    const result = await db
       .select()
       .from(features)
       .where(eq(features.isActive, true))
       .orderBy(asc(features.name));
+      
+    // Parse menuLinks for each feature
+    return result.map(feature => {
+      if (feature.menuLinks) {
+        try {
+          feature.menuLinks = typeof feature.menuLinks === 'string' 
+            ? JSON.parse(feature.menuLinks) 
+            : feature.menuLinks;
+        } catch (e) {
+          console.error('Error parsing menuLinks for feature:', feature.id, e);
+          feature.menuLinks = [];
+        }
+      }
+      return feature;
+    });
   }
 
   async updateFeature(id: string, featureData: Partial<InsertFeature>): Promise<Feature> {
+    console.log('Updating feature in database:', { id, featureData });
+    
+    // Ensure menuLinks are properly serialized if provided
+    const updateData = { ...featureData, updatedAt: new Date() };
+    if (updateData.menuLinks) {
+      updateData.menuLinks = JSON.stringify(updateData.menuLinks);
+    }
+    
     const [feature] = await db
       .update(features)
-      .set({ ...featureData, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(features.id, id))
       .returning();
+      
+    console.log('Feature updated successfully:', feature);
+    
+    // Parse menuLinks back to object for response
+    if (feature && feature.menuLinks) {
+      try {
+        feature.menuLinks = typeof feature.menuLinks === 'string' 
+          ? JSON.parse(feature.menuLinks) 
+          : feature.menuLinks;
+      } catch (e) {
+        console.error('Error parsing menuLinks:', e);
+        feature.menuLinks = [];
+      }
+    }
+    
     return feature;
   }
 
