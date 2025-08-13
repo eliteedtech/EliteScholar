@@ -457,14 +457,7 @@ export class DatabaseStorage implements IStorage {
     return feature;
   }
 
-  async updateFeature(id: string, featureData: Partial<InsertFeature>): Promise<Feature> {
-    const [feature] = await db
-      .update(features)
-      .set(featureData)
-      .where(eq(features.id, id))
-      .returning();
-    return feature;
-  }
+
 
   async deleteFeature(id: string): Promise<void> {
     await db.delete(features).where(eq(features.id, id));
@@ -629,14 +622,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(gradeSections.order));
   }
 
-  // Feature Management - getAllFeatures method
-  async getAllFeatures(): Promise<Feature[]> {
-    return await db
-      .select()
-      .from(features)
-      .where(sql`deleted_at IS NULL`)
-      .orderBy(asc(features.name));
-  }
+
 
   // Database Viewer Methods
   async getTablesInfo(): Promise<{table_name: string; record_count: number; columns: string[]}[]> {
@@ -1186,42 +1172,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getSchoolFeatureSetup(schoolId: string): Promise<any[]> {
-    const result = await db
-      .select({
-        id: schoolFeatureSetup.id,
-        featureId: schoolFeatureSetup.featureId,
-        menuLinks: schoolFeatureSetup.menuLinks,
-        featureName: features.name,
-        featureKey: features.key,
-      })
-      .from(schoolFeatureSetup)
-      .innerJoin(features, eq(schoolFeatureSetup.featureId, features.id))
-      .where(eq(schoolFeatureSetup.schoolId, schoolId));
-    
-    return result;
-  }
 
-  async updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void> {
-    console.log('Updating school feature setup in DB:', { schoolId, featureId, menuLinks });
-    
-    const result = await db
-      .insert(schoolFeatureSetup)
-      .values({
-        schoolId,
-        featureId,
-        menuLinks: JSON.stringify(menuLinks),
-      })
-      .onConflictDoUpdate({
-        target: [schoolFeatureSetup.schoolId, schoolFeatureSetup.featureId],
-        set: {
-          menuLinks: JSON.stringify(menuLinks),
-          updatedAt: new Date(),
-        },
-      });
-      
-    console.log('School feature setup updated successfully');
-  }
 
   // Add missing feature methods
   async getAllFeatures(): Promise<Feature[]> {
@@ -1328,21 +1279,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schoolFeatureSetup.schoolId, schoolId));
   }
 
-  async updateSchoolFeatureSetup(schoolId: string, featureId: string, menuLinks: any[]): Promise<void> {
-    await db
-      .insert(schoolFeatureSetup)
-      .values({
-        schoolId,
-        featureId,
-        menuLinks: JSON.stringify(menuLinks),
-      })
-      .onConflictDoUpdate({
-        target: [schoolFeatureSetup.schoolId, schoolFeatureSetup.featureId],
-        set: {
-          menuLinks: JSON.stringify(menuLinks),
-        },
-      });
-  }
+
 
   // Single school feature assignment with auto menu link setup
   async assignFeatureToSchool(schoolId: string, featureId: string): Promise<void> {
@@ -1366,9 +1303,9 @@ export class DatabaseStorage implements IStorage {
       .from(features)
       .where(eq(features.id, featureId))
       .limit(1);
-    if (feature && feature.menuLinks && feature.menuLinks.length > 0) {
+    if (feature && feature.menuLinks && Array.isArray(feature.menuLinks) && feature.menuLinks.length > 0) {
       // Create default setup with all menu links enabled
-      const defaultMenuLinks = feature.menuLinks.map((link: any) => ({
+      const defaultMenuLinks = (feature.menuLinks as any[]).map((link: any) => ({
         ...link,
         enabled: true
       }));
