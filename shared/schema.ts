@@ -633,6 +633,23 @@ export const schoolSuppliers = pgTable("school_suppliers", {
   supplierNameUnique: unique().on(table.schoolId, table.name),
 }));
 
+// School Buildings/Blocks table
+export const schoolBuildings = pgTable("school_buildings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  branchId: varchar("branch_id"),
+  buildingName: varchar("building_name").notNull(),
+  buildingCode: varchar("building_code"),
+  description: text("description"),
+  totalFloors: integer("total_floors").default(1),
+  rooms: jsonb("rooms").default([]), // Array of room objects with id, name, floor, type
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  buildingNameUnique: unique().on(table.schoolId, table.buildingName),
+}));
+
 // Enhanced Asset type with purchase history and assignments
 export type AssetWithDetails = Asset & {
   purchases: AssetPurchase[];
@@ -655,6 +672,21 @@ export const insertSchoolSupplierSchema = createInsertSchema(schoolSuppliers).om
 export const updateSchoolSupplierSchema = insertSchoolSupplierSchema.partial();
 export type InsertSchoolSupplierInput = z.infer<typeof insertSchoolSupplierSchema>;
 export type UpdateSchoolSupplierInput = z.infer<typeof updateSchoolSupplierSchema>;
+
+// Building types
+export type SchoolBuilding = typeof schoolBuildings.$inferSelect;
+export type InsertSchoolBuilding = typeof schoolBuildings.$inferInsert;
+
+// Building Zod schemas
+export const insertSchoolBuildingSchema = createInsertSchema(schoolBuildings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateSchoolBuildingSchema = insertSchoolBuildingSchema.partial();
+export type InsertSchoolBuildingInput = z.infer<typeof insertSchoolBuildingSchema>;
+export type UpdateSchoolBuildingInput = z.infer<typeof updateSchoolBuildingSchema>;
 
 // Relations
 export const userRelations = relations(users, ({ one }) => ({

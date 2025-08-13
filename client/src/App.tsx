@@ -143,6 +143,16 @@ function Router() {
                     </Suspense>
                   </Route>
                   
+                  {/* Block Manager route */}
+                  <Route path="/school/school-premises-setup/block-manager">
+                    <Suspense fallback={<div>Loading block manager...</div>}>
+                      {(() => {
+                        const BlockManagerPage = lazy(() => import("./pages/school/block-manager"));
+                        return <BlockManagerPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+                  
                   {/* Feature-based routes - New URL pattern /school/feature-name/* (but NOT /school/school-setup/*) */}
                   <Route path="/school/:featureName/:page?" component={({ params }) => {
                     // Skip this route for school-setup paths to avoid conflicts with specific routes

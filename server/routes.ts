@@ -633,6 +633,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // School Building routes
+  app.get("/api/schools/:schoolId/buildings", authMiddleware, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const buildings = await storage.getSchoolBuildings(schoolId);
+      res.json(buildings);
+    } catch (error) {
+      console.error("Get school buildings error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/schools/:schoolId/buildings", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const buildingData = req.body;
+      
+      const building = await storage.createSchoolBuilding({
+        ...buildingData,
+        schoolId,
+      });
+      
+      res.status(201).json(building);
+    } catch (error) {
+      console.error("Create school building error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/buildings/:id", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const buildingData = req.body;
+      
+      const building = await storage.updateSchoolBuilding(id, buildingData);
+      res.json(building);
+    } catch (error) {
+      console.error("Update school building error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/buildings/:id", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSchoolBuilding(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete school building error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

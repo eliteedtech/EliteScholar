@@ -58,6 +58,9 @@ import {
   type InsertAcademicWeek,
   type SchoolSupplier,
   type InsertSchoolSupplier,
+  schoolBuildings,
+  type SchoolBuilding,
+  type InsertSchoolBuilding,
   type Class,
   type InsertClass,
   type Subject,
@@ -186,6 +189,12 @@ export interface IStorage {
   createSchoolSupplier(supplier: InsertSchoolSupplier): Promise<SchoolSupplier>;
   updateSchoolSupplier(id: string, supplier: Partial<InsertSchoolSupplier>): Promise<SchoolSupplier>;
   deleteSchoolSupplier(id: string): Promise<void>;
+
+  // School Building operations
+  getSchoolBuildings(schoolId: string): Promise<SchoolBuilding[]>;
+  createSchoolBuilding(building: InsertSchoolBuilding): Promise<SchoolBuilding>;
+  updateSchoolBuilding(id: string, building: Partial<InsertSchoolBuilding>): Promise<SchoolBuilding>;
+  deleteSchoolBuilding(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1568,7 +1577,51 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(assetAssignments.assignedDate));
   }
 
+  // School Building operations
+  async getSchoolBuildings(schoolId: string): Promise<SchoolBuilding[]> {
+    return await db
+      .select()
+      .from(schoolBuildings)
+      .where(and(eq(schoolBuildings.schoolId, schoolId), eq(schoolBuildings.isActive, true)))
+      .orderBy(asc(schoolBuildings.buildingName));
+  }
 
+  async createSchoolBuilding(building: InsertSchoolBuilding): Promise<SchoolBuilding> {
+    // Generate rooms array based on totalRooms count
+    const roomsCount = (building as any).totalRooms || 0;
+    const rooms = Array.from({ length: roomsCount }, (_, i) => ({
+      id: `room-${i + 1}`,
+      name: `Room ${i + 1}`,
+      floor: 1,
+      type: 'classroom',
+      capacity: 30,
+      isActive: true
+    }));
+
+    const [newBuilding] = await db.insert(schoolBuildings).values({
+      ...building,
+      rooms: rooms as any,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return newBuilding;
+  }
+
+  async updateSchoolBuilding(id: string, building: Partial<InsertSchoolBuilding>): Promise<SchoolBuilding> {
+    const [updatedBuilding] = await db
+      .update(schoolBuildings)
+      .set({ ...building, updatedAt: new Date() })
+      .where(eq(schoolBuildings.id, id))
+      .returning();
+    return updatedBuilding;
+  }
+
+  async deleteSchoolBuilding(id: string): Promise<void> {
+    await db
+      .update(schoolBuildings)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(schoolBuildings.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();
