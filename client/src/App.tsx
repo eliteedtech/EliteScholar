@@ -137,8 +137,8 @@ function Router() {
                   <Route path="/school/school-setup/asset-setup">
                     <Suspense fallback={<div>Loading...</div>}>
                       {(() => {
-                        const AssetSetupPage = lazy(() => import("./pages/school/asset-setup"));
-                        return <AssetSetupPage />;
+                        const EnhancedAssetSetupPage = lazy(() => import("./pages/school/enhanced-asset-setup"));
+                        return <EnhancedAssetSetupPage />;
                       })()}
                     </Suspense>
                   </Route>

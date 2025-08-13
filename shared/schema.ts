@@ -213,12 +213,10 @@ export const assets = pgTable("assets", {
   serialNumber: varchar("serial_number"),
   model: varchar("model"),
   brand: varchar("brand"),
-  purchaseDate: timestamp("purchase_date"),
-  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
-  currentValue: decimal("current_value", { precision: 10, scale: 2 }),
   condition: varchar("condition").notNull().default("Good"), // "Excellent", "Good", "Fair", "Poor", "Damaged"
-  location: varchar("location"), // Where the asset is located
-  assignedTo: varchar("assigned_to"), // Staff or department assigned to
+  location: varchar("location"), // References grade_sections
+  totalQuantity: integer("total_quantity").default(1),
+  availableQuantity: integer("available_quantity").default(1),
   warrantyExpiry: timestamp("warranty_expiry"),
   maintenanceSchedule: text("maintenance_schedule"),
   notes: text("notes"),
@@ -232,6 +230,45 @@ export const assets = pgTable("assets", {
   categoryIdx: index("idx_assets_category").on(table.category),
   activeIdx: index("idx_assets_active").on(table.isActive),
 }));
+
+// Asset Purchase History for tracking price changes and quantity additions
+export const assetPurchases = pgTable("asset_purchases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assetId: varchar("asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "cascade" }),
+  purchaseDate: timestamp("purchase_date").notNull(),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull(),
+  supplier: varchar("supplier"),
+  invoiceNumber: varchar("invoice_number"),
+  notes: text("notes"),
+  createdBy: varchar("created_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Asset Assignments for tracking where assets are assigned
+export const assetAssignments = pgTable("asset_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  assetId: varchar("asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "cascade" }),
+  assignedTo: varchar("assigned_to"), // Could be user ID, class, or location
+  assignmentType: varchar("assignment_type").notNull(), // 'user', 'class', 'location'
+  location: varchar("location"), // Specific location/grade section
+  quantity: integer("quantity").notNull().default(1),
+  assignedDate: timestamp("assigned_date").notNull(),
+  returnDate: timestamp("return_date"),
+  status: varchar("status").default("assigned"), // 'assigned', 'returned', 'damaged'
+  notes: text("notes"),
+  assignedBy: varchar("assigned_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Invoices table - updated for feature-based invoicing
 export const invoices = pgTable("invoices", {
@@ -561,9 +598,31 @@ export const insertAssetSchema = createInsertSchema(assets).omit({
   updatedAt: true,
 });
 
+export const insertAssetPurchaseSchema = createInsertSchema(assetPurchases).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAssetAssignmentSchema = createInsertSchema(assetAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const updateAssetSchema = insertAssetSchema.partial();
 export type InsertAssetInput = z.infer<typeof insertAssetSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
+export type InsertAssetPurchase = z.infer<typeof insertAssetPurchaseSchema>;
+export type InsertAssetAssignment = z.infer<typeof insertAssetAssignmentSchema>;
+export type AssetPurchase = typeof assetPurchases.$inferSelect;
+export type AssetAssignment = typeof assetAssignments.$inferSelect;
+
+// Enhanced Asset type with purchase history and assignments
+export type AssetWithDetails = Asset & {
+  purchases: AssetPurchase[];
+  assignments: AssetAssignment[];
+  currentValue: number;
+  totalPurchaseCost: number;
+};
 
 // Relations
 export const userRelations = relations(users, ({ one }) => ({

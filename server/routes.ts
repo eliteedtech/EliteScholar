@@ -317,11 +317,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // School setup routes
   app.use("/api/schools/setup", (await import("./controllers/school-setup")).default);
 
-  // Asset routes for school asset management
+  // Enhanced Asset routes for school asset management
   app.get("/api/schools/:schoolId/assets", authMiddleware, async (req, res) => {
     try {
       const { schoolId } = req.params;
       const { category, condition, isActive } = req.query;
+      
+      // Verify school access for non-superadmin users
+      if (req.user?.role !== 'superadmin' && req.user?.schoolId !== schoolId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       
       const filters: any = {};
       if (category) filters.category = category as string;
@@ -332,6 +337,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(assets);
     } catch (error) {
       console.error("Get assets error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/schools/:schoolId/grade-sections", authMiddleware, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      
+      // Verify school access for non-superadmin users
+      if (req.user?.role !== 'superadmin' && req.user?.schoolId !== schoolId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const gradeSections = await storage.getGradeSections(schoolId);
+      res.json(gradeSections);
+    } catch (error) {
+      console.error("Get grade sections error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -460,6 +482,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete asset error:", error);
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Enhanced asset routes for purchase history and assignments
+  app.post("/api/assets/:id/purchases", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id: assetId } = req.params;
+      const purchaseData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const purchase = await storage.createAssetPurchase({
+        ...purchaseData,
+        assetId,
+        createdBy: req.user.id,
+      });
+
+      res.json(purchase);
+    } catch (error) {
+      console.error("Create asset purchase error:", error);
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
+  app.get("/api/assets/:id/purchases", authMiddleware, async (req, res) => {
+    try {
+      const { id: assetId } = req.params;
+      const purchases = await storage.getAssetPurchases(assetId);
+      res.json(purchases);
+    } catch (error) {
+      console.error("Get asset purchases error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/assets/:id/assignments", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id: assetId } = req.params;
+      const assignmentData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const assignment = await storage.assignAsset({
+        ...assignmentData,
+        assetId,
+        assignedBy: req.user.id,
+      });
+
+      res.json(assignment);
+    } catch (error) {
+      console.error("Assign asset error:", error);
+      res.status(500).json({ message: error.message || "Internal server error" });
+    }
+  });
+
+  app.get("/api/assets/:id/assignments", authMiddleware, async (req, res) => {
+    try {
+      const { id: assetId } = req.params;
+      const assignments = await storage.getAssetAssignments(assetId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Get asset assignments error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/assignments/:id/return", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id: assignmentId } = req.params;
+      const { returnDate } = req.body;
+      
+      const assignment = await storage.returnAsset(assignmentId, new Date(returnDate || Date.now()));
+      res.json(assignment);
+    } catch (error) {
+      console.error("Return asset error:", error);
+      res.status(500).json({ message: error.message || "Internal server error" });
     }
   });
 

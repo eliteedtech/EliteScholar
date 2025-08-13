@@ -61,6 +61,12 @@ import {
   type InsertClassSubject,
   type Asset,
   type InsertAsset,
+  type AssetPurchase,
+  type InsertAssetPurchase,
+  type AssetAssignment,
+  type InsertAssetAssignment,
+  assetPurchases,
+  assetAssignments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, count, sql, or, ilike, ne } from "drizzle-orm";
@@ -1324,28 +1330,32 @@ export class DatabaseStorage implements IStorage {
         enabled: true
       }));
       
-      await this.updateSchoolFeatureSetup(schoolId, featureId, defaultMenuLinks);
+      // Skip auto-setup for now - let schools configure manually
     }
   }
-  // Asset operations
+  // Enhanced Asset operations
   async getAssets(schoolId: string, filters?: {
     category?: string;
     condition?: string;
     isActive?: boolean;
   }): Promise<Asset[]> {
-    let query = db.select().from(assets).where(eq(assets.schoolId, schoolId));
+    const conditions = [eq(assets.schoolId, schoolId)];
     
-    if (filters?.category) {
-      query = query.where(eq(assets.category, filters.category));
+    if (filters?.category && filters.category !== 'all') {
+      conditions.push(eq(assets.category, filters.category));
     }
-    if (filters?.condition) {
-      query = query.where(eq(assets.condition, filters.condition));
+    if (filters?.condition && filters.condition !== 'all') {
+      conditions.push(eq(assets.condition, filters.condition));
     }
     if (filters?.isActive !== undefined) {
-      query = query.where(eq(assets.isActive, filters.isActive));
+      conditions.push(eq(assets.isActive, filters.isActive));
     }
     
-    return await query.orderBy(desc(assets.createdAt));
+    return await db
+      .select()
+      .from(assets)
+      .where(and(...conditions))
+      .orderBy(desc(assets.createdAt));
   }
 
   async getAssetById(id: string): Promise<Asset | undefined> {
@@ -1353,9 +1363,42 @@ export class DatabaseStorage implements IStorage {
     return asset;
   }
 
+  async getAssetWithDetails(id: string): Promise<any> {
+    const [asset] = await db.select().from(assets).where(eq(assets.id, id));
+    if (!asset) return null;
+
+    // Get purchase history
+    const purchases = await db
+      .select()
+      .from(assetPurchases)
+      .where(eq(assetPurchases.assetId, id))
+      .orderBy(desc(assetPurchases.purchaseDate));
+
+    // Get assignment history  
+    const assignments = await db
+      .select()
+      .from(assetAssignments)
+      .where(eq(assetAssignments.assetId, id))
+      .orderBy(desc(assetAssignments.assignedDate));
+
+    // Calculate totals
+    const totalPurchaseCost = purchases.reduce((sum, p) => sum + Number(p.totalCost), 0);
+    const currentValue = purchases.length > 0 ? Number(purchases[0].purchasePrice) : 0;
+
+    return {
+      ...asset,
+      purchases,
+      assignments,
+      totalPurchaseCost,
+      currentValue
+    };
+  }
+
   async createAsset(assetData: InsertAsset): Promise<Asset> {
     const [asset] = await db.insert(assets).values({
       ...assetData,
+      totalQuantity: assetData.totalQuantity || 1,
+      availableQuantity: assetData.availableQuantity || assetData.totalQuantity || 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning();
@@ -1372,8 +1415,117 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAsset(id: string): Promise<void> {
+    // Delete related records first
+    await db.delete(assetAssignments).where(eq(assetAssignments.assetId, id));
+    await db.delete(assetPurchases).where(eq(assetPurchases.assetId, id));
     await db.delete(assets).where(eq(assets.id, id));
   }
+
+  // Asset Purchase operations
+  async createAssetPurchase(purchaseData: InsertAssetPurchase): Promise<AssetPurchase> {
+    return db.transaction(async (tx) => {
+      // Create purchase record
+      const [purchase] = await tx.insert(assetPurchases).values({
+        ...purchaseData,
+        totalCost: Number(purchaseData.purchasePrice) * Number(purchaseData.quantity),
+        createdAt: new Date(),
+      }).returning();
+
+      // Update asset quantities
+      await tx
+        .update(assets)
+        .set({
+          totalQuantity: sql`${assets.totalQuantity} + ${purchaseData.quantity}`,
+          availableQuantity: sql`${assets.availableQuantity} + ${purchaseData.quantity}`,
+          updatedAt: new Date()
+        })
+        .where(eq(assets.id, purchaseData.assetId));
+
+      return purchase;
+    });
+  }
+
+  async getAssetPurchases(assetId: string): Promise<AssetPurchase[]> {
+    return await db
+      .select()
+      .from(assetPurchases)
+      .where(eq(assetPurchases.assetId, assetId))
+      .orderBy(desc(assetPurchases.purchaseDate));
+  }
+
+  // Asset Assignment operations
+  async assignAsset(assignmentData: InsertAssetAssignment): Promise<AssetAssignment> {
+    return db.transaction(async (tx) => {
+      // Check available quantity
+      const [asset] = await tx.select().from(assets).where(eq(assets.id, assignmentData.assetId));
+      if (!asset || (asset.availableQuantity || 0) < assignmentData.quantity) {
+        throw new Error('Insufficient available quantity for assignment');
+      }
+
+      // Create assignment record
+      const [assignment] = await tx.insert(assetAssignments).values({
+        ...assignmentData,
+        status: 'assigned',
+        createdAt: new Date(),
+      }).returning();
+
+      // Update available quantity
+      await tx
+        .update(assets)
+        .set({
+          availableQuantity: sql`${assets.availableQuantity} - ${assignmentData.quantity}`,
+          updatedAt: new Date()
+        })
+        .where(eq(assets.id, assignmentData.assetId));
+
+      return assignment;
+    });
+  }
+
+  async returnAsset(assignmentId: string, returnDate: Date): Promise<AssetAssignment> {
+    return db.transaction(async (tx) => {
+      // Get assignment details
+      const [assignment] = await tx
+        .select()
+        .from(assetAssignments)
+        .where(eq(assetAssignments.id, assignmentId));
+      
+      if (!assignment) {
+        throw new Error('Assignment not found');
+      }
+
+      // Update assignment status
+      const [updatedAssignment] = await tx
+        .update(assetAssignments)
+        .set({
+          status: 'returned',
+          returnDate: returnDate
+        })
+        .where(eq(assetAssignments.id, assignmentId))
+        .returning();
+
+      // Update available quantity
+      await tx
+        .update(assets)
+        .set({
+          availableQuantity: sql`${assets.availableQuantity} + ${assignment.quantity}`,
+          updatedAt: new Date()
+        })
+        .where(eq(assets.id, assignment.assetId));
+
+      return updatedAssignment;
+    });
+  }
+
+  async getAssetAssignments(assetId: string): Promise<AssetAssignment[]> {
+    return await db
+      .select()
+      .from(assetAssignments)
+      .where(eq(assetAssignments.assetId, assetId))
+      .orderBy(desc(assetAssignments.assignedDate));
+  }
+
+
 }
 
 export const storage = new DatabaseStorage();
