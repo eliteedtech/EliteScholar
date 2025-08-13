@@ -115,6 +115,28 @@ interface GradeSection {
   type: string;
 }
 
+interface SchoolBuilding {
+  id: string;
+  buildingName: string;
+  buildingCode?: string;
+  rooms: Array<{
+    id: string;
+    name: string;
+    floor: number;
+    type: string;
+    capacity: number;
+    isActive: boolean;
+  }>;
+}
+
+interface LocationOption {
+  value: string;
+  label: string;
+  building: string;
+  room: string;
+  type: string;
+}
+
 interface Supplier {
   id: string;
   name: string;
@@ -169,6 +191,55 @@ export default function EnhancedAssetSetup() {
     queryKey: ["/api/schools", user?.schoolId, "grade-sections"],
     enabled: !!user?.schoolId,
   });
+
+  // Fetch school buildings with rooms for location dropdown
+  const { data: buildings = [] } = useQuery<SchoolBuilding[]>({
+    queryKey: ["/api/schools", user?.schoolId, "buildings"],
+    enabled: !!user?.schoolId,
+  });
+
+  // Create location options from buildings and rooms
+  const locationOptions: LocationOption[] = React.useMemo(() => {
+    const options: LocationOption[] = [];
+    
+    buildings.forEach((building) => {
+      if (building.rooms && building.rooms.length > 0) {
+        building.rooms
+          .filter(room => room.isActive)
+          .forEach((room) => {
+            options.push({
+              value: `${building.buildingName} - ${room.name} (${room.type})`,
+              label: `${building.buildingName} - ${room.name} (${room.type})`,
+              building: building.buildingName,
+              room: room.name,
+              type: room.type,
+            });
+          });
+      } else {
+        // If no rooms, add building as location option
+        options.push({
+          value: building.buildingName,
+          label: `${building.buildingName} (Building)`,
+          building: building.buildingName,
+          room: "General",
+          type: "building",
+        });
+      }
+    });
+
+    // Also include grade sections as backup locations
+    gradeSections.forEach((section) => {
+      options.push({
+        value: section.name,
+        label: `${section.name} (Class)`,
+        building: "Academic",
+        room: section.name,
+        type: "classroom",
+      });
+    });
+
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }, [buildings, gradeSections]);
 
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery<Supplier[]>({
@@ -688,9 +759,9 @@ export default function EnhancedAssetSetup() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {gradeSections.map((section) => (
-                            <SelectItem key={section.id} value={section.name}>
-                              {section.name}
+                          {locationOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -949,9 +1020,9 @@ export default function EnhancedAssetSetup() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {gradeSections.map((section) => (
-                          <SelectItem key={section.id} value={section.name}>
-                            {section.name}
+                        {locationOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
