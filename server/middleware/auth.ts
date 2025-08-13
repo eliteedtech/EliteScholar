@@ -4,6 +4,7 @@ import { storage } from "../storage";
 
 export interface AuthRequest extends Request {
   user?: {
+    id: string;
     userId: string;
     role: string;
     schoolId?: string;
@@ -25,6 +26,7 @@ export const authMiddleware = async (
       // For session-based auth, create user object directly
       const sessionUser = (req as any).session.user;
       req.user = {
+        id: sessionUser.id,
         userId: sessionUser.id,
         role: sessionUser.role,
         schoolId: sessionUser.schoolId,
@@ -46,6 +48,7 @@ export const authMiddleware = async (
     }
 
     req.user = {
+      id: decoded.userId,
       userId: decoded.userId,
       role: decoded.role,
       schoolId: decoded.schoolId,

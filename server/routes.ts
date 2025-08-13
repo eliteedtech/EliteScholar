@@ -501,14 +501,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id: assetId } = req.params;
       const purchaseData = req.body;
       
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
       const purchase = await storage.createAssetPurchase({
         ...purchaseData,
         assetId,
-        createdBy: req.user.id,
+        createdBy: req.user?.id || purchaseData.schoolId,
       });
 
       res.json(purchase);
