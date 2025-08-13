@@ -101,6 +101,12 @@ The system is designed with independent modules:
   - Enhanced UI with separate dialogs for assignments and purchase additions
   - Complete CRUD operations through enhanced-asset-setup.tsx interface
   - Full database integration with proper API routes and storage operations
+- **Application Debugging & Fixes (August 13, 2025)**:
+  - Fixed critical import path error in block-manager.tsx (corrected @/store/authStore to @/store/auth)
+  - Resolved API request call signature issues for building CRUD operations
+  - Fixed form field type compatibility issues with nullable values
+  - Corrected TypeScript type annotations for query responses
+  - Successfully restored application startup and functionality
 
 ## External Dependencies
 

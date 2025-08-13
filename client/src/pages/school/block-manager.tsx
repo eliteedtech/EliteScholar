@@ -16,7 +16,7 @@ import { z } from "zod";
 import { Building2, Plus, Settings, Trash2, Edit, Home, MapPin } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { insertSchoolBuildingSchema } from "@shared/schema";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "@/store/auth";
 
 type SchoolBuilding = {
   id: string;
@@ -69,10 +69,14 @@ export default function BlockManager() {
     resolver: zodResolver(buildingFormSchema),
     defaultValues: {
       buildingName: "",
-      buildingCode: "",
-      description: "",
+      buildingCode: undefined,
+      description: undefined,
       totalFloors: 1,
       totalRooms: 1,
+      schoolId: user?.schoolId || "",
+      branchId: user?.branchId,
+      rooms: [],
+      isActive: true,
     },
   });
 
@@ -89,7 +93,7 @@ export default function BlockManager() {
   });
 
   // Fetch buildings
-  const { data: buildings = [], isLoading } = useQuery({
+  const { data: buildings = [], isLoading } = useQuery<SchoolBuilding[]>({
     queryKey: [`/api/schools/${user?.schoolId}/buildings`],
     enabled: !!user?.schoolId,
   });
@@ -97,10 +101,7 @@ export default function BlockManager() {
   // Create building mutation
   const createBuildingMutation = useMutation({
     mutationFn: (data: BuildingFormData) =>
-      apiRequest(`/api/schools/${user?.schoolId}/buildings`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", `/api/schools/${user?.schoolId}/buildings`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/schools/${user?.schoolId}/buildings`] });
       toast({
@@ -122,10 +123,7 @@ export default function BlockManager() {
   // Update building mutation
   const updateBuildingMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<SchoolBuilding> }) =>
-      apiRequest(`/api/buildings/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("PUT", `/api/buildings/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/schools/${user?.schoolId}/buildings`] });
       toast({
@@ -147,9 +145,7 @@ export default function BlockManager() {
   // Delete building mutation
   const deleteBuildingMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/buildings/${id}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/buildings/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/schools/${user?.schoolId}/buildings`] });
       toast({
@@ -254,7 +250,7 @@ export default function BlockManager() {
                     <FormItem>
                       <FormLabel>Building Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., MB, SB, AB" {...field} data-testid="input-building-code" />
+                        <Input placeholder="e.g., MB, SB, AB" {...field} value={field.value || ""} data-testid="input-building-code" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -273,6 +269,7 @@ export default function BlockManager() {
                           min="1"
                           max="10"
                           {...field}
+                          value={field.value || 1}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                           data-testid="input-total-floors"
                         />
@@ -314,6 +311,7 @@ export default function BlockManager() {
                         <Textarea
                           placeholder="Brief description of the building..."
                           {...field}
+                          value={field.value || ""}
                           data-testid="textarea-description"
                         />
                       </FormControl>
