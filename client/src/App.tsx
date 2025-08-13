@@ -143,8 +143,12 @@ function Router() {
                     </Suspense>
                   </Route>
                   
-                  {/* Feature-based routes - New URL pattern /school/feature-name/* */}
-                  <Route path="/school/:featureName/:page?" component={() => {
+                  {/* Feature-based routes - New URL pattern /school/feature-name/* (but NOT /school/school-setup/*) */}
+                  <Route path="/school/:featureName/:page?" component={({ params }) => {
+                    // Skip this route for school-setup paths to avoid conflicts with specific routes
+                    if (params?.featureName === 'school-setup') {
+                      return null;
+                    }
                     return (
                       <Suspense fallback={<div>Loading...</div>}>
                         {(() => {

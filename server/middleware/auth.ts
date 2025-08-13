@@ -17,7 +17,21 @@ export const authMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    // Check for token in Authorization header first, then in session
+    let token = req.headers.authorization?.replace("Bearer ", "");
+    
+    // If no Authorization header, check session for authenticated user
+    if (!token && (req as any).session?.user) {
+      // For session-based auth, create user object directly
+      const sessionUser = (req as any).session.user;
+      req.user = {
+        userId: sessionUser.id,
+        role: sessionUser.role,
+        schoolId: sessionUser.schoolId,
+        branchId: sessionUser.branchId,
+      };
+      return next();
+    }
 
     if (!token) {
       return res.status(401).json({ message: "No token provided" });

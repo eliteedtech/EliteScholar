@@ -10,6 +10,7 @@ import { login, getCurrentUser, updateProfile } from "./controllers/auth";
 import { connectionTestService } from "./services/connection-test";
 import { cloudinaryService } from "./services/cloudinary";
 import multer from "multer";
+import { authMiddleware, schoolAdminOnly } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
@@ -317,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/schools/setup", (await import("./controllers/school-setup")).default);
 
   // Asset routes for school asset management
-  app.get("/api/schools/:schoolId/assets", async (req, res) => {
+  app.get("/api/schools/:schoolId/assets", authMiddleware, async (req, res) => {
     try {
       const { schoolId } = req.params;
       const { category, condition, isActive } = req.query;
@@ -335,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/assets/:id", async (req, res) => {
+  app.get("/api/assets/:id", authMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
       const asset = await storage.getAssetById(id);
@@ -351,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/assets", upload.single('image'), async (req, res) => {
+  app.post("/api/assets", authMiddleware, schoolAdminOnly, upload.single('image'), async (req, res) => {
     try {
       let assetData;
       
@@ -404,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/assets/:id", upload.single('image'), async (req, res) => {
+  app.put("/api/assets/:id", authMiddleware, schoolAdminOnly, upload.single('image'), async (req, res) => {
     try {
       const { id } = req.params;
       let assetData;
@@ -451,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/assets/:id", async (req, res) => {
+  app.delete("/api/assets/:id", authMiddleware, schoolAdminOnly, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteAsset(id);

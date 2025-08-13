@@ -52,6 +52,18 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 // Get current user
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
+    // Check for session-based authentication first (used by the app)
+    if ((req as any).session?.user) {
+      const sessionUser = (req as any).session.user;
+      const user = await storage.getUser(sessionUser.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const { password, ...userWithoutPassword } = user;
+      return res.json(userWithoutPassword);
+    }
+
+    // Fallback to JWT authentication
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "No token provided" });
