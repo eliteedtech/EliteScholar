@@ -1,0 +1,78 @@
+Get school suppliers error: error: relation "school_suppliers" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getSchoolSuppliers (/home/runner/workspace/server/storage.ts:1408:12)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:582:25) {
+  length: 116,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '144',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:21:12 PM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/suppliers 500 in 180ms ::…
+2:21:12 PM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/grade-sections 304 in 254…
+2:22:04 PM [vite] hmr update /src/pages/school/enhanced-asset-setup.tsx, /src/index.css?v=qdG-oOfFPQpkbwShkkddc
+2:22:05 PM [vite] hmr update /src/pages/school/enhanced-asset-setup.tsx, /src/index.css?v=qdG-oOfFPQpkbwShkkddc (x2)
+Create school supplier error: error: relation "school_suppliers" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createSchoolSupplier (/home/runner/workspace/server/storage.ts:1416:27)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:595:24) {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '13',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:22:06 PM [express] POST /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/suppliers 500 in 252ms :…
+Get school suppliers error: error: relation "school_suppliers" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getSchoolSuppliers (/home/runner/workspace/server/storage.ts:1408:12)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:582:25) {
+  length: 116,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '144',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:22:07 PM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/suppliers 500 in 169ms ::…

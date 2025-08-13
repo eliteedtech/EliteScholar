@@ -329,6 +329,7 @@ export default function EnhancedAssetSetup() {
   const onPurchaseSubmit = (data: PurchaseFormData) => {
     addPurchaseMutation.mutate({
       ...data,
+      supplier: data.supplier === "no-supplier" ? undefined : data.supplier,
       totalCost: data.purchasePrice * data.quantity,
     });
   };
@@ -843,7 +844,7 @@ export default function EnhancedAssetSetup() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No supplier</SelectItem>
+                        <SelectItem value="no-supplier">No supplier</SelectItem>
                         {suppliers.map((supplier) => (
                           <SelectItem key={supplier.id} value={supplier.name}>
                             {supplier.name}
@@ -1035,7 +1036,7 @@ export default function EnhancedAssetSetup() {
                     </div>
                     <div>
                       <span className="font-medium">Current Value:</span>
-                      <span className="ml-2">${assetDetails.currentValue?.toFixed(2) || "0.00"}</span>
+                      <span className="ml-2">${(assetDetails as any).currentValue?.toFixed(2) || "0.00"}</span>
                     </div>
                     <div>
                       <span className="font-medium">Total Quantity:</span>
