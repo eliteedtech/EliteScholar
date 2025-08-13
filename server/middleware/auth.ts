@@ -1,15 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { storage } from "../storage";
+import type { User } from "@shared/schema";
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    userId: string;
-    role: string;
-    schoolId?: string;
-    branchId?: string;
-  };
+  user?: User;
 }
 
 export const authMiddleware = async (
@@ -23,15 +18,8 @@ export const authMiddleware = async (
     
     // If no Authorization header, check session for authenticated user
     if (!token && (req as any).session?.user) {
-      // For session-based auth, create user object directly
-      const sessionUser = (req as any).session.user;
-      req.user = {
-        id: sessionUser.id,
-        userId: sessionUser.id,
-        role: sessionUser.role,
-        schoolId: sessionUser.schoolId,
-        branchId: sessionUser.branchId,
-      };
+      // For session-based auth, use the user object directly
+      req.user = (req as any).session.user;
       return next();
     }
 
@@ -47,13 +35,7 @@ export const authMiddleware = async (
       return res.status(401).json({ message: "User not found" });
     }
 
-    req.user = {
-      id: decoded.userId,
-      userId: decoded.userId,
-      role: decoded.role,
-      schoolId: decoded.schoolId,
-      branchId: decoded.branchId,
-    };
+    req.user = user;
 
     next();
   } catch (error) {
