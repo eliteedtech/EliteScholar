@@ -128,10 +128,16 @@ export default function EnhancedAssetSetup() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch assets
-  const { data: assets = [], isLoading: assetsLoading } = useQuery({
-    queryKey: ["/api/schools", user?.schoolId, "assets", filters],
+  const { data: assets = [], isLoading: assetsLoading, error: assetsError } = useQuery({
+    queryKey: ["/api/schools", user?.schoolId, "assets"],
     enabled: !!user?.schoolId,
   });
+
+  // Debug logging
+  console.log("Assets data:", assets);
+  console.log("Assets loading:", assetsLoading);
+  console.log("Assets error:", assetsError);
+  console.log("User school ID:", user?.schoolId);
 
   // Fetch grade sections for location dropdown
   const { data: gradeSections = [] } = useQuery<GradeSection[]>({
@@ -178,7 +184,9 @@ export default function EnhancedAssetSetup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "assets"] });
+      queryClient.refetchQueries({ queryKey: ["/api/schools", user?.schoolId, "assets"] });
       setShowCreateDialog(false);
+      createForm.reset();
       toast({ title: "Success", description: "Asset created successfully" });
     },
     onError: (error: any) => {
