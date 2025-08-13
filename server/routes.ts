@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplyData.supplier = null;
       }
 
-      const supply = await storage.createSupply({
+      const supply = await storage.createSchoolSupply({
         ...supplyData,
         createdBy: req.user.id,
       });
@@ -613,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const supplyData = req.body;
       
-      const supply = await storage.updateSupply(id, supplyData);
+      const supply = await storage.updateSchoolSupply(id, supplyData);
       res.json(supply);
     } catch (error) {
       console.error("Update supply error:", error);
@@ -625,7 +625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/supplies/:id", authMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
-      await storage.deleteSupply(id);
+      await storage.deleteSchoolSupply(id);
       res.json({ message: "Supply deleted successfully" });
     } catch (error) {
       console.error("Delete supply error:", error);
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         purchaseData.supplier = null;
       }
 
-      const purchase = await storage.addSupplyPurchase({
+      const purchase = await storage.createSupplyPurchase({
         ...purchaseData,
         supplyId,
         createdBy: req.user.id,
@@ -683,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      const usage = await storage.recordSupplyUsage({
+      const usage = await storage.createSupplyUsage({
         ...usageData,
         supplyId,
         createdBy: req.user.id,
@@ -700,10 +700,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/supplies/:id/usage", authMiddleware, async (req, res) => {
     try {
       const { id: supplyId } = req.params;
-      const usage = await storage.getSupplyUsageHistory(supplyId);
+      const usage = await storage.getSupplyUsage(supplyId);
       res.json(usage);
     } catch (error) {
       console.error("Get supply usage error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Supply Room Assignment routes
+  // Assign supply to storage room
+  app.post("/api/supplies/:id/room-assignments", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const assignmentData = req.body;
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const assignment = await storage.assignSupplyToRoom({
+        ...assignmentData,
+        supplyId,
+        assignedBy: req.user.id,
+        assignedDate: new Date(),
+      });
+
+      res.json(assignment);
+    } catch (error) {
+      console.error("Assign supply to room error:", error);
+      res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // Get supply room assignments
+  app.get("/api/supplies/:id/room-assignments", authMiddleware, async (req, res) => {
+    try {
+      const { id: supplyId } = req.params;
+      const assignments = await storage.getSupplyRoomAssignments(supplyId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Get supply room assignments error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get storage rooms with capacity for a school
+  app.get("/api/schools/:schoolId/storage-rooms", authMiddleware, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const storageRooms = await storage.getStorageRoomsWithCapacity(schoolId);
+      res.json(storageRooms);
+    } catch (error) {
+      console.error("Get storage rooms error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

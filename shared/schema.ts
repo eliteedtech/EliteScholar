@@ -284,7 +284,9 @@ export const schoolSupplies = pgTable("school_supplies", {
   maximumStock: integer("maximum_stock").default(1000),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
   supplier: varchar("supplier"),
-  location: varchar("location"), // Storage location
+  location: varchar("location"), // Storage location - will be linked to room_id
+  roomId: varchar("room_id"), // Reference to room within building
+  buildingId: varchar("building_id"), // Reference to school building
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
   createdBy: varchar("created_by")
@@ -334,6 +336,30 @@ export const supplyUsage = pgTable("supply_usage", {
     .references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Supply Room Assignments table
+export const supplyRoomAssignments = pgTable("supply_room_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  supplyId: varchar("supply_id")
+    .notNull()
+    .references(() => schoolSupplies.id, { onDelete: "cascade" }),
+  buildingId: varchar("building_id")
+    .notNull()
+    .references(() => schoolBuildings.id),
+  roomId: varchar("room_id").notNull(), // Room ID within the building
+  quantity: integer("quantity").notNull(),
+  assignedDate: timestamp("assigned_date").notNull(),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  assignedBy: varchar("assigned_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  supplyRoomIdx: index("idx_supply_room").on(table.supplyId, table.roomId),
+  buildingIdx: index("idx_supply_building").on(table.buildingId),
+}));
 
 // Invoices table - updated for feature-based invoicing
 export const invoices = pgTable("invoices", {
@@ -689,6 +715,12 @@ export const insertSupplyUsageSchema = createInsertSchema(supplyUsage).omit({
   createdAt: true,
 });
 
+export const insertSupplyRoomAssignmentSchema = createInsertSchema(supplyRoomAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateAssetSchema = insertAssetSchema.partial();
 export type InsertAssetInput = z.infer<typeof insertAssetSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
@@ -702,6 +734,8 @@ export type SupplyPurchase = typeof supplyPurchases.$inferSelect;
 export type InsertSupplyPurchase = z.infer<typeof insertSupplyPurchaseSchema>;
 export type SupplyUsage = typeof supplyUsage.$inferSelect;
 export type InsertSupplyUsage = z.infer<typeof insertSupplyUsageSchema>;
+export type SupplyRoomAssignment = typeof supplyRoomAssignments.$inferSelect;
+export type InsertSupplyRoomAssignment = z.infer<typeof insertSupplyRoomAssignmentSchema>;
 
 // School Suppliers table
 export const schoolSuppliers = pgTable("school_suppliers", {

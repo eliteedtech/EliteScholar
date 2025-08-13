@@ -75,7 +75,17 @@ const supplyFormSchema = z.object({
   minimumStock: z.number().min(0, "Minimum stock must be positive").default(0),
   maximumStock: z.number().min(1, "Maximum stock must be positive").default(1000),
   location: z.string().optional(),
+  roomId: z.string().optional(),
+  buildingId: z.string().optional(),
   supplier: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// Room assignment form schema
+const roomAssignmentFormSchema = z.object({
+  buildingId: z.string().min(1, "Building is required"),
+  roomId: z.string().min(1, "Room is required"),
+  quantity: z.number().min(1, "Quantity must be at least 1"),
   notes: z.string().optional(),
 });
 
@@ -102,6 +112,7 @@ const usageFormSchema = z.object({
 type SupplyFormData = z.infer<typeof supplyFormSchema>;
 type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
 type UsageFormData = z.infer<typeof usageFormSchema>;
+type RoomAssignmentFormData = z.infer<typeof roomAssignmentFormSchema>;
 
 interface Supply {
   id: string;
@@ -154,6 +165,7 @@ export default function SupplySetup() {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showUsageDialog, setShowUsageDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showRoomAssignmentDialog, setShowRoomAssignmentDialog] = useState(false);
   const [filters, setFilters] = useState({ category: "all", stockLevel: "all" });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -168,6 +180,12 @@ export default function SupplySetup() {
   // Fetch suppliers for dropdown
   const { data: suppliers = [] } = useQuery<any[]>({
     queryKey: ["/api/schools", user?.schoolId, "suppliers"],
+    enabled: !!user?.schoolId,
+  });
+
+  // Fetch storage rooms for room assignment
+  const { data: storageRooms = [] } = useQuery<any[]>({
+    queryKey: ["/api/schools", user?.schoolId, "storage-rooms"],
     enabled: !!user?.schoolId,
   });
 
@@ -210,6 +228,16 @@ export default function SupplySetup() {
       recipient: "",
       purpose: "",
       usageDate: new Date().toISOString().split('T')[0],
+      notes: "",
+    },
+  });
+
+  const roomAssignmentForm = useForm<RoomAssignmentFormData>({
+    resolver: zodResolver(roomAssignmentFormSchema),
+    defaultValues: {
+      buildingId: "",
+      roomId: "",
+      quantity: 1,
       notes: "",
     },
   });
@@ -272,6 +300,24 @@ export default function SupplySetup() {
     },
   });
 
+  // Room assignment mutation
+  const assignRoomMutation = useMutation({
+    mutationFn: async (data: RoomAssignmentFormData) => {
+      const response = await apiRequest("POST", `/api/supplies/${selectedSupply?.id}/room-assignments`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "supplies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "storage-rooms"] });
+      setShowRoomAssignmentDialog(false);
+      roomAssignmentForm.reset();
+      toast({ title: "Success", description: "Supply assigned to room successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Form handlers
   const onCreateSubmit = (data: SupplyFormData) => {
     // Process custom category and type
@@ -296,6 +342,27 @@ export default function SupplySetup() {
 
   const onUsageSubmit = (data: UsageFormData) => {
     recordUsageMutation.mutate(data);
+  };
+
+  const onRoomAssignmentSubmit = (data: RoomAssignmentFormData) => {
+    assignRoomMutation.mutate(data);
+  };
+
+  // Handler functions for dialog opening
+  const handleOpenPurchaseDialog = (supply: Supply) => {
+    setSelectedSupply(supply);
+    setShowPurchaseDialog(true);
+    purchaseForm.reset();
+  };
+
+  const handleOpenUsageDialog = (supply: Supply) => {
+    setSelectedSupply(supply);
+    setShowUsageDialog(true);
+    usageForm.setValue("quantity", Math.min(supply.currentStock, 1));
+    usageForm.reset({
+      ...usageForm.getValues(),
+      quantity: Math.min(supply.currentStock, 1),
+    });
   };
 
   // Filter supplies
@@ -526,6 +593,20 @@ export default function SupplySetup() {
                     >
                       <TrendingUp className="h-4 w-4 mr-1" />
                       Usage
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedSupply(supply);
+                        setShowRoomAssignmentDialog(true);
+                        roomAssignmentForm.setValue("quantity", Math.min(supply.currentStock, 1));
+                      }}
+                      data-testid={`button-assign-room-${supply.id}`}
+                    >
+                      <Package className="h-4 w-4 mr-1" />
+                      Assign Room
                     </Button>
                     
                     <Button
@@ -1145,6 +1226,133 @@ export default function SupplySetup() {
                   data-testid="button-submit-usage"
                 >
                   {recordUsageMutation.isPending ? "Recording..." : "Record Usage"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Room Assignment Dialog */}
+      <Dialog open={showRoomAssignmentDialog} onOpenChange={setShowRoomAssignmentDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Assign {selectedSupply?.name} to Storage Room</DialogTitle>
+          </DialogHeader>
+          <Form {...roomAssignmentForm}>
+            <form onSubmit={roomAssignmentForm.handleSubmit(onRoomAssignmentSubmit)} className="space-y-4">
+              <FormField
+                control={roomAssignmentForm.control}
+                name="buildingId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Building*</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        roomAssignmentForm.setValue("roomId", "");
+                      }} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-building">
+                          <SelectValue placeholder="Select building" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {[...new Set(storageRooms.map(room => room.buildingId))].map((buildingId) => {
+                          const building = storageRooms.find(room => room.buildingId === buildingId);
+                          return (
+                            <SelectItem key={buildingId} value={buildingId}>
+                              {building?.buildingName}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={roomAssignmentForm.control}
+                name="roomId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Storage Room*</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-room">
+                          <SelectValue placeholder="Select storage room" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {storageRooms
+                          .filter(room => room.buildingId === roomAssignmentForm.watch("buildingId"))
+                          .map((room) => (
+                            <SelectItem key={room.roomId} value={room.roomId}>
+                              {room.roomName} (Floor {room.floor}) - Available: {room.availableCapacity}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={roomAssignmentForm.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity*</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Enter quantity"
+                        {...field}
+                        min={1}
+                        max={selectedSupply?.currentStock || 1}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        data-testid="input-assignment-quantity"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={roomAssignmentForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Assignment notes"
+                        className="resize-none"
+                        {...field}
+                        data-testid="textarea-assignment-notes"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowRoomAssignmentDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={assignRoomMutation.isPending}
+                  data-testid="button-submit-assignment"
+                >
+                  {assignRoomMutation.isPending ? "Assigning..." : "Assign to Room"}
                 </Button>
               </div>
             </form>

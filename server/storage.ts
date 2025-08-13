@@ -21,6 +21,10 @@ import {
   classSubjects,
   assets,
   schoolSuppliers,
+  schoolSupplies,
+  supplyPurchases,
+  supplyUsage,
+  supplyRoomAssignments,
   assetPurchases,
   assetAssignments,
   type User,
@@ -73,15 +77,14 @@ import {
   type InsertAssetPurchase,
   type AssetAssignment,
   type InsertAssetAssignment,
-  schoolSupplies,
-  supplyPurchases,
-  supplyUsage,
   type SchoolSupply,
   type InsertSchoolSupply,
   type SupplyPurchase,
   type InsertSupplyPurchase,
   type SupplyUsage,
   type InsertSupplyUsage,
+  type SupplyRoomAssignment,
+  type InsertSupplyRoomAssignment,
   assetPurchases,
   assetAssignments,
 } from "@shared/schema";
@@ -204,6 +207,25 @@ export interface IStorage {
   createSchoolBuilding(building: InsertSchoolBuilding): Promise<SchoolBuilding>;
   updateSchoolBuilding(id: string, building: Partial<InsertSchoolBuilding>): Promise<SchoolBuilding>;
   deleteSchoolBuilding(id: string): Promise<void>;
+
+  // Supply operations
+  getSchoolSupplies(schoolId: string): Promise<SchoolSupply[]>;
+  createSchoolSupply(supply: InsertSchoolSupply): Promise<SchoolSupply>;
+  updateSchoolSupply(id: string, supply: Partial<InsertSchoolSupply>): Promise<SchoolSupply>;
+  deleteSchoolSupply(id: string): Promise<void>;
+
+  // Supply purchase operations
+  createSupplyPurchase(purchase: InsertSupplyPurchase): Promise<SupplyPurchase>;
+  getSupplyPurchases(supplyId: string): Promise<SupplyPurchase[]>;
+
+  // Supply usage operations
+  createSupplyUsage(usage: InsertSupplyUsage): Promise<SupplyUsage>;
+  getSupplyUsage(supplyId: string): Promise<SupplyUsage[]>;
+
+  // Supply room assignment operations
+  assignSupplyToRoom(assignment: InsertSupplyRoomAssignment): Promise<SupplyRoomAssignment>;
+  getSupplyRoomAssignments(supplyId: string): Promise<SupplyRoomAssignment[]>;
+  getStorageRoomsWithCapacity(schoolId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1653,7 +1675,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(schoolSupplies.createdAt));
   }
 
-  async createSupply(supplyData: InsertSchoolSupply): Promise<SchoolSupply> {
+  async createSchoolSupply(supplyData: InsertSchoolSupply): Promise<SchoolSupply> {
     const [supply] = await db
       .insert(schoolSupplies)
       .values({
@@ -1665,7 +1687,7 @@ export class DatabaseStorage implements IStorage {
     return supply;
   }
 
-  async updateSupply(id: string, supplyData: Partial<InsertSchoolSupply>): Promise<SchoolSupply> {
+  async updateSchoolSupply(id: string, supplyData: Partial<InsertSchoolSupply>): Promise<SchoolSupply> {
     const [supply] = await db
       .update(schoolSupplies)
       .set({
@@ -1677,7 +1699,7 @@ export class DatabaseStorage implements IStorage {
     return supply;
   }
 
-  async deleteSupply(id: string): Promise<void> {
+  async deleteSchoolSupply(id: string): Promise<void> {
     await db
       .update(schoolSupplies)
       .set({ isActive: false, updatedAt: new Date() })
@@ -1685,7 +1707,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Supply Purchase operations
-  async addSupplyPurchase(purchaseData: InsertSupplyPurchase): Promise<SupplyPurchase> {
+  async createSupplyPurchase(purchaseData: InsertSupplyPurchase): Promise<SupplyPurchase> {
     return db.transaction(async (tx) => {
       // Convert string date to Date object if needed
       const purchaseDate = typeof purchaseData.purchaseDate === 'string' 
@@ -1722,7 +1744,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Supply Usage operations
-  async recordSupplyUsage(usageData: InsertSupplyUsage): Promise<SupplyUsage> {
+  async createSupplyUsage(usageData: InsertSupplyUsage): Promise<SupplyUsage> {
     return db.transaction(async (tx) => {
       // Check current stock
       const [supply] = await tx.select().from(schoolSupplies).where(eq(schoolSupplies.id, usageData.supplyId));
@@ -1755,12 +1777,119 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getSupplyUsageHistory(supplyId: string): Promise<SupplyUsage[]> {
+  async getSupplyUsage(supplyId: string): Promise<SupplyUsage[]> {
     return await db
       .select()
       .from(supplyUsage)
       .where(eq(supplyUsage.supplyId, supplyId))
       .orderBy(desc(supplyUsage.usageDate));
+  }
+
+  // Supply Room Assignment operations
+  async assignSupplyToRoom(assignmentData: InsertSupplyRoomAssignment): Promise<SupplyRoomAssignment> {
+    return db.transaction(async (tx) => {
+      // Check available supply stock
+      const [supply] = await tx.select().from(schoolSupplies).where(eq(schoolSupplies.id, assignmentData.supplyId));
+      if (!supply || (supply.currentStock || 0) < assignmentData.quantity) {
+        throw new Error('Insufficient stock for this assignment');
+      }
+
+      // Check room capacity
+      const [building] = await tx.select().from(schoolBuildings).where(eq(schoolBuildings.id, assignmentData.buildingId));
+      if (!building) {
+        throw new Error('Building not found');
+      }
+
+      // Find the specific room in the building
+      const rooms = building.rooms as any[];
+      const room = rooms.find(r => r.id === assignmentData.roomId);
+      if (!room || room.type !== 'storage') {
+        throw new Error('Storage room not found or room is not a storage type');
+      }
+
+      // Check current room assignments for capacity
+      const currentAssignments = await tx
+        .select()
+        .from(supplyRoomAssignments)
+        .where(and(
+          eq(supplyRoomAssignments.roomId, assignmentData.roomId),
+          eq(supplyRoomAssignments.isActive, true)
+        ));
+
+      const currentUsedCapacity = currentAssignments.reduce((total, assignment) => total + (assignment.quantity || 0), 0);
+      const availableCapacity = (room.capacity || 0) - currentUsedCapacity;
+
+      if (assignmentData.quantity > availableCapacity) {
+        throw new Error(`Insufficient room capacity. Available: ${availableCapacity}, Required: ${assignmentData.quantity}`);
+      }
+
+      // Convert string date to Date object if needed
+      const assignedDate = typeof assignmentData.assignedDate === 'string' 
+        ? new Date(assignmentData.assignedDate) 
+        : assignmentData.assignedDate;
+
+      // Create assignment record
+      const [assignment] = await tx.insert(supplyRoomAssignments).values({
+        ...assignmentData,
+        assignedDate,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+
+      return assignment;
+    });
+  }
+
+  async getSupplyRoomAssignments(supplyId: string): Promise<SupplyRoomAssignment[]> {
+    return await db
+      .select()
+      .from(supplyRoomAssignments)
+      .where(and(eq(supplyRoomAssignments.supplyId, supplyId), eq(supplyRoomAssignments.isActive, true)))
+      .orderBy(desc(supplyRoomAssignments.assignedDate));
+  }
+
+  async getStorageRoomsWithCapacity(schoolId: string): Promise<any[]> {
+    const buildings = await db
+      .select()
+      .from(schoolBuildings)
+      .where(and(eq(schoolBuildings.schoolId, schoolId), eq(schoolBuildings.isActive, true)));
+
+    const storageRoomsWithCapacity = [];
+
+    for (const building of buildings) {
+      const rooms = building.rooms as any[];
+      const storageRooms = rooms.filter(room => room.type === 'storage' && room.isActive);
+
+      for (const room of storageRooms) {
+        // Get current assignments for this room
+        const currentAssignments = await db
+          .select()
+          .from(supplyRoomAssignments)
+          .where(and(
+            eq(supplyRoomAssignments.roomId, room.id),
+            eq(supplyRoomAssignments.buildingId, building.id),
+            eq(supplyRoomAssignments.isActive, true)
+          ));
+
+        const totalAssigned = currentAssignments.reduce((total, assignment) => total + (assignment.quantity || 0), 0);
+        const totalCapacity = room.capacity || 0;
+        const availableCapacity = totalCapacity - totalAssigned;
+
+        storageRoomsWithCapacity.push({
+          buildingId: building.id,
+          buildingName: building.buildingName,
+          roomId: room.id,
+          roomName: room.name,
+          floor: room.floor,
+          totalCapacity,
+          assignedCapacity: totalAssigned,
+          availableCapacity,
+          assignments: currentAssignments
+        });
+      }
+    }
+
+    return storageRoomsWithCapacity;
   }
 }
 
