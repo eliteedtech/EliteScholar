@@ -1,0 +1,52 @@
+Get school buildings error: error: relation "school_buildings" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getSchoolBuildings (/home/runner/workspace/server/storage.ts:1582:12)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:640:25) {
+  length: 116,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '159',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+4:07:57 PM [express] GET /api/schools/8239732f-f976-4721-901d-57bb553fc6d6/buildings 500 in 107ms ::…
+Retrieved 4 enabled features with menu links for school 8239732f-f976-4721-901d-57bb553fc6d6
+4:07:57 PM [express] GET /api/schools/features 304 in 26ms :: [{"id":"356362e9-66c4-4736-8a72-44a756…
+Create school building error: error: relation "school_buildings" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.createSchoolBuilding (/home/runner/workspace/server/storage.ts:1601:27)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:653:24) {
+  length: 115,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '13',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+4:09:26 PM [express] POST /api/schools/8239732f-f976-4721-901d-57bb553fc6d6/buildings 500 in 581ms :…

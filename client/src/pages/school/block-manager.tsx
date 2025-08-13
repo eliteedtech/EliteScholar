@@ -17,6 +17,7 @@ import { Building2, Plus, Settings, Trash2, Edit, Home, MapPin } from "lucide-re
 import { apiRequest } from "@/lib/queryClient";
 import { insertSchoolBuildingSchema } from "@shared/schema";
 import { useAuthStore } from "@/store/auth";
+import SchoolLayout from "@/components/school/layout";
 
 type SchoolBuilding = {
   id: string;
@@ -209,6 +210,7 @@ export default function BlockManager() {
   }
 
   return (
+    <SchoolLayout title="Block Management" subtitle="Manage school premises">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -619,5 +621,6 @@ export default function BlockManager() {
         </Dialog>
       )}
     </div>
+      </SchoolLayout>
   );
 }
