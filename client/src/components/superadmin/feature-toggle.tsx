@@ -32,7 +32,9 @@ export default function FeatureToggle({ school, onClose, onToggle }: FeatureTogg
   });
 
   const schoolFeatureMap = (schoolFeatures || []).reduce((acc, sf) => {
-    acc[sf.feature.key] = sf.enabled;
+    if (sf.feature && sf.feature.key) {
+      acc[sf.feature.key] = sf.enabled;
+    }
     return acc;
   }, {} as Record<string, boolean>);
 

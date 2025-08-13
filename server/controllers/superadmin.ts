@@ -685,7 +685,12 @@ router.get("/schools/:schoolId/features", async (req: AuthRequest, res: Response
   try {
     const { schoolId } = req.params;
     const schoolFeatures = await storage.getSchoolFeatures(schoolId);
-    res.json(schoolFeatures);
+    
+    // Filter out any school features where the feature reference is null
+    const validSchoolFeatures = schoolFeatures.filter(sf => sf.feature && sf.feature.key);
+    
+    console.log(`Retrieved ${validSchoolFeatures.length} valid school features for school ${schoolId}`);
+    res.json(validSchoolFeatures);
   } catch (error) {
     console.error("Get school features error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -903,27 +908,7 @@ router.put("/features/:featureId", async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Get school features (for feature selection modal)
-router.get("/schools/:schoolId/features", async (req: AuthRequest, res: Response) => {
-  try {
-    const { schoolId } = req.params;
-    
-    console.log('Getting features for school:', schoolId);
-    
-    // Get all enabled features for this school
-    const schoolFeatures = await storage.getSchoolFeatures(schoolId);
-    const enabledFeatures = schoolFeatures.filter(sf => sf.enabled && sf.feature);
-    
-    // Return the feature details
-    const features = enabledFeatures.map(sf => sf.feature);
-    
-    console.log('Found features for school:', features.length);
-    res.json(features);
-  } catch (error) {
-    console.error("Get school features error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+
 
 // Get school feature setup (menu links) 
 router.get("/schools/:schoolId/feature-setup/:featureId", async (req: AuthRequest, res: Response) => {
