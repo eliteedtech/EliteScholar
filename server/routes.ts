@@ -496,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced asset routes for purchase history and assignments
-  app.post("/api/assets/:id/purchases", authMiddleware, schoolAdminOnly, async (req, res) => {
+  app.post("/api/assets/:id/purchases", authMiddleware, async (req, res) => {
     try {
       const { id: assetId } = req.params;
       const purchaseData = req.body;
@@ -529,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/assets/:id/assignments", authMiddleware, schoolAdminOnly, async (req, res) => {
+  app.post("/api/assets/:id/assignments", authMiddleware, async (req, res) => {
     try {
       const { id: assetId } = req.params;
       const assignmentData = req.body;
@@ -572,6 +572,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Return asset error:", error);
       res.status(500).json({ message: (error as Error).message || "Internal server error" });
+    }
+  });
+
+  // School Supplier routes
+  app.get("/api/schools/:schoolId/suppliers", authMiddleware, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const suppliers = await storage.getSchoolSuppliers(schoolId);
+      res.json(suppliers);
+    } catch (error) {
+      console.error("Get school suppliers error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/schools/:schoolId/suppliers", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const supplierData = req.body;
+      
+      const supplier = await storage.createSchoolSupplier({
+        ...supplierData,
+        schoolId,
+      });
+      
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error("Create school supplier error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/suppliers/:id", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const supplierData = req.body;
+      
+      const supplier = await storage.updateSchoolSupplier(id, supplierData);
+      res.json(supplier);
+    } catch (error) {
+      console.error("Update school supplier error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", authMiddleware, schoolAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSchoolSupplier(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete school supplier error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 

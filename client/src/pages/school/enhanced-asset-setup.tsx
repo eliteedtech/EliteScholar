@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Plus, Search, Filter, Eye, DollarSign, Users, Package, Edit, Trash2, History, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Search, Filter, Eye, DollarSign, Users, Package, Edit, Trash2, History, ChevronDown, ChevronRight, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,7 @@ const assignmentFormSchema = z.object({
 type AssetFormData = z.infer<typeof assetFormSchema>;
 type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
 type AssignmentFormData = z.infer<typeof assignmentFormSchema>;
+type SupplierFormData = z.infer<typeof supplierFormSchema>;
 
 interface Asset {
   id: string;
@@ -114,6 +115,29 @@ interface GradeSection {
   type: string;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  productTypes: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Supplier form schema
+const supplierFormSchema = z.object({
+  name: z.string().min(1, "Supplier name is required"),
+  contactPerson: z.string().optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  productTypes: z.array(z.string()).min(1, "At least one product type is required"),
+});
+
 export default function EnhancedAssetSetup() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -124,6 +148,7 @@ export default function EnhancedAssetSetup() {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [filters, setFilters] = useState({ category: "all", condition: "all" });
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -142,6 +167,12 @@ export default function EnhancedAssetSetup() {
   // Fetch grade sections for location dropdown
   const { data: gradeSections = [] } = useQuery<GradeSection[]>({
     queryKey: ["/api/schools", user?.schoolId, "grade-sections"],
+    enabled: !!user?.schoolId,
+  });
+
+  // Fetch suppliers
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ["/api/schools", user?.schoolId, "suppliers"],
     enabled: !!user?.schoolId,
   });
 
@@ -228,6 +259,23 @@ export default function EnhancedAssetSetup() {
     },
   });
 
+  // Create supplier mutation
+  const createSupplierMutation = useMutation({
+    mutationFn: async (data: SupplierFormData) => {
+      const response = await apiRequest("POST", `/api/schools/${user?.schoolId}/suppliers`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schools", user?.schoolId, "suppliers"] });
+      setShowSupplierDialog(false);
+      supplierForm.reset();
+      toast({ title: "Success", description: "Supplier created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Forms
   const createForm = useForm<AssetFormData>({
     resolver: zodResolver(assetFormSchema),
@@ -251,6 +299,13 @@ export default function EnhancedAssetSetup() {
       assignmentType: "location",
       quantity: 1,
       assignedDate: new Date().toISOString().split('T')[0],
+    },
+  });
+
+  const supplierForm = useForm<SupplierFormData>({
+    resolver: zodResolver(supplierFormSchema),
+    defaultValues: {
+      productTypes: [],
     },
   });
 
@@ -282,6 +337,10 @@ export default function EnhancedAssetSetup() {
     assignAssetMutation.mutate(data);
   };
 
+  const onSupplierSubmit = (data: SupplierFormData) => {
+    createSupplierMutation.mutate(data);
+  };
+
   const openPurchaseDialog = (asset: Asset) => {
     setSelectedAsset(asset);
     setShowPurchaseDialog(true);
@@ -308,10 +367,16 @@ export default function EnhancedAssetSetup() {
             Manage assets with quantity tracking, purchase history, and assignments
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-asset">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Asset
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowSupplierDialog(true)} variant="outline" data-testid="button-manage-suppliers">
+            <Store className="h-4 w-4 mr-2" />
+            Manage Suppliers
+          </Button>
+          <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-asset">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Asset
+          </Button>
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -771,9 +836,21 @@ export default function EnhancedAssetSetup() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Supplier</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter supplier name" {...field} data-testid="input-purchase-supplier" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-purchase-supplier">
+                          <SelectValue placeholder="Select supplier" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">No supplier</SelectItem>
+                        {suppliers.map((supplier) => (
+                          <SelectItem key={supplier.id} value={supplier.name}>
+                            {supplier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1094,6 +1171,151 @@ export default function EnhancedAssetSetup() {
               </Accordion>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Supplier Management Dialog */}
+      <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              Manage Suppliers
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Create New Supplier Form */}
+            <Form {...supplierForm}>
+              <form onSubmit={supplierForm.handleSubmit(onSupplierSubmit)} className="space-y-4">
+                <div className="text-lg font-semibold">Add New Supplier</div>
+                
+                <FormField
+                  control={supplierForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Supplier Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter supplier name" {...field} data-testid="input-supplier-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={supplierForm.control}
+                  name="contactPerson"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Person</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Contact person name" {...field} data-testid="input-supplier-contact" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={supplierForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Email address" {...field} data-testid="input-supplier-email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={supplierForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Phone number" {...field} data-testid="input-supplier-phone" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={supplierForm.control}
+                  name="productTypes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Product Types*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter types separated by commas (e.g., Electronics, Furniture)" 
+                          {...field}
+                          onChange={(e) => {
+                            const types = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                            field.onChange(types);
+                          }}
+                          data-testid="input-supplier-product-types" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowSupplierDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createSupplierMutation.isPending}
+                    data-testid="button-submit-supplier"
+                  >
+                    {createSupplierMutation.isPending ? "Creating..." : "Create Supplier"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+
+            {/* Existing Suppliers List */}
+            {suppliers.length > 0 && (
+              <div className="space-y-3">
+                <Separator />
+                <div className="text-lg font-semibold">Existing Suppliers ({suppliers.length})</div>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {suppliers.map((supplier) => (
+                    <Card key={supplier.id} className="p-3">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <div className="font-medium">{supplier.name}</div>
+                          {supplier.contactPerson && (
+                            <div className="text-sm text-gray-600">{supplier.contactPerson}</div>
+                          )}
+                          {supplier.productTypes && supplier.productTypes.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {supplier.productTypes.map((type, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {type}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

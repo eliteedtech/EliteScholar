@@ -616,6 +616,23 @@ export type InsertAssetAssignment = z.infer<typeof insertAssetAssignmentSchema>;
 export type AssetPurchase = typeof assetPurchases.$inferSelect;
 export type AssetAssignment = typeof assetAssignments.$inferSelect;
 
+// School Suppliers table
+export const schoolSuppliers = pgTable("school_suppliers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  name: varchar("name").notNull(),
+  contactPerson: varchar("contact_person"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  productTypes: text("product_types").array(), // Array of product types they supply
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  supplierNameUnique: unique().on(table.schoolId, table.name),
+}));
+
 // Enhanced Asset type with purchase history and assignments
 export type AssetWithDetails = Asset & {
   purchases: AssetPurchase[];
@@ -623,6 +640,21 @@ export type AssetWithDetails = Asset & {
   currentValue: number;
   totalPurchaseCost: number;
 };
+
+// Supplier types
+export type SchoolSupplier = typeof schoolSuppliers.$inferSelect;
+export type InsertSchoolSupplier = typeof schoolSuppliers.$inferInsert;
+
+// Supplier Zod schemas
+export const insertSchoolSupplierSchema = createInsertSchema(schoolSuppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateSchoolSupplierSchema = insertSchoolSupplierSchema.partial();
+export type InsertSchoolSupplierInput = z.infer<typeof insertSchoolSupplierSchema>;
+export type UpdateSchoolSupplierInput = z.infer<typeof updateSchoolSupplierSchema>;
 
 // Relations
 export const userRelations = relations(users, ({ one }) => ({

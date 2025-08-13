@@ -20,6 +20,7 @@ import {
   subjects,
   classSubjects,
   assets,
+  schoolSuppliers,
   type User,
   type InsertUser,
   type School,
@@ -53,6 +54,8 @@ import {
   type InsertAcademicTerm,
   type AcademicWeek,
   type InsertAcademicWeek,
+  type SchoolSupplier,
+  type InsertSchoolSupplier,
   type Class,
   type InsertClass,
   type Subject,
@@ -175,6 +178,12 @@ export interface IStorage {
   createAsset(asset: InsertAsset): Promise<Asset>;
   updateAsset(id: string, asset: Partial<InsertAsset>): Promise<Asset>;
   deleteAsset(id: string): Promise<void>;
+  
+  // Supplier methods
+  getSchoolSuppliers(schoolId: string): Promise<SchoolSupplier[]>;
+  createSchoolSupplier(supplier: InsertSchoolSupplier): Promise<SchoolSupplier>;
+  updateSchoolSupplier(id: string, supplier: Partial<InsertSchoolSupplier>): Promise<SchoolSupplier>;
+  deleteSchoolSupplier(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1392,6 +1401,39 @@ export class DatabaseStorage implements IStorage {
       totalPurchaseCost,
       currentValue
     };
+  }
+
+  // Supplier operations
+  async getSchoolSuppliers(schoolId: string): Promise<SchoolSupplier[]> {
+    return await db
+      .select()
+      .from(schoolSuppliers)
+      .where(and(eq(schoolSuppliers.schoolId, schoolId), eq(schoolSuppliers.isActive, true)))
+      .orderBy(schoolSuppliers.name);
+  }
+
+  async createSchoolSupplier(supplier: InsertSchoolSupplier): Promise<SchoolSupplier> {
+    const [newSupplier] = await db
+      .insert(schoolSuppliers)
+      .values(supplier)
+      .returning();
+    return newSupplier;
+  }
+
+  async updateSchoolSupplier(id: string, supplier: Partial<InsertSchoolSupplier>): Promise<SchoolSupplier> {
+    const [updatedSupplier] = await db
+      .update(schoolSuppliers)
+      .set({ ...supplier, updatedAt: new Date() })
+      .where(eq(schoolSuppliers.id, id))
+      .returning();
+    return updatedSupplier;
+  }
+
+  async deleteSchoolSupplier(id: string): Promise<void> {
+    await db
+      .update(schoolSuppliers)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(schoolSuppliers.id, id));
   }
 
   async createAsset(assetData: InsertAsset): Promise<Asset> {
