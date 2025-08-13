@@ -699,12 +699,12 @@ export default function AssetSetupPage() {
               </div>
               <div>
                 <Label htmlFor="category-filter">Category</Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter || "all"} onValueChange={(value) => setCategoryFilter(value === "all" ? "" : value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
+                    <SelectItem value="all">All categories</SelectItem>
                     {ASSET_CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
@@ -715,12 +715,12 @@ export default function AssetSetupPage() {
               </div>
               <div>
                 <Label htmlFor="condition-filter">Condition</Label>
-                <Select value={conditionFilter} onValueChange={setConditionFilter}>
+                <Select value={conditionFilter || "all"} onValueChange={(value) => setConditionFilter(value === "all" ? "" : value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All conditions" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All conditions</SelectItem>
+                    <SelectItem value="all">All conditions</SelectItem>
                     {ASSET_CONDITIONS.map((condition) => (
                       <SelectItem key={condition} value={condition}>
                         {condition}
