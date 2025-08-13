@@ -132,6 +132,16 @@ function Router() {
                       })()}
                     </Suspense>
                   </Route>
+
+                  {/* Specific asset setup route - must come before generic feature routes */}
+                  <Route path="/school/school-setup/asset-setup">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const AssetSetupPage = lazy(() => import("./pages/school/asset-setup"));
+                        return <AssetSetupPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
                   
                   {/* Feature-based routes - New URL pattern /school/feature-name/* */}
                   <Route path="/school/:featureName/:page?" component={() => {
@@ -206,15 +216,6 @@ function Router() {
                       {(() => {
                         const SectionsPage = lazy(() => import("./pages/school/setup/sections"));
                         return <SectionsPage />;
-                      })()}
-                    </Suspense>
-                  </Route>
-
-                  <Route path="/school/school-setup/asset-setup">
-                    <Suspense fallback={<div>Loading...</div>}>
-                      {(() => {
-                        const AssetSetupPage = lazy(() => import("./pages/school/asset-setup"));
-                        return <AssetSetupPage />;
                       })()}
                     </Suspense>
                   </Route>
