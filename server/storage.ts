@@ -1477,9 +1477,15 @@ export class DatabaseStorage implements IStorage {
   // Asset Purchase operations
   async createAssetPurchase(purchaseData: InsertAssetPurchase): Promise<AssetPurchase> {
     return db.transaction(async (tx) => {
+      // Convert string date to Date object if needed
+      const purchaseDate = typeof purchaseData.purchaseDate === 'string' 
+        ? new Date(purchaseData.purchaseDate) 
+        : purchaseData.purchaseDate;
+
       // Create purchase record
       const [purchase] = await tx.insert(assetPurchases).values({
         ...purchaseData,
+        purchaseDate,
         createdAt: new Date(),
       }).returning();
 
@@ -1514,9 +1520,15 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Insufficient available quantity for assignment');
       }
 
+      // Convert string date to Date object if needed
+      const assignedDate = typeof assignmentData.assignedDate === 'string' 
+        ? new Date(assignmentData.assignedDate) 
+        : assignmentData.assignedDate;
+
       // Create assignment record
       const [assignment] = await tx.insert(assetAssignments).values({
         ...assignmentData,
+        assignedDate,
         status: 'assigned',
         createdAt: new Date(),
       }).returning();
