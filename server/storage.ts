@@ -1471,7 +1471,6 @@ export class DatabaseStorage implements IStorage {
       // Create purchase record
       const [purchase] = await tx.insert(assetPurchases).values({
         ...purchaseData,
-        totalCost: Number(purchaseData.purchasePrice) * Number(purchaseData.quantity),
         createdAt: new Date(),
       }).returning();
 

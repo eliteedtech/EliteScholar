@@ -1,0 +1,37 @@
+Uncaught TypeError: assetDetails.totalPurchaseCost?.toFixed is not a function
+    at EnhancedAssetSetup (enhanced-asset-setup.tsx:1035:80)
+    at renderWithHooks (chunk-XQLYTHWV.js?v=98488ced:11548:26)
+    at updateFunctionComponent (chunk-XQLYTHWV.js?v=98488ced:14582:28)
+    at beginWork (chunk-XQLYTHWV.js?v=98488ced:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-XQLYTHWV.js?v=98488ced:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-XQLYTHWV.js?v=98488ced:3699:24)
+    at invokeGuardedCallback (chunk-XQLYTHWV.js?v=98488ced:3733:39)
+    at beginWork$1 (chunk-XQLYTHWV.js?v=98488ced:19765:15)
+    at performUnitOfWork (chunk-XQLYTHWV.js?v=98488ced:19198:20)
+    at workLoopSync (chunk-XQLYTHWV.js?v=98488ced:19137:13)Understand this error
+hook.js:608 The above error occurred in the <EnhancedAssetSetup> component:
+
+    at EnhancedAssetSetup (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/pages/school/enhanced-asset-setup.tsx:80:20)
+    at Suspense
+    at Route (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98488ced:323:16)
+    at Switch (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=98488ced:379:17)
+    at Router (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/src/App.tsx?v=gfcbICcubppJ71q_6OJ8n:41:31)
+    at Provider (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QBKL35SI.js?v=98488ced:38:15)
+    at TooltipProvider (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=98488ced:63:5)
+    at QueryClientProvider (https://18d73bc7-67b9-431a-a763-6ab580a28802-00-3m7cjvunmk1xd.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=98488ced:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+overrideMethod @ hook.js:608Understand this error
+chunk-XQLYTHWV.js?v=98488ced:9129 Uncaught TypeError: assetDetails.totalPurchaseCost?.toFixed is not a function
+    at EnhancedAssetSetup (enhanced-asset-setup.tsx:1035:80)
+    at renderWithHooks (chunk-XQLYTHWV.js?v=98488ced:11548:26)
+    at updateFunctionComponent (chunk-XQLYTHWV.js?v=98488ced:14582:28)
+    at beginWork (chunk-XQLYTHWV.js?v=98488ced:15924:22)
+    at beginWork$1 (chunk-XQLYTHWV.js?v=98488ced:19753:22)
+    at performUnitOfWork (chunk-XQLYTHWV.js?v=98488ced:19198:20)
+    at workLoopSync (chunk-XQLYTHWV.js?v=98488ced:19137:13)
+    at renderRootSync (chunk-XQLYTHWV.js?v=98488ced:19116:15)
+    at recoverFromConcurrentError (chunk-XQLYTHWV.js?v=98488ced:18736:28)
+    at performSyncWorkOnRoot (chunk-XQLYTHWV.js?v=98488ced:18879:28)Understand this error

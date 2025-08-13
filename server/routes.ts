@@ -501,14 +501,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id: assetId } = req.params;
       const purchaseData = req.body;
       
+      // Validate numeric inputs to prevent overflow
+      const purchasePrice = Math.min(parseFloat(purchaseData.purchasePrice) || 0, 99999999.99);
+      const quantity = Math.max(1, Math.min(parseInt(purchaseData.quantity) || 1, 9999));
+      const totalCost = Math.min(purchasePrice * quantity, 99999999.99);
+
       const purchase = await storage.createAssetPurchase({
         ...purchaseData,
         assetId,
         createdBy: req.user?.id || purchaseData.schoolId,
         purchaseDate: purchaseData.purchaseDate ? new Date(purchaseData.purchaseDate) : new Date(),
-        purchasePrice: parseFloat(purchaseData.purchasePrice),
-        quantity: parseInt(purchaseData.quantity),
-        totalCost: parseFloat(purchaseData.totalCost),
+        purchasePrice: purchasePrice.toString(),
+        quantity,
+        totalCost: totalCost.toString(),
       });
 
       res.json(purchase);

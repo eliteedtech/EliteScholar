@@ -1032,7 +1032,7 @@ export default function EnhancedAssetSetup() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="font-medium">Total Cost:</span>
-                      <span className="ml-2">${assetDetails.totalPurchaseCost?.toFixed(2) || "0.00"}</span>
+                      <span className="ml-2">${typeof assetDetails.totalPurchaseCost === 'number' ? assetDetails.totalPurchaseCost.toFixed(2) : "0.00"}</span>
                     </div>
                     <div>
                       <span className="font-medium">Current Value:</span>
@@ -1074,11 +1074,11 @@ export default function EnhancedAssetSetup() {
                               </div>
                               <div>
                                 <span className="font-medium">Unit Price:</span>
-                                <span className="ml-2">${purchase.purchasePrice.toFixed(2)}</span>
+                                <span className="ml-2">${typeof purchase.purchasePrice === 'string' ? purchase.purchasePrice : (typeof purchase.purchasePrice === 'number' ? purchase.purchasePrice.toFixed(2) : '0.00')}</span>
                               </div>
                               <div>
                                 <span className="font-medium">Total Cost:</span>
-                                <span className="ml-2">${purchase.totalCost.toFixed(2)}</span>
+                                <span className="ml-2">${typeof purchase.totalCost === 'string' ? purchase.totalCost : (typeof purchase.totalCost === 'number' ? purchase.totalCost.toFixed(2) : '0.00')}</span>
                               </div>
                               {purchase.supplier && (
                                 <div>
