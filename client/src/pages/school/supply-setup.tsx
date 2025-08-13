@@ -696,7 +696,7 @@ export default function SupplySetup() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No supplier</SelectItem>
+                        <SelectItem value="none">No supplier</SelectItem>
                         {suppliers.map((supplier: any) => (
                           <SelectItem key={supplier.id} value={supplier.name}>
                             {supplier.name}
@@ -846,7 +846,7 @@ export default function SupplySetup() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No supplier</SelectItem>
+                        <SelectItem value="none">No supplier</SelectItem>
                         {suppliers.map((supplier: any) => (
                           <SelectItem key={supplier.id} value={supplier.name}>
                             {supplier.name}

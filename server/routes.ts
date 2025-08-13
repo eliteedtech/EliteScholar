@@ -590,6 +590,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
+      // Convert "none" supplier to null
+      if (supplyData.supplier === 'none') {
+        supplyData.supplier = null;
+      }
+
       const supply = await storage.createSupply({
         ...supplyData,
         createdBy: req.user.id,
@@ -636,6 +641,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!req.user?.id) {
         return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // Convert "none" supplier to null
+      if (purchaseData.supplier === 'none') {
+        purchaseData.supplier = null;
       }
 
       const purchase = await storage.addSupplyPurchase({
