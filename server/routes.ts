@@ -316,6 +316,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // School setup routes
   app.use("/api/schools/setup", (await import("./controllers/school-setup")).default);
 
+  // Asset routes for school asset management
+  app.get("/api/schools/:schoolId/assets", async (req, res) => {
+    try {
+      const { schoolId } = req.params;
+      const { category, condition, isActive } = req.query;
+      
+      const filters: any = {};
+      if (category) filters.category = category as string;
+      if (condition) filters.condition = condition as string;
+      if (isActive !== undefined) filters.isActive = isActive === 'true';
+      
+      const assets = await storage.getAssets(schoolId, filters);
+      res.json(assets);
+    } catch (error) {
+      console.error("Get assets error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/assets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const asset = await storage.getAssetById(id);
+      
+      if (!asset) {
+        return res.status(404).json({ message: "Asset not found" });
+      }
+      
+      res.json(asset);
+    } catch (error) {
+      console.error("Get asset error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/assets", upload.single('image'), async (req, res) => {
+    try {
+      const assetData = JSON.parse(req.body.assetData);
+      
+      // Validate required fields
+      if (!assetData.schoolId || !assetData.name || !assetData.category || !assetData.type) {
+        return res.status(400).json({ message: "Required fields missing" });
+      }
+
+      // Handle image upload if provided
+      let imageUrl = null;
+      if (req.file) {
+        try {
+          const uploadResult = await cloudinaryService.uploadImage(req.file.buffer, {
+            folder: `assets/${assetData.schoolId}`,
+            transformation: [
+              { width: 800, height: 600, crop: 'limit' },
+              { quality: 'auto', fetch_format: 'auto' }
+            ]
+          });
+          imageUrl = uploadResult.secure_url;
+        } catch (uploadError) {
+          console.error('Image upload failed:', uploadError);
+          // Continue without image if upload fails
+        }
+      }
+
+      const asset = await storage.createAsset({
+        ...assetData,
+        imageUrl,
+        createdBy: assetData.createdBy || assetData.schoolId,
+        purchasePrice: assetData.purchasePrice ? parseFloat(assetData.purchasePrice) : null,
+        currentValue: assetData.currentValue ? parseFloat(assetData.currentValue) : null,
+        purchaseDate: assetData.purchaseDate ? new Date(assetData.purchaseDate) : null,
+        warrantyExpiry: assetData.warrantyExpiry ? new Date(assetData.warrantyExpiry) : null,
+      });
+
+      res.status(201).json(asset);
+    } catch (error) {
+      console.error("Create asset error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.put("/api/assets/:id", upload.single('image'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const assetData = JSON.parse(req.body.assetData);
+
+      // Handle image upload if provided
+      let imageUrl = assetData.imageUrl; // Keep existing image by default
+      if (req.file) {
+        try {
+          const uploadResult = await cloudinaryService.uploadImage(req.file.buffer, {
+            folder: `assets/${assetData.schoolId}`,
+            transformation: [
+              { width: 800, height: 600, crop: 'limit' },
+              { quality: 'auto', fetch_format: 'auto' }
+            ]
+          });
+          imageUrl = uploadResult.secure_url;
+        } catch (uploadError) {
+          console.error('Image upload failed:', uploadError);
+        }
+      }
+
+      const asset = await storage.updateAsset(id, {
+        ...assetData,
+        imageUrl,
+        purchasePrice: assetData.purchasePrice ? parseFloat(assetData.purchasePrice) : null,
+        currentValue: assetData.currentValue ? parseFloat(assetData.currentValue) : null,
+        purchaseDate: assetData.purchaseDate ? new Date(assetData.purchaseDate) : null,
+        warrantyExpiry: assetData.warrantyExpiry ? new Date(assetData.warrantyExpiry) : null,
+      });
+
+      res.json(asset);
+    } catch (error) {
+      console.error("Update asset error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/assets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteAsset(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete asset error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

@@ -202,6 +202,37 @@ export const invoiceAssets = pgTable("invoice_assets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Assets table for school asset management
+export const assets = pgTable("assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  schoolId: varchar("school_id").notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull(), // "Equipment", "Furniture", "Technology", "Sports", "Other"
+  type: varchar("type").notNull(), // More specific type within category
+  serialNumber: varchar("serial_number"),
+  model: varchar("model"),
+  brand: varchar("brand"),
+  purchaseDate: timestamp("purchase_date"),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
+  currentValue: decimal("current_value", { precision: 10, scale: 2 }),
+  condition: varchar("condition").notNull().default("Good"), // "Excellent", "Good", "Fair", "Poor", "Damaged"
+  location: varchar("location"), // Where the asset is located
+  assignedTo: varchar("assigned_to"), // Staff or department assigned to
+  warrantyExpiry: timestamp("warranty_expiry"),
+  maintenanceSchedule: text("maintenance_schedule"),
+  notes: text("notes"),
+  imageUrl: varchar("image_url"),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  schoolAssetIdx: index("idx_assets_school").on(table.schoolId),
+  categoryIdx: index("idx_assets_category").on(table.category),
+  activeIdx: index("idx_assets_active").on(table.isActive),
+}));
+
 // Invoices table - updated for feature-based invoicing
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -516,10 +547,23 @@ export type EnhancedSubject = typeof enhancedSubjects.$inferSelect;
 export type InsertEnhancedSubject = typeof enhancedSubjects.$inferInsert;
 export type SubjectClassAssignment = typeof subjectClassAssignments.$inferSelect;
 export type InsertSubjectClassAssignment = typeof subjectClassAssignments.$inferInsert;
-export type AcademicWeek = typeof academicWeeks.$inferSelect;
-export type InsertAcademicWeek = typeof academicWeeks.$inferInsert;
 export type BranchAdmin = typeof branchAdmins.$inferSelect;
 export type InsertBranchAdmin = typeof branchAdmins.$inferInsert;
+
+// Asset types
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = typeof assets.$inferInsert;
+
+// Asset Zod schemas
+export const insertAssetSchema = createInsertSchema(assets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateAssetSchema = insertAssetSchema.partial();
+export type InsertAssetInput = z.infer<typeof insertAssetSchema>;
+export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
 
 // Relations
 export const userRelations = relations(users, ({ one }) => ({

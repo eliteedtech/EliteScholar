@@ -135,10 +135,12 @@ function Router() {
                   
                   {/* Feature-based routes - New URL pattern /school/feature-name/* */}
                   <Route path="/school/:featureName/:page?" component={() => {
-                    const FeaturePage = lazy(() => import("./pages/school/feature-page"));
                     return (
                       <Suspense fallback={<div>Loading...</div>}>
-                        <FeaturePage />
+                        {(() => {
+                          const FeaturePage = lazy(() => import("./pages/school/feature-page"));
+                          return <FeaturePage />;
+                        })()}
                       </Suspense>
                     );
                   }} />
@@ -204,6 +206,15 @@ function Router() {
                       {(() => {
                         const SectionsPage = lazy(() => import("./pages/school/setup/sections"));
                         return <SectionsPage />;
+                      })()}
+                    </Suspense>
+                  </Route>
+
+                  <Route path="/school/school-setup/asset-setup">
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {(() => {
+                        const AssetSetupPage = lazy(() => import("./pages/school/asset-setup"));
+                        return <AssetSetupPage />;
                       })()}
                     </Suspense>
                   </Route>

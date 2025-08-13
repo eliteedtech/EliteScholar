@@ -19,6 +19,7 @@ import {
   classes,
   subjects,
   classSubjects,
+  assets,
   type User,
   type InsertUser,
   type School,
@@ -58,6 +59,8 @@ import {
   type InsertSubject,
   type ClassSubject,
   type InsertClassSubject,
+  type Asset,
+  type InsertAsset,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, count, sql, or, ilike, ne } from "drizzle-orm";
@@ -155,6 +158,17 @@ export interface IStorage {
   createInvoiceAsset(asset: InsertInvoiceAsset): Promise<InvoiceAsset>;
   updateInvoiceAsset(id: string, asset: Partial<InsertInvoiceAsset>): Promise<InvoiceAsset>;
   deleteInvoiceAsset(id: string): Promise<void>;
+
+  // Asset operations
+  getAssets(schoolId: string, filters?: {
+    category?: string;
+    condition?: string;
+    isActive?: boolean;
+  }): Promise<Asset[]>;
+  getAssetById(id: string): Promise<Asset | undefined>;
+  createAsset(asset: InsertAsset): Promise<Asset>;
+  updateAsset(id: string, asset: Partial<InsertAsset>): Promise<Asset>;
+  deleteAsset(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1312,6 +1326,53 @@ export class DatabaseStorage implements IStorage {
       
       await this.updateSchoolFeatureSetup(schoolId, featureId, defaultMenuLinks);
     }
+  }
+  // Asset operations
+  async getAssets(schoolId: string, filters?: {
+    category?: string;
+    condition?: string;
+    isActive?: boolean;
+  }): Promise<Asset[]> {
+    let query = db.select().from(assets).where(eq(assets.schoolId, schoolId));
+    
+    if (filters?.category) {
+      query = query.where(eq(assets.category, filters.category));
+    }
+    if (filters?.condition) {
+      query = query.where(eq(assets.condition, filters.condition));
+    }
+    if (filters?.isActive !== undefined) {
+      query = query.where(eq(assets.isActive, filters.isActive));
+    }
+    
+    return await query.orderBy(desc(assets.createdAt));
+  }
+
+  async getAssetById(id: string): Promise<Asset | undefined> {
+    const [asset] = await db.select().from(assets).where(eq(assets.id, id));
+    return asset;
+  }
+
+  async createAsset(assetData: InsertAsset): Promise<Asset> {
+    const [asset] = await db.insert(assets).values({
+      ...assetData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return asset;
+  }
+
+  async updateAsset(id: string, assetData: Partial<InsertAsset>): Promise<Asset> {
+    const [asset] = await db
+      .update(assets)
+      .set({ ...assetData, updatedAt: new Date() })
+      .where(eq(assets.id, id))
+      .returning();
+    return asset;
+  }
+
+  async deleteAsset(id: string): Promise<void> {
+    await db.delete(assets).where(eq(assets.id, id));
   }
 }
 
