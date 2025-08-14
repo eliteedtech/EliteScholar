@@ -1,0 +1,51 @@
+Get school supplies error: error: column "room_id" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getSchoolSupplies (/home/runner/workspace/server/storage.ts:1671:12)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:576:24) {
+  length: 108,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '167',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3722',
+  routine: 'errorMissingColumn'
+}
+12:04:34 AM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/supplies 500 in 115ms :: …
+Get storage rooms error: error: relation "supply_room_assignments" does not exist
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-serverless/session.ts:102:18)
+    at async DatabaseStorage.getStorageRoomsWithCapacity (/home/runner/workspace/server/storage.ts:1865:36)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:752:28) {
+  length: 123,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '151',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+12:04:34 AM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/storage-rooms 500 in 139m…
+12:04:34 AM [express] GET /api/schools/19b8794a-88a8-4026-b070-4aef40a813a9/suppliers 304 in 193ms ::…

@@ -25,8 +25,6 @@ import {
   supplyPurchases,
   supplyUsage,
   supplyRoomAssignments,
-  assetPurchases,
-  assetAssignments,
   type User,
   type InsertUser,
   type School,
