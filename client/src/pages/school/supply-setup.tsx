@@ -351,18 +351,28 @@ export default function SupplySetup() {
   // Handler functions for dialog opening
   const handleOpenPurchaseDialog = (supply: Supply) => {
     setSelectedSupply(supply);
+    purchaseForm.reset({
+      purchaseDate: new Date().toISOString().split('T')[0],
+      quantity: 1,
+      unitPrice: supply.unitPrice || 0,
+      supplier: supply.supplier || "",
+      invoiceNumber: "",
+      notes: "",
+    });
     setShowPurchaseDialog(true);
-    purchaseForm.reset();
   };
 
   const handleOpenUsageDialog = (supply: Supply) => {
     setSelectedSupply(supply);
-    setShowUsageDialog(true);
-    usageForm.setValue("quantity", Math.min(supply.currentStock, 1));
     usageForm.reset({
-      ...usageForm.getValues(),
-      quantity: Math.min(supply.currentStock, 1),
+      usageType: "issued",
+      quantity: 1,
+      recipient: "",
+      purpose: "",
+      usageDate: new Date().toISOString().split('T')[0],
+      notes: "",
     });
+    setShowUsageDialog(true);
   };
 
   // Filter supplies
@@ -390,31 +400,7 @@ export default function SupplySetup() {
     return { status: "In Stock", color: "bg-green-500" };
   };
 
-  const handleOpenPurchaseDialog = (supply: Supply) => {
-    setSelectedSupply(supply);
-    purchaseForm.reset({
-      purchaseDate: new Date().toISOString().split('T')[0],
-      quantity: 1,
-      unitPrice: supply.unitPrice || 0,
-      supplier: supply.supplier || "",
-      invoiceNumber: "",
-      notes: "",
-    });
-    setShowPurchaseDialog(true);
-  };
 
-  const handleOpenUsageDialog = (supply: Supply) => {
-    setSelectedSupply(supply);
-    usageForm.reset({
-      usageType: "issued",
-      quantity: 1,
-      recipient: "",
-      purpose: "",
-      usageDate: new Date().toISOString().split('T')[0],
-      notes: "",
-    });
-    setShowUsageDialog(true);
-  };
 
   if (isLoading) return <SchoolLayout title="Supply Management"><div>Loading supplies...</div></SchoolLayout>;
   if (error) return <SchoolLayout title="Supply Management"><div>Error loading supplies</div></SchoolLayout>;
@@ -1260,7 +1246,7 @@ export default function SupplySetup() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {[...new Set(storageRooms.map(room => room.buildingId))].map((buildingId) => {
+                        {Array.from(new Set(storageRooms.map(room => room.buildingId))).map((buildingId) => {
                           const building = storageRooms.find(room => room.buildingId === buildingId);
                           return (
                             <SelectItem key={buildingId} value={buildingId}>

@@ -57,6 +57,16 @@ const assignmentFormSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Supplier form schema (Updated to match Supplier interface)
+const supplierFormSchema = z.object({
+  name: z.string().min(1, "Supplier name is required"),
+  contactPerson: z.string().optional(),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  productTypes: z.array(z.string()).min(1, "At least one product type is required"),
+});
+
 type AssetFormData = z.infer<typeof assetFormSchema>;
 type PurchaseFormData = z.infer<typeof purchaseFormSchema>;
 type AssignmentFormData = z.infer<typeof assignmentFormSchema>;
@@ -151,15 +161,7 @@ interface Supplier {
   updatedAt: string;
 }
 
-// Supplier form schema
-const supplierFormSchema = z.object({
-  name: z.string().min(1, "Supplier name is required"),
-  contactPerson: z.string().optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  productTypes: z.array(z.string()).min(1, "At least one product type is required"),
-});
+
 
 export default function EnhancedAssetSetup() {
   const { user } = useAuth();
@@ -269,7 +271,7 @@ export default function EnhancedAssetSetup() {
         purchases,
         assignments,
         totalPurchaseCost,
-        currentValue: selectedAsset?.currentValue || 0,
+        currentValue: totalPurchaseCost,
       };
     },
   });
